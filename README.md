@@ -154,6 +154,12 @@ and run the browser workflow with one command:
 ./test-prototype.sh
 ```
 
+The required compatibility gate always uses the local LiveKit container, even when the root `.env`
+configures LiveKit Cloud. This keeps the gate independent of Cloud quotas, service state, and network
+availability. To run the same workflows against the configured Cloud project explicitly, use
+`./test-prototype.sh cloud`. Cloud mode requires `LIVEKIT_URL`, `LIVEKIT_API_KEY`, and
+`LIVEKIT_API_SECRET` and is an optional integration run.
+
 This is the complete compatibility gate. The image build typechecks the TypeScript adapter, verifies
 its committed JavaScript bundle, runs the adapter contracts and workspace tests, and runs host and
 WASM all-feature typechecks. Playwright then runs the supported desktop
@@ -161,8 +167,8 @@ browsers, mobile-sized Chromium and WebKit consumers, lifecycle cleanup contract
 near-100-participant snapshot profile against freshly recreated local stack containers. Named
 volumes are retained so the trusted mobile CA remains stable.
 
-With the stack already running, rerun only the browser workflow with
-`docker compose --profile test run --rm smoke`.
+With the local stack already running, rerun only the browser workflow with
+`LIVEKIT_API_KEY=devkey LIVEKIT_API_SECRET=secret docker compose --profile test run --rm smoke`.
 
 The Playwright check runs the Room Session contract in Chromium, Firefox, and WebKit and verifies that:
 

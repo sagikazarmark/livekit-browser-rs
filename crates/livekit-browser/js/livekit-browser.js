@@ -371,81 +371,6 @@ function livekitTrackSource(source) {
   return normalized.livekit;
 }
 
-// src/statistics.ts
-var optionalFiniteNumber = (value) => typeof value === "number" && Number.isFinite(value) ? value : null;
-var optionalUnsignedInteger = (value) => typeof value === "number" && Number.isSafeInteger(value) && value >= 0 ? value : null;
-var optionalSignedInteger = (value) => typeof value === "number" && Number.isSafeInteger(value) ? value : null;
-var optionalString = (value) => typeof value === "string" ? value : null;
-function requiredFiniteNumber(value, field) {
-  if (typeof value === "number" && Number.isFinite(value)) return value;
-  throw new TypeError(`LiveKit returned invalid ${field}`);
-}
-function requireStatistics(value, direction) {
-  const statistics = value;
-  if (!statistics || !Number.isFinite(statistics.timestamp)) {
-    throw new TypeError(`LiveKit returned invalid ${direction} statistics`);
-  }
-  return statistics;
-}
-function normalizeReceiverStatistics(value) {
-  const statistics = requireStatistics(value, "receiver");
-  return {
-    timestamp: statistics.timestamp,
-    jitter_buffer_delay: optionalFiniteNumber(statistics.jitterBufferDelay),
-    packets_lost: optionalSignedInteger(statistics.packetsLost),
-    packets_received: optionalUnsignedInteger(statistics.packetsReceived),
-    bytes_received: optionalUnsignedInteger(statistics.bytesReceived),
-    stream_id: optionalString(statistics.streamId),
-    jitter: optionalFiniteNumber(statistics.jitter)
-  };
-}
-function normalizeSenderStatistics(value) {
-  const statistics = requireStatistics(value, "sender");
-  return {
-    timestamp: statistics.timestamp,
-    packets_sent: optionalUnsignedInteger(statistics.packetsSent),
-    bytes_sent: optionalUnsignedInteger(statistics.bytesSent),
-    jitter: optionalFiniteNumber(statistics.jitter),
-    packets_lost: optionalSignedInteger(statistics.packetsLost),
-    round_trip_time: optionalFiniteNumber(statistics.roundTripTime),
-    stream_id: optionalString(statistics.streamId)
-  };
-}
-function normalizeQualityLimitationDurations(value) {
-  if (value == null) return null;
-  if (typeof value !== "object") {
-    throw new TypeError("LiveKit returned invalid quality limitation durations");
-  }
-  const normalized = {};
-  for (const [key, duration] of Object.entries(value)) {
-    normalized[key] = requiredFiniteNumber(duration, "quality limitation duration");
-  }
-  return normalized;
-}
-function normalizeVideoSenderStatistics(value) {
-  const statistics = requireStatistics(value, "sender");
-  return {
-    ...normalizeSenderStatistics(statistics),
-    fir_count: optionalUnsignedInteger(statistics.firCount),
-    pli_count: optionalUnsignedInteger(statistics.pliCount),
-    nack_count: optionalUnsignedInteger(statistics.nackCount),
-    rid: optionalString(statistics.rid),
-    frame_width: optionalUnsignedInteger(statistics.frameWidth),
-    frame_height: optionalUnsignedInteger(statistics.frameHeight),
-    frames_per_second: optionalFiniteNumber(statistics.framesPerSecond),
-    frames_sent: optionalUnsignedInteger(statistics.framesSent),
-    quality_limitation_reason: optionalString(statistics.qualityLimitationReason),
-    quality_limitation_durations: normalizeQualityLimitationDurations(
-      statistics.qualityLimitationDurations
-    ),
-    quality_limitation_resolution_changes: optionalUnsignedInteger(
-      statistics.qualityLimitationResolutionChanges
-    ),
-    retransmitted_packets_sent: optionalUnsignedInteger(statistics.retransmittedPacketsSent),
-    target_bitrate: optionalFiniteNumber(statistics.targetBitrate)
-  };
-}
-
 // src/data-streams.ts
 var FLOW_TEXT_TOPIC = "~livekit-browser/flow/v1/text";
 var FLOW_BYTES_TOPIC = "~livekit-browser/flow/v1/bytes";
@@ -1307,6 +1232,1768 @@ function createParticipantRpcSubsystem(dependencies) {
   };
 }
 
+// src/statistics.ts
+var optionalFiniteNumber = (value) => typeof value === "number" && Number.isFinite(value) ? value : null;
+var optionalUnsignedInteger = (value) => typeof value === "number" && Number.isSafeInteger(value) && value >= 0 ? value : null;
+var optionalSignedInteger = (value) => typeof value === "number" && Number.isSafeInteger(value) ? value : null;
+var optionalString = (value) => typeof value === "string" ? value : null;
+function requiredFiniteNumber(value, field) {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  throw new TypeError(`LiveKit returned invalid ${field}`);
+}
+function requireStatistics(value, direction) {
+  const statistics = value;
+  if (!statistics || !Number.isFinite(statistics.timestamp)) {
+    throw new TypeError(`LiveKit returned invalid ${direction} statistics`);
+  }
+  return statistics;
+}
+function normalizeReceiverStatistics(value) {
+  const statistics = requireStatistics(value, "receiver");
+  return {
+    timestamp: statistics.timestamp,
+    jitter_buffer_delay: optionalFiniteNumber(statistics.jitterBufferDelay),
+    packets_lost: optionalSignedInteger(statistics.packetsLost),
+    packets_received: optionalUnsignedInteger(statistics.packetsReceived),
+    bytes_received: optionalUnsignedInteger(statistics.bytesReceived),
+    stream_id: optionalString(statistics.streamId),
+    jitter: optionalFiniteNumber(statistics.jitter)
+  };
+}
+function normalizeSenderStatistics(value) {
+  const statistics = requireStatistics(value, "sender");
+  return {
+    timestamp: statistics.timestamp,
+    packets_sent: optionalUnsignedInteger(statistics.packetsSent),
+    bytes_sent: optionalUnsignedInteger(statistics.bytesSent),
+    jitter: optionalFiniteNumber(statistics.jitter),
+    packets_lost: optionalSignedInteger(statistics.packetsLost),
+    round_trip_time: optionalFiniteNumber(statistics.roundTripTime),
+    stream_id: optionalString(statistics.streamId)
+  };
+}
+function normalizeQualityLimitationDurations(value) {
+  if (value == null) return null;
+  if (typeof value !== "object") {
+    throw new TypeError("LiveKit returned invalid quality limitation durations");
+  }
+  const normalized = {};
+  for (const [key, duration] of Object.entries(value)) {
+    normalized[key] = requiredFiniteNumber(duration, "quality limitation duration");
+  }
+  return normalized;
+}
+function normalizeVideoSenderStatistics(value) {
+  const statistics = requireStatistics(value, "sender");
+  return {
+    ...normalizeSenderStatistics(statistics),
+    fir_count: optionalUnsignedInteger(statistics.firCount),
+    pli_count: optionalUnsignedInteger(statistics.pliCount),
+    nack_count: optionalUnsignedInteger(statistics.nackCount),
+    rid: optionalString(statistics.rid),
+    frame_width: optionalUnsignedInteger(statistics.frameWidth),
+    frame_height: optionalUnsignedInteger(statistics.frameHeight),
+    frames_per_second: optionalFiniteNumber(statistics.framesPerSecond),
+    frames_sent: optionalUnsignedInteger(statistics.framesSent),
+    quality_limitation_reason: optionalString(statistics.qualityLimitationReason),
+    quality_limitation_durations: normalizeQualityLimitationDurations(
+      statistics.qualityLimitationDurations
+    ),
+    quality_limitation_resolution_changes: optionalUnsignedInteger(
+      statistics.qualityLimitationResolutionChanges
+    ),
+    retransmitted_packets_sent: optionalUnsignedInteger(statistics.retransmittedPacketsSent),
+    target_bitrate: optionalFiniteNumber(statistics.targetBitrate)
+  };
+}
+
+// src/local-media.ts
+function createLocalMediaSubsystem(dependencies) {
+  const { getRoom, allocateAttachmentId: allocateAttachmentId2, audioAnalysers: audioAnalysers2 } = dependencies;
+  let nextLocalVideoTrackId = 1;
+  let nextLocalAudioTrackId = 1;
+  const localVideoTracks = /* @__PURE__ */ new Map();
+  const localAudioTracks = /* @__PURE__ */ new Map();
+  function localVideoTrackRecord(trackId) {
+    const record = localVideoTracks.get(trackId);
+    if (!record) throw new Error("Local Video Track is no longer available");
+    return record;
+  }
+  function localAudioTrackRecord(trackId) {
+    const record = localAudioTracks.get(trackId);
+    if (!record) throw new Error("Local Audio Track is no longer available");
+    return record;
+  }
+  function localMediaTrackResources(kind) {
+    if (kind === "video") return { records: localVideoTracks, recordFor: localVideoTrackRecord };
+    if (kind === "audio") return { records: localAudioTracks, recordFor: localAudioTrackRecord };
+    throw new TypeError(`unsupported Local Media Track kind: ${kind}`);
+  }
+  function localMediaTrackRecord(trackId, kind) {
+    return localMediaTrackResources(kind).recordFor(trackId);
+  }
+  function enqueueLocalTrackMutation(record, operation) {
+    const result = record.mutationTail.then(operation, operation);
+    record.mutationTail = result.catch(() => {
+    });
+    return result;
+  }
+  function registerLocalTrack(id, track, mediaKind, captureOptions, source) {
+    return {
+      id,
+      track,
+      mediaKind,
+      source,
+      captureOptions,
+      captureStopped: false,
+      stopRequested: false,
+      stopOperation: null,
+      ownerDropped: false,
+      attachments: /* @__PURE__ */ new Map(),
+      audioAnalyserOwner: mediaKind === "audio" ? audioAnalysers2.createAudioAnalyserOwner() : void 0,
+      publishedRoomId: null,
+      pendingPublishRoomId: null,
+      publicationId: null,
+      pendingPublicationId: null,
+      publication: null,
+      publicationReplacementCallback: null,
+      awaitingPublicationReplacement: null,
+      explicitUnpublishId: null,
+      explicitUnpublishObservedId: null,
+      mutationTail: Promise.resolve(),
+      ended: false,
+      endedCallback: null,
+      endedListener: null,
+      browserEndedPeer: null,
+      endedCleanupComplete: false,
+      endedCleanupRunning: false
+    };
+  }
+  function registerLocalVideoTrack(track, captureOptions, source) {
+    const id = nextLocalVideoTrackId++;
+    localVideoTracks.set(id, registerLocalTrack(id, track, "video", captureOptions, source));
+    return id;
+  }
+  function registerLocalAudioTrack(track, captureOptions, source) {
+    const id = nextLocalAudioTrackId++;
+    localAudioTracks.set(id, registerLocalTrack(id, track, "audio", captureOptions, source));
+    return id;
+  }
+  function removeLocalTrackEndedListener(record) {
+    if (record.endedListener) {
+      record.track.off(globalThis.LivekitClient.TrackEvent.Ended, record.endedListener);
+      record.endedListener = null;
+    }
+    record.endedCallback = null;
+    record.browserEndedPeer = null;
+  }
+  function detachLocalElement(record, attachmentId) {
+    const element = record.attachments.get(attachmentId);
+    if (!element) return;
+    const clearIfStillDetached = () => {
+      if (![...record.attachments.values()].includes(element)) element.srcObject = null;
+    };
+    try {
+      record.track.detach(element);
+    } finally {
+      record.attachments.delete(attachmentId);
+      clearIfStillDetached();
+      queueMicrotask(clearIfStillDetached);
+      setTimeout(clearIfStillDetached, 0);
+    }
+  }
+  function stopLocalRecord(record) {
+    let failure = null;
+    if (record.audioAnalyserOwner) {
+      audioAnalysers2.terminateAudioAnalyserOwner(record.audioAnalyserOwner);
+    }
+    for (const attachmentId of [...record.attachments.keys()]) {
+      try {
+        detachLocalElement(record, attachmentId);
+      } catch (error) {
+        failure ??= error;
+      }
+    }
+    if (!record.captureStopped) {
+      try {
+        record.track.stop();
+        record.captureStopped = true;
+      } catch (error) {
+        failure ??= error;
+      }
+    }
+    if (failure) throw failure;
+  }
+  function deleteFinishedBrowserEndedRecord(record) {
+    if (!record.ownerDropped || !record.endedCleanupComplete || record.publication || record.publishedRoomId != null || record.pendingPublishRoomId != null || record.attachments.size > 0) {
+      return;
+    }
+    const records = record.mediaKind === "video" ? localVideoTracks : localAudioTracks;
+    records.delete(record.id);
+  }
+  function finishBrowserEndedCleanup(record, retryDelay = 0) {
+    if (record.endedCleanupRunning || record.endedCleanupComplete) return;
+    record.endedCleanupRunning = true;
+    const operation = enqueueLocalTrackMutation(record, async () => {
+      let failure = null;
+      const room = record.publishedRoomId == null ? void 0 : getRoom(record.publishedRoomId);
+      if (record.publication && room && !room.released) {
+        try {
+          await room.room.localParticipant.unpublishTrack(record.track, false);
+          record.publication = null;
+          record.publishedRoomId = null;
+          record.publicationId = null;
+        } catch (error) {
+          failure = error;
+        }
+      } else if (!room || room.released) {
+        record.publication = null;
+        record.publishedRoomId = null;
+        record.publicationId = null;
+      }
+      try {
+        stopLocalRecord(record);
+      } catch (error) {
+        failure ??= error;
+      }
+      if (failure) throw failure;
+    });
+    record.stopOperation = operation;
+    void operation.then(
+      () => {
+        if (record.stopOperation === operation) record.stopOperation = null;
+        record.endedCleanupRunning = false;
+        record.endedCleanupComplete = true;
+        deleteFinishedBrowserEndedRecord(record);
+      },
+      () => {
+        if (record.stopOperation === operation) record.stopOperation = null;
+        record.endedCleanupRunning = false;
+        const nextDelay = Math.min(Math.max(retryDelay * 2, 10), 1e3);
+        setTimeout(() => finishBrowserEndedCleanup(record, nextDelay), nextDelay);
+      }
+    );
+  }
+  function finishBrowserEnded(record, sourceEnded) {
+    if (record.ended) return;
+    record.ended = true;
+    record.stopRequested = true;
+    record.captureStopped = sourceEnded;
+    if (record.audioAnalyserOwner) {
+      audioAnalysers2.terminateAudioAnalyserOwner(record.audioAnalyserOwner);
+    }
+    for (const attachmentId of [...record.attachments.keys()]) {
+      try {
+        detachLocalElement(record, attachmentId);
+      } catch {
+      }
+    }
+    if (record.endedListener) {
+      record.track.off(globalThis.LivekitClient.TrackEvent.Ended, record.endedListener);
+      record.endedListener = null;
+    }
+    const callback = record.endedCallback;
+    record.endedCallback = null;
+    const peer = record.browserEndedPeer;
+    record.browserEndedPeer = null;
+    try {
+      callback?.();
+    } finally {
+      try {
+        if (peer) finishBrowserEnded(peer, false);
+      } finally {
+        finishBrowserEndedCleanup(record);
+      }
+    }
+  }
+  function installLocalTrackEndedListener(record, onEnded) {
+    const listener = () => finishBrowserEnded(record, true);
+    record.endedListener = listener;
+    record.track.on(globalThis.LivekitClient.TrackEvent.Ended, listener);
+    if (onEnded) record.endedCallback = onEnded;
+  }
+  function observeLocalVideoTrackEnded2(trackId, onEnded) {
+    const record = localVideoTrackRecord(trackId);
+    if (record.ended) queueMicrotask(onEnded);
+    else record.endedCallback = onEnded;
+  }
+  function observeLocalAudioTrackEnded2(trackId, onEnded) {
+    const record = localAudioTrackRecord(trackId);
+    if (record.ended) queueMicrotask(onEnded);
+    else record.endedCallback = onEnded;
+  }
+  function createLocalClipMediaStream2(audioTrackIds, videoTrackIds) {
+    const source = (records, trackId, expectedKind) => {
+      const record = records.get(trackId);
+      if (!record || record.mediaKind !== expectedKind) {
+        throw new Error(`Local ${expectedKind} Track is no longer available`);
+      }
+      if (record.stopRequested || record.captureStopped || record.ended) {
+        throw new Error(`Local ${expectedKind} Track has stopped`);
+      }
+      const mediaStreamTrack = record.track?.mediaStreamTrack;
+      if (!(mediaStreamTrack instanceof MediaStreamTrack) || mediaStreamTrack.readyState !== "live") {
+        throw new TypeError(`Local ${expectedKind} Track has no live browser source`);
+      }
+      return mediaStreamTrack;
+    };
+    return new MediaStream([
+      ...audioTrackIds.map((trackId) => source(localAudioTracks, trackId, "audio")),
+      ...videoTrackIds.map((trackId) => source(localVideoTracks, trackId, "video"))
+    ]);
+  }
+  async function restartVideoTrack(record, options) {
+    const restartOptions = cloneCaptureOptions(options);
+    delete restartOptions.resolution;
+    delete restartOptions.frameRate;
+    await record.track.restartTrack(restartOptions);
+    const constraints = {};
+    if (options.resolution?.width != null) constraints.width = { ideal: options.resolution.width };
+    if (options.resolution?.height != null) constraints.height = { ideal: options.resolution.height };
+    if (options.frameRate != null) constraints.frameRate = { ideal: options.frameRate };
+    if (Object.keys(constraints).length > 0) {
+      await record.track.mediaStreamTrack.applyConstraints(constraints);
+    }
+    record.track._constraints = {
+      ...record.track._constraints,
+      ...constraints
+    };
+  }
+  function restartLocalTrack({
+    record,
+    nextOptions,
+    normalizeOptions,
+    performRestart,
+    terminate,
+    onComplete
+  }) {
+    let becameTerminal = false;
+    let operation;
+    try {
+      if (typeof record.track.restartTrack !== "function") {
+        throw new TypeError("LiveKit Local Track does not support restart");
+      }
+      operation = enqueueLocalTrackMutation(record, async () => {
+        if (record.stopRequested) throw new Error("Local Media Track capture has stopped");
+        const previousOptions = cloneCaptureOptions(record.captureOptions);
+        const requestedOptions = normalizeOptions(nextOptions(previousOptions));
+        const previousSource = record.mediaKind === "audio" ? record.track.mediaStreamTrack : null;
+        try {
+          await performRestart(record, cloneCaptureOptions(requestedOptions));
+          record.captureOptions = requestedOptions;
+        } catch (error) {
+          try {
+            await performRestart(record, cloneCaptureOptions(previousOptions));
+          } catch {
+            becameTerminal = true;
+            terminate(record);
+          }
+          throw error;
+        } finally {
+          if (previousSource && record.track.mediaStreamTrack !== previousSource) {
+            audioAnalysers2.terminateAudioAnalyserOwner(record.audioAnalyserOwner);
+          }
+        }
+      });
+    } catch (error) {
+      operation = Promise.reject(error);
+    }
+    return operation.then(
+      (value) => {
+        onComplete(false);
+        return value;
+      },
+      (error) => {
+        onComplete(becameTerminal);
+        throw error;
+      }
+    );
+  }
+  function rawLocalMediaTrack2(trackId, kind) {
+    const record = localMediaTrackRecord(trackId, kind);
+    if (record.stopRequested || record.captureStopped || record.ended) {
+      throw new Error("Local Media Track is no longer available");
+    }
+    return record.track;
+  }
+  function rawLocalPublication2(trackId, publicationId, kind) {
+    const record = localMediaTrackRecord(trackId, kind);
+    if (record.publicationId !== publicationId || !record.publication) {
+      throw new Error("Local Track Publication is no longer available");
+    }
+    return record.publication;
+  }
+  function setLocalMediaTrackProcessor2(trackId, kind, processor, showProcessedStreamLocally) {
+    const record = localMediaTrackRecord(trackId, kind);
+    if (record.stopRequested || record.captureStopped || record.ended) {
+      return Promise.reject(new Error("Local Media Track is no longer available"));
+    }
+    if (typeof record.track.setProcessor !== "function") {
+      return Promise.reject(new TypeError("LiveKit Local Media Track does not support processors"));
+    }
+    return enqueueLocalTrackMutation(record, async () => {
+      if (record.stopRequested || record.captureStopped || record.ended) {
+        throw new Error("Local Media Track is no longer available");
+      }
+      await record.track.setProcessor(processor, showProcessedStreamLocally);
+      if (record.audioAnalyserOwner) {
+        audioAnalysers2.terminateAudioAnalyserOwner(record.audioAnalyserOwner);
+      }
+    });
+  }
+  function rawLocalMediaTrackProcessor2(trackId, kind) {
+    const record = localMediaTrackRecord(trackId, kind);
+    if (record.stopRequested || record.captureStopped || record.ended) {
+      throw new Error("Local Media Track is no longer available");
+    }
+    if (typeof record.track.getProcessor !== "function") {
+      throw new TypeError("LiveKit Local Media Track does not support processors");
+    }
+    return record.track.getProcessor() ?? null;
+  }
+  function stopLocalMediaTrackProcessor2(trackId, kind) {
+    const record = localMediaTrackRecord(trackId, kind);
+    if (typeof record.track.stopProcessor !== "function") {
+      return Promise.reject(new TypeError("LiveKit Local Media Track does not support processors"));
+    }
+    return enqueueLocalTrackMutation(record, async () => {
+      if (record.stopRequested || record.captureStopped || record.ended) {
+        throw new Error("Local Media Track is no longer available");
+      }
+      await record.track.stopProcessor(false);
+      if (record.audioAnalyserOwner) {
+        audioAnalysers2.terminateAudioAnalyserOwner(record.audioAnalyserOwner);
+      }
+    });
+  }
+  function createLocalAudioAnalyser2(trackId, onTerminal) {
+    const record = localAudioTrackRecord(trackId);
+    if (record.stopRequested) throw new Error("Local Audio Track capture has stopped");
+    const sourceTrack = audioAnalysers2.mediaStreamAudioSource(record.track);
+    return audioAnalysers2.createAudioAnalyser(
+      record.audioAnalyserOwner,
+      sourceTrack,
+      () => localAudioTracks.get(record.id) === record && !record.stopRequested && record.track.mediaStreamTrack === sourceTrack,
+      onTerminal
+    );
+  }
+  function queueLocalStop(record) {
+    record.stopRequested = true;
+    removeLocalTrackEndedListener(record);
+    if (record.stopOperation) return record.stopOperation;
+    const operation = enqueueLocalTrackMutation(record, () => stopLocalRecord(record));
+    record.stopOperation = operation;
+    void operation.catch(() => {
+      if (record.stopOperation === operation) record.stopOperation = null;
+    });
+    return operation;
+  }
+  function terminateAfterRestartFailure(record) {
+    record.stopRequested = true;
+    try {
+      stopLocalRecord(record);
+    } catch {
+      record.captureStopped = true;
+    }
+  }
+  function requireLocalTrackInstance(track, name) {
+    requireMethods(track, name, [
+      "on",
+      "off",
+      "attach",
+      "detach",
+      "stop",
+      "getDeviceId",
+      "restartTrack",
+      "mute",
+      "unmute",
+      "getSenderStats"
+    ]);
+  }
+  function createCameraVideoTrack2(options, raw, onComplete) {
+    const captureOptions = cameraCaptureOptions(options, raw);
+    void globalThis.LivekitClient.createLocalVideoTrack(cloneCaptureOptions(captureOptions)).then(
+      (track) => {
+        try {
+          requireLocalTrackInstance(track, "LocalVideoTrack instance");
+          onComplete(true, registerLocalVideoTrack(track, captureOptions, "camera"));
+        } catch (error) {
+          try {
+            track?.stop?.();
+          } catch {
+          }
+          onComplete(false, error);
+        }
+      },
+      (error) => onComplete(false, error)
+    );
+  }
+  function localVideoTrackDeviceId2(trackId) {
+    const record = localVideoTrackRecord(trackId);
+    return enqueueLocalTrackMutation(record, async () => {
+      if (record.stopRequested) throw new Error("Local Video Track capture has stopped");
+      return await record.track.getDeviceId() ?? null;
+    });
+  }
+  function restartLocalVideoTrack2(trackId, onComplete) {
+    const record = localVideoTrackRecord(trackId);
+    return restartLocalTrack({
+      record,
+      nextOptions: (previous) => previous,
+      normalizeOptions: (requested) => cameraCaptureOptions(requested, void 0),
+      performRestart: restartVideoTrack,
+      terminate: terminateAfterRestartFailure,
+      onComplete
+    });
+  }
+  function restartLocalVideoTrackWithOptions2(trackId, options, raw, onComplete) {
+    const record = localVideoTrackRecord(trackId);
+    return restartLocalTrack({
+      record,
+      nextOptions: () => cameraCaptureOptions(options, raw),
+      normalizeOptions: (requested) => requested,
+      performRestart: restartVideoTrack,
+      terminate: terminateAfterRestartFailure,
+      onComplete
+    });
+  }
+  function switchLocalVideoTrackDevice2(trackId, deviceId, onComplete) {
+    const record = localVideoTrackRecord(trackId);
+    return restartLocalTrack({
+      record,
+      nextOptions: (previous) => ({ ...previous, deviceId: { exact: deviceId } }),
+      normalizeOptions: (requested) => cameraCaptureOptions(requested, void 0),
+      performRestart: restartVideoTrack,
+      terminate: terminateAfterRestartFailure,
+      onComplete
+    });
+  }
+  function attachLocalVideoTrack2(trackId, element) {
+    const record = localVideoTrackRecord(trackId);
+    if (record.stopRequested) throw new Error("Local Video Track capture has stopped");
+    const attachmentId = allocateAttachmentId2();
+    record.track.attach(element);
+    record.attachments.set(attachmentId, element);
+    return attachmentId;
+  }
+  function detachLocalVideoTrack2(trackId, attachmentId) {
+    detachLocalElement(localVideoTrackRecord(trackId), attachmentId);
+  }
+  function stopLocalVideoTrack2(trackId) {
+    return queueLocalStop(localVideoTrackRecord(trackId));
+  }
+  function dropLocalVideoTrackAttachment2(trackId, attachmentId) {
+    const record = localVideoTracks.get(trackId);
+    if (record) detachLocalElement(record, attachmentId);
+  }
+  function finishDroppedLocalTrack(record, trackId, retryDelay = 0) {
+    if (record.ended) {
+      deleteFinishedBrowserEndedRecord(record);
+      return;
+    }
+    void queueLocalStop(record).then(
+      () => {
+        if (record.attachments.size === 0 && record.publishedRoomId == null) {
+          const records = record.mediaKind === "video" ? localVideoTracks : localAudioTracks;
+          records.delete(trackId);
+        }
+      },
+      () => {
+        const nextDelay = Math.min(Math.max(retryDelay * 2, 10), 1e3);
+        setTimeout(() => finishDroppedLocalTrack(record, trackId, nextDelay), nextDelay);
+      }
+    );
+  }
+  function dropLocalVideoTrack2(trackId) {
+    const record = localVideoTracks.get(trackId);
+    if (!record) return;
+    removeLocalTrackEndedListener(record);
+    record.ownerDropped = true;
+    finishDroppedLocalTrack(record, trackId);
+  }
+  function createMicrophoneAudioTrack2(options, raw, onComplete) {
+    const captureOptions = microphoneCaptureOptions(options, raw);
+    void globalThis.LivekitClient.createLocalAudioTrack(cloneCaptureOptions(captureOptions)).then(
+      (track) => {
+        try {
+          requireLocalTrackInstance(track, "LocalAudioTrack instance");
+          onComplete(true, registerLocalAudioTrack(track, captureOptions, "microphone"));
+        } catch (error) {
+          try {
+            track?.stop?.();
+          } catch {
+          }
+          onComplete(false, error);
+        }
+      },
+      (error) => onComplete(false, error)
+    );
+  }
+  function createScreenCapture2(options, raw, onComplete) {
+    const captureOptions = screenCaptureOptions(options, raw);
+    void globalThis.LivekitClient.createLocalScreenTracks(cloneCaptureOptions(captureOptions)).then(
+      (tracks) => {
+        let videoTrackId = null;
+        let audioTrackId = null;
+        try {
+          if (!Array.isArray(tracks)) {
+            throw new TypeError("LiveKit display capture did not return a track array");
+          }
+          const videoTracks = tracks.filter(
+            (track) => track.kind === "video"
+          );
+          const audioTracks = tracks.filter(
+            (track) => track.kind === "audio"
+          );
+          if (videoTracks.length !== 1 || audioTracks.length > 1 || tracks.length > 2) {
+            throw new TypeError(
+              "LiveKit display capture must return one video track and at most one audio track"
+            );
+          }
+          requireLocalTrackInstance(videoTracks[0], "LocalVideoTrack instance");
+          videoTrackId = registerLocalVideoTrack(videoTracks[0], captureOptions, "screenShare");
+          const videoRecord = localVideoTrackRecord(videoTrackId);
+          installLocalTrackEndedListener(videoRecord, null);
+          if (audioTracks.length === 1) {
+            requireLocalTrackInstance(audioTracks[0], "LocalAudioTrack instance");
+            audioTrackId = registerLocalAudioTrack(
+              audioTracks[0],
+              captureOptions,
+              "screenShareAudio"
+            );
+            const audioRecord = localAudioTrackRecord(audioTrackId);
+            installLocalTrackEndedListener(audioRecord, null);
+            videoRecord.browserEndedPeer = audioRecord;
+          }
+          onComplete(true, { video_track_id: videoTrackId, audio_track_id: audioTrackId });
+        } catch (error) {
+          if (videoTrackId != null) {
+            const record = localVideoTracks.get(videoTrackId);
+            if (record) {
+              removeLocalTrackEndedListener(record);
+              try {
+                stopLocalRecord(record);
+              } catch {
+              }
+              localVideoTracks.delete(videoTrackId);
+            }
+          }
+          if (audioTrackId != null) {
+            const record = localAudioTracks.get(audioTrackId);
+            if (record) {
+              removeLocalTrackEndedListener(record);
+              try {
+                stopLocalRecord(record);
+              } catch {
+              }
+              localAudioTracks.delete(audioTrackId);
+            }
+          }
+          for (const track of Array.isArray(tracks) ? tracks : []) {
+            try {
+              track.stop();
+            } catch {
+            }
+          }
+          onComplete(false, error);
+        }
+      },
+      (error) => onComplete(false, error)
+    );
+  }
+  function localAudioTrackDeviceId2(trackId) {
+    const record = localAudioTrackRecord(trackId);
+    return enqueueLocalTrackMutation(record, async () => {
+      if (record.stopRequested) throw new Error("Local Audio Track capture has stopped");
+      return await record.track.getDeviceId() ?? null;
+    });
+  }
+  function restartLocalAudioTrack2(trackId, onComplete) {
+    const record = localAudioTrackRecord(trackId);
+    return restartLocalTrack({
+      record,
+      nextOptions: (previous) => previous,
+      normalizeOptions: (requested) => microphoneCaptureOptions(requested, void 0),
+      performRestart: (current, requested) => current.track.restartTrack(requested),
+      terminate: terminateAfterRestartFailure,
+      onComplete
+    });
+  }
+  function restartLocalAudioTrackWithOptions2(trackId, options, raw, onComplete) {
+    const record = localAudioTrackRecord(trackId);
+    return restartLocalTrack({
+      record,
+      nextOptions: () => microphoneCaptureOptions(options, raw),
+      normalizeOptions: (requested) => requested,
+      performRestart: (current, requested) => current.track.restartTrack(requested),
+      terminate: terminateAfterRestartFailure,
+      onComplete
+    });
+  }
+  function switchLocalAudioTrackDevice2(trackId, deviceId, onComplete) {
+    const record = localAudioTrackRecord(trackId);
+    return restartLocalTrack({
+      record,
+      nextOptions: (previous) => ({ ...previous, deviceId: { exact: deviceId } }),
+      normalizeOptions: (requested) => microphoneCaptureOptions(requested, void 0),
+      performRestart: (current, requested) => current.track.restartTrack(requested),
+      terminate: terminateAfterRestartFailure,
+      onComplete
+    });
+  }
+  function attachLocalAudioTrack2(trackId, element) {
+    const record = localAudioTrackRecord(trackId);
+    if (record.stopRequested) throw new Error("Local Audio Track capture has stopped");
+    const attachmentId = allocateAttachmentId2();
+    record.track.attach(element);
+    record.attachments.set(attachmentId, element);
+    return attachmentId;
+  }
+  function detachLocalAudioTrack2(trackId, attachmentId) {
+    detachLocalElement(localAudioTrackRecord(trackId), attachmentId);
+  }
+  function stopLocalAudioTrack2(trackId) {
+    return queueLocalStop(localAudioTrackRecord(trackId));
+  }
+  function dropLocalAudioTrackAttachment2(trackId, attachmentId) {
+    const record = localAudioTracks.get(trackId);
+    if (record) detachLocalElement(record, attachmentId);
+  }
+  function dropLocalAudioTrack2(trackId) {
+    const record = localAudioTracks.get(trackId);
+    if (!record) return;
+    removeLocalTrackEndedListener(record);
+    record.ownerDropped = true;
+    finishDroppedLocalTrack(record, trackId);
+  }
+  function audioPublicationOptions(options, raw, record) {
+    if (options.audioCodec != null && options.audioCodec !== "opus") {
+      throw new TypeError(`unsupported audio codec: ${options.audioCodec}`);
+    }
+    const normalized = { ...rawOptions(raw), source: livekitTrackSource(record.source) };
+    if (options.name != null) normalized.name = options.name;
+    if (options.dtx != null) normalized.dtx = options.dtx;
+    if (options.red != null) normalized.red = options.red;
+    return normalized;
+  }
+  function videoPublicationOptions(options, raw, record) {
+    const normalized = { ...rawOptions(raw), source: livekitTrackSource(record.source) };
+    if (options.name != null) normalized.name = options.name;
+    if (options.videoCodec != null) normalized.videoCodec = options.videoCodec;
+    if (options.simulcast != null) normalized.simulcast = options.simulcast;
+    if (options.videoEncoding != null) {
+      const encoding = {
+        maxBitrate: options.videoEncoding.maxBitrate,
+        maxFramerate: options.videoEncoding.maxFramerate
+      };
+      if (record.source === "screenShare") normalized.screenShareEncoding = encoding;
+      else normalized.videoEncoding = encoding;
+    }
+    return normalized;
+  }
+  function requirePublicationSid(publication) {
+    if (typeof publication.trackSid !== "string" || publication.trackSid.length === 0) {
+      throw new TypeError("LiveKit returned a Track Publication without a SID");
+    }
+    return publication.trackSid;
+  }
+  function publishLocalTrack({
+    roomId,
+    trackId,
+    publicationId,
+    options,
+    raw,
+    onComplete,
+    onReplaced,
+    recordFor,
+    normalizeOptions,
+    mediaName
+  }) {
+    let operation;
+    try {
+      const room = getRoom(roomId);
+      if (!room || room.released) throw new Error("Room Session is no longer available");
+      const record = recordFor(trackId);
+      if (record.awaitingPublicationReplacement && record.awaitingPublicationReplacement.roomId !== roomId) {
+        throw new Error(`${mediaName} is still associated with another Room Session`);
+      }
+      if (record.pendingPublishRoomId != null) {
+        throw new Error(`${mediaName} already has a pending publication`);
+      }
+      const normalizedOptions = normalizeOptions(options, raw, record);
+      record.pendingPublishRoomId = roomId;
+      record.pendingPublicationId = publicationId;
+      operation = enqueueLocalTrackMutation(record, async () => {
+        let publication = null;
+        try {
+          if (room.released) throw new Error("Room Session is no longer available");
+          if (record.stopRequested) throw new Error(`${mediaName} capture has stopped`);
+          if (record.publishedRoomId != null) {
+            throw new Error(`${mediaName} is already associated with a Room Session`);
+          }
+          publication = await room.room.localParticipant.publishTrack(record.track, normalizedOptions);
+          if (room.released) {
+            try {
+              await room.room.localParticipant.unpublishTrack(record.track, false);
+            } catch {
+            }
+            publication = null;
+            throw new Error("Room Session is no longer available");
+          }
+          if (record.ended) {
+            try {
+              await room.room.localParticipant.unpublishTrack(record.track, false);
+            } catch (error) {
+              record.publication = publication;
+              record.publishedRoomId = roomId;
+              record.publicationId = publicationId;
+              publication = null;
+              throw error;
+            }
+            publication = null;
+            throw new Error(`${mediaName} capture ended while publication was completing`);
+          }
+          const sid = requirePublicationSid(publication);
+          record.publication = publication;
+          record.publishedRoomId = roomId;
+          record.publicationId = publicationId;
+          record.publicationReplacementCallback = onReplaced;
+          record.awaitingPublicationReplacement = null;
+          record.pendingPublishRoomId = null;
+          record.pendingPublicationId = null;
+          return sid;
+        } catch (error) {
+          if (publication) {
+            try {
+              await room.room.localParticipant.unpublishTrack(record.track, false);
+            } catch {
+            }
+          }
+          if (record.pendingPublicationId === publicationId) {
+            record.pendingPublishRoomId = null;
+            record.pendingPublicationId = null;
+          }
+          throw error;
+        }
+      });
+    } catch (error) {
+      operation = Promise.reject(error);
+    }
+    return operation.then(
+      (sid) => {
+        onComplete(true, sid);
+        return sid;
+      },
+      (error) => {
+        onComplete(false, null);
+        throw error;
+      }
+    );
+  }
+  function setLocalTrackMuted({
+    trackId,
+    publicationId,
+    muted,
+    onComplete,
+    recordFor,
+    mediaName
+  }) {
+    let operation;
+    try {
+      const record = recordFor(trackId);
+      if (!muted && record.stopRequested) throw new Error(`${mediaName} capture has stopped`);
+      operation = enqueueLocalTrackMutation(record, async () => {
+        if (record.publicationId !== publicationId || !record.publication) {
+          throw new Error("Track Publication is no longer available");
+        }
+        if (muted) await record.track.mute();
+        else await record.track.unmute();
+      });
+    } catch (error) {
+      operation = Promise.reject(error);
+    }
+    return operation.then(
+      (value) => {
+        onComplete(true);
+        return value;
+      },
+      (error) => {
+        onComplete(false);
+        throw error;
+      }
+    );
+  }
+  function unpublishLocalTrack({
+    roomId,
+    trackId,
+    publicationId,
+    onComplete,
+    recordFor,
+    records
+  }) {
+    let operation;
+    try {
+      const room = getRoom(roomId);
+      if (!room || room.released) throw new Error("Room Session is no longer available");
+      const record = recordFor(trackId);
+      operation = enqueueLocalTrackMutation(record, async () => {
+        if (record.publishedRoomId !== roomId || record.publicationId !== publicationId || !record.publication) {
+          throw new Error("Track Publication is no longer available");
+        }
+        record.explicitUnpublishId = publicationId;
+        try {
+          try {
+            await room.room.localParticipant.unpublishTrack(record.track, false);
+          } catch (error) {
+            if (record.explicitUnpublishObservedId !== publicationId) throw error;
+          }
+          const replacement = [...room.room.localParticipant.trackPublications.values()].find(
+            (candidate) => candidate.track === record.track
+          );
+          if (replacement) {
+            try {
+              await room.room.localParticipant.unpublishTrack(record.track, false);
+            } catch (error) {
+              const stillPublished = [...room.room.localParticipant.trackPublications.values()].some(
+                (candidate) => candidate.track === record.track
+              );
+              if (stillPublished) throw error;
+            }
+          }
+        } finally {
+          record.explicitUnpublishId = null;
+        }
+        record.publication = null;
+        record.publishedRoomId = null;
+        record.publicationId = null;
+        record.publicationReplacementCallback = null;
+        record.awaitingPublicationReplacement = null;
+        record.explicitUnpublishObservedId = null;
+        if (record.ownerDropped && record.pendingPublishRoomId == null) records.delete(trackId);
+      });
+    } catch (error) {
+      operation = Promise.reject(error);
+    }
+    return operation.then(
+      (value) => {
+        onComplete(true);
+        return value;
+      },
+      (error) => {
+        onComplete(false);
+        throw error;
+      }
+    );
+  }
+  function publishLocalAudioTrack2(roomId, trackId, publicationId, options, raw, onReplaced, onComplete) {
+    return publishLocalTrack({
+      roomId,
+      trackId,
+      publicationId,
+      options,
+      raw,
+      onReplaced,
+      onComplete,
+      recordFor: localAudioTrackRecord,
+      normalizeOptions: audioPublicationOptions,
+      mediaName: "Local Audio Track"
+    });
+  }
+  function setLocalAudioTrackMuted2(trackId, publicationId, muted, onComplete) {
+    return setLocalTrackMuted({
+      trackId,
+      publicationId,
+      muted,
+      onComplete,
+      recordFor: localAudioTrackRecord,
+      mediaName: "Local Audio Track"
+    });
+  }
+  function unpublishLocalAudioTrack2(roomId, trackId, publicationId, onComplete) {
+    return unpublishLocalTrack({
+      roomId,
+      trackId,
+      publicationId,
+      onComplete,
+      recordFor: localAudioTrackRecord,
+      records: localAudioTracks
+    });
+  }
+  function publishLocalVideoTrack2(roomId, trackId, publicationId, options, raw, onReplaced, onComplete) {
+    return publishLocalTrack({
+      roomId,
+      trackId,
+      publicationId,
+      options,
+      raw,
+      onReplaced,
+      onComplete,
+      recordFor: localVideoTrackRecord,
+      normalizeOptions: videoPublicationOptions,
+      mediaName: "Local Video Track"
+    });
+  }
+  function setLocalVideoTrackMuted2(trackId, publicationId, muted, onComplete) {
+    return setLocalTrackMuted({
+      trackId,
+      publicationId,
+      muted,
+      onComplete,
+      recordFor: localVideoTrackRecord,
+      mediaName: "Local Video Track"
+    });
+  }
+  function unpublishLocalVideoTrack2(roomId, trackId, publicationId, onComplete) {
+    return unpublishLocalTrack({
+      roomId,
+      trackId,
+      publicationId,
+      onComplete,
+      recordFor: localVideoTrackRecord,
+      records: localVideoTracks
+    });
+  }
+  async function localTrackSenderStatistics(records, recordFor, trackId, publicationId) {
+    const record = recordFor(trackId);
+    const publication = record.publication;
+    const track = record.track;
+    const roomId = record.publishedRoomId;
+    const roomRecord = getRoom(roomId);
+    if (record.publicationId !== publicationId || !publication || !roomRecord || roomRecord.released) {
+      throw new Error("Track Publication is no longer available");
+    }
+    const statistics = await track.getSenderStats();
+    if (records.get(trackId) !== record || record.publicationId !== publicationId || record.publication !== publication || record.track !== track || record.publishedRoomId !== roomId || getRoom(roomId) !== roomRecord || roomRecord.released) {
+      throw new Error("Track Publication is no longer available");
+    }
+    return statistics;
+  }
+  async function localAudioSenderStatistics2(trackId, publicationId) {
+    const statistics = await localTrackSenderStatistics(
+      localAudioTracks,
+      localAudioTrackRecord,
+      trackId,
+      publicationId
+    );
+    return statistics ? normalizeSenderStatistics(statistics) : null;
+  }
+  async function localVideoSenderStatistics2(trackId, publicationId) {
+    const statistics = await localTrackSenderStatistics(
+      localVideoTracks,
+      localVideoTrackRecord,
+      trackId,
+      publicationId
+    );
+    if (!Array.isArray(statistics)) throw new TypeError("LiveKit returned invalid sender statistics");
+    return statistics.map(normalizeVideoSenderStatistics);
+  }
+  async function rawLocalRtcStatsReport2(trackId, publicationId, kind) {
+    const { records, recordFor } = localMediaTrackResources(kind);
+    const record = recordFor(trackId);
+    const publication = record.publication;
+    const track = record.track;
+    const roomId = record.publishedRoomId;
+    const roomRecord = getRoom(roomId);
+    if (record.publicationId !== publicationId || !publication || !roomRecord || roomRecord.released) {
+      throw new Error("Track Publication is no longer available");
+    }
+    if (typeof track.getRTCStatsReport !== "function") {
+      throw new TypeError("LiveKit Local Media Track does not expose RTCStatsReport");
+    }
+    const report = await track.getRTCStatsReport();
+    if (records.get(trackId) !== record || record.publicationId !== publicationId || record.publication !== publication || record.track !== track || record.publishedRoomId !== roomId || getRoom(roomId) !== roomRecord || roomRecord.released) {
+      throw new Error("Track Publication is no longer available");
+    }
+    return report ?? null;
+  }
+  function reconcilePublished(roomId, publication) {
+    const roomRecord = getRoom(roomId);
+    if (!roomRecord) return;
+    const reconcile = (records) => {
+      for (const record of records.values()) {
+        let awaiting = record.awaitingPublicationReplacement;
+        if (!awaiting && record.publishedRoomId === roomRecord.id && record.publication && record.publication !== publication && record.publicationReplacementCallback && publication?.track === record.track) {
+          const publicationId = record.publicationId;
+          record.publicationReplacementCallback(publicationId, null, false);
+          awaiting = {
+            roomId: roomRecord.id,
+            publicationId,
+            callback: record.publicationReplacementCallback
+          };
+          record.awaitingPublicationReplacement = awaiting;
+          record.publication = null;
+        }
+        if (!awaiting || awaiting.roomId !== roomRecord.id || record.pendingPublishRoomId === roomRecord.id || publication?.track !== record.track) continue;
+        const sid = requirePublicationSid(publication);
+        const nextId = awaiting.callback(awaiting.publicationId, sid, publication.isMuted === true);
+        if (!Number.isInteger(nextId) || nextId <= 0) {
+          throw new TypeError("Rust rejected the replacement Local Track Publication");
+        }
+        record.publication = publication;
+        record.publicationId = nextId;
+        record.publishedRoomId = roomRecord.id;
+        record.publicationReplacementCallback = awaiting.callback;
+        record.awaitingPublicationReplacement = null;
+      }
+    };
+    reconcile(localVideoTracks);
+    reconcile(localAudioTracks);
+  }
+  function reconcileUnpublished(roomId, publication) {
+    const roomRecord = getRoom(roomId);
+    if (!roomRecord) return;
+    const reconcile = (records) => {
+      for (const [trackId, record] of records) {
+        if (record.publication !== publication) continue;
+        if (record.explicitUnpublishId === record.publicationId) {
+          record.explicitUnpublishObservedId = record.publicationId;
+          continue;
+        }
+        const callback = record.publicationReplacementCallback;
+        if (record.publishedRoomId === roomRecord.id && callback) {
+          const publicationId = record.publicationId;
+          callback(publicationId, null, false);
+          record.awaitingPublicationReplacement = {
+            roomId: roomRecord.id,
+            publicationId,
+            callback
+          };
+          record.publication = null;
+          record.publishedRoomId = null;
+          record.publicationId = null;
+          record.publicationReplacementCallback = null;
+          if (record.ownerDropped && record.pendingPublishRoomId == null) {
+            finishDroppedLocalTrack(record, trackId);
+          }
+          continue;
+        }
+        record.publication = null;
+        record.publishedRoomId = null;
+        record.publicationId = null;
+        record.publicationReplacementCallback = null;
+        record.awaitingPublicationReplacement = null;
+        if (record.ownerDropped && record.pendingPublishRoomId == null) {
+          finishDroppedLocalTrack(record, trackId);
+        }
+      }
+    };
+    reconcile(localVideoTracks);
+    reconcile(localAudioTracks);
+  }
+  function reconcileSnapshot(roomId, participant) {
+    for (const publication of participant.trackPublications.values()) {
+      reconcilePublished(roomId, publication);
+    }
+  }
+  function releaseRoom2(roomId) {
+    const release = (records) => {
+      for (const [trackId, record] of records) {
+        if (record.publishedRoomId !== roomId && record.pendingPublishRoomId !== roomId && record.awaitingPublicationReplacement?.roomId !== roomId) continue;
+        record.publication = null;
+        record.publicationReplacementCallback = null;
+        record.awaitingPublicationReplacement = null;
+        record.explicitUnpublishId = null;
+        record.explicitUnpublishObservedId = null;
+        if (record.publishedRoomId === roomId) {
+          record.publishedRoomId = null;
+          record.publicationId = null;
+        }
+        if (record.pendingPublishRoomId === roomId) {
+          record.pendingPublishRoomId = null;
+          record.pendingPublicationId = null;
+        }
+        if (record.ownerDropped) finishDroppedLocalTrack(record, trackId);
+      }
+    };
+    release(localVideoTracks);
+    release(localAudioTracks);
+  }
+  return {
+    observeLocalVideoTrackEnded: observeLocalVideoTrackEnded2,
+    observeLocalAudioTrackEnded: observeLocalAudioTrackEnded2,
+    createLocalClipMediaStream: createLocalClipMediaStream2,
+    rawLocalMediaTrack: rawLocalMediaTrack2,
+    rawLocalPublication: rawLocalPublication2,
+    setLocalMediaTrackProcessor: setLocalMediaTrackProcessor2,
+    rawLocalMediaTrackProcessor: rawLocalMediaTrackProcessor2,
+    stopLocalMediaTrackProcessor: stopLocalMediaTrackProcessor2,
+    createLocalAudioAnalyser: createLocalAudioAnalyser2,
+    createCameraVideoTrack: createCameraVideoTrack2,
+    localVideoTrackDeviceId: localVideoTrackDeviceId2,
+    restartLocalVideoTrack: restartLocalVideoTrack2,
+    restartLocalVideoTrackWithOptions: restartLocalVideoTrackWithOptions2,
+    switchLocalVideoTrackDevice: switchLocalVideoTrackDevice2,
+    attachLocalVideoTrack: attachLocalVideoTrack2,
+    detachLocalVideoTrack: detachLocalVideoTrack2,
+    stopLocalVideoTrack: stopLocalVideoTrack2,
+    dropLocalVideoTrackAttachment: dropLocalVideoTrackAttachment2,
+    dropLocalVideoTrack: dropLocalVideoTrack2,
+    createMicrophoneAudioTrack: createMicrophoneAudioTrack2,
+    createScreenCapture: createScreenCapture2,
+    localAudioTrackDeviceId: localAudioTrackDeviceId2,
+    restartLocalAudioTrack: restartLocalAudioTrack2,
+    restartLocalAudioTrackWithOptions: restartLocalAudioTrackWithOptions2,
+    switchLocalAudioTrackDevice: switchLocalAudioTrackDevice2,
+    attachLocalAudioTrack: attachLocalAudioTrack2,
+    detachLocalAudioTrack: detachLocalAudioTrack2,
+    stopLocalAudioTrack: stopLocalAudioTrack2,
+    dropLocalAudioTrackAttachment: dropLocalAudioTrackAttachment2,
+    dropLocalAudioTrack: dropLocalAudioTrack2,
+    publishLocalAudioTrack: publishLocalAudioTrack2,
+    setLocalAudioTrackMuted: setLocalAudioTrackMuted2,
+    unpublishLocalAudioTrack: unpublishLocalAudioTrack2,
+    localAudioSenderStatistics: localAudioSenderStatistics2,
+    rawLocalRtcStatsReport: rawLocalRtcStatsReport2,
+    publishLocalVideoTrack: publishLocalVideoTrack2,
+    setLocalVideoTrackMuted: setLocalVideoTrackMuted2,
+    unpublishLocalVideoTrack: unpublishLocalVideoTrack2,
+    localVideoSenderStatistics: localVideoSenderStatistics2,
+    reconcilePublished,
+    reconcileUnpublished,
+    reconcileSnapshot,
+    releaseRoom: releaseRoom2
+  };
+}
+
+// src/remote-media.ts
+function createRemoteMediaSubsystem(dependencies) {
+  const { getRoom, allocateAttachmentId: allocateAttachmentId2, audioAnalysers: audioAnalysers2 } = dependencies;
+  let nextRemoteMediaTrackId = 1;
+  let nextRemoteObjectGeneration = 1;
+  const remoteMediaTracks = /* @__PURE__ */ new Map();
+  const remoteMediaTrackIdsByRoom = /* @__PURE__ */ new Map();
+  const remoteParticipantGenerations = /* @__PURE__ */ new WeakMap();
+  const remotePublicationGenerations = /* @__PURE__ */ new WeakMap();
+  const remoteMediaGenerations = /* @__PURE__ */ new WeakMap();
+  function participantGeneration(participant) {
+    let state = remoteParticipantGenerations.get(participant);
+    if (state?.identity !== participant.identity || state?.sid !== participant.sid) {
+      state = {
+        generation: nextRemoteObjectGeneration++,
+        identity: participant.identity,
+        sid: participant.sid
+      };
+      remoteParticipantGenerations.set(participant, state);
+    }
+    return state.generation;
+  }
+  function publicationGeneration(publication, sid = publication.trackSid) {
+    let state = remotePublicationGenerations.get(publication);
+    if (!state || state.sid !== sid) {
+      state = { generation: nextRemoteObjectGeneration++, sid };
+      remotePublicationGenerations.set(publication, state);
+    }
+    return state.generation;
+  }
+  function mediaGeneration(track) {
+    const source = track.mediaStreamTrack ?? track;
+    let state = remoteMediaGenerations.get(track);
+    if (state?.source !== source) {
+      state = { generation: nextRemoteObjectGeneration++, source };
+      remoteMediaGenerations.set(track, state);
+    }
+    return state.generation;
+  }
+  function currentParticipant(roomId, locator) {
+    const roomRecord = getRoom(roomId);
+    if (!roomRecord || roomRecord.released) return null;
+    const participant = roomRecord.room.remoteParticipants.get(locator.identity);
+    if (!participant || participant.sid !== locator.sid || participantGeneration(participant) !== locator.generation) {
+      return null;
+    }
+    return participant;
+  }
+  function currentPublication(roomId, locator) {
+    const participant = currentParticipant(roomId, locator.participant);
+    if (!participant) return null;
+    const publication = participant.trackPublications.get(locator.sid);
+    if (!publication || publicationGeneration(publication) !== locator.generation) return null;
+    return { participant, publication };
+  }
+  function participantIsCurrent(roomId, participant) {
+    const roomRecord = getRoom(roomId);
+    return !!roomRecord && !roomRecord.released && roomRecord.room.remoteParticipants.get(participant?.identity) === participant;
+  }
+  function publicationIsCurrent(roomId, participant, publication) {
+    return participantIsCurrent(roomId, participant) && participant?.trackPublications.get(publication?.trackSid) === publication;
+  }
+  function publicationWasReplaced(roomId, participant, publication) {
+    const roomRecord = getRoom(roomId);
+    const currentParticipant2 = roomRecord?.room.remoteParticipants.get(participant?.identity);
+    if (currentParticipant2 !== participant) return true;
+    const sid = publication?.trackSid;
+    const currentPublication2 = participant?.trackPublications.get(sid);
+    return currentPublication2 != null && currentPublication2 !== publication;
+  }
+  function mediaTrackRecord(trackId) {
+    const record = remoteMediaTracks.get(trackId);
+    if (!record || record.terminal) throw new Error("Remote Media Track is no longer available");
+    return record;
+  }
+  function clearDetachedRemoteElement(element) {
+    if (!hasRemoteElementAttachment(null, element)) element.srcObject = null;
+  }
+  function hasRemoteElementAttachment(track, element) {
+    for (const candidate of remoteMediaTracks.values()) {
+      if ((!track || candidate.track === track) && [...candidate.attachments.values()].includes(element)) {
+        return true;
+      }
+    }
+    return false;
+  }
+  function detachRemoteElement(record, attachmentId) {
+    const element = record.attachments.get(attachmentId);
+    if (!element) return;
+    const clearIfStillDetached = () => clearDetachedRemoteElement(element);
+    record.attachments.delete(attachmentId);
+    try {
+      if (!hasRemoteElementAttachment(record.track, element)) record.track.detach(element);
+    } finally {
+      clearIfStillDetached();
+      queueMicrotask(clearIfStillDetached);
+      setTimeout(clearIfStillDetached, 0);
+    }
+  }
+  function terminateRemoteMediaTrack(record) {
+    if (record.terminal) return;
+    record.terminal = true;
+    if (record.audioAnalyserOwner) {
+      audioAnalysers2.terminateAudioAnalyserOwner(record.audioAnalyserOwner);
+    }
+    for (const attachmentId of [...record.attachments.keys()]) {
+      try {
+        detachRemoteElement(record, attachmentId);
+      } catch {
+      }
+    }
+    if (record.endedListener) {
+      record.track.off(globalThis.LivekitClient.TrackEvent.Ended, record.endedListener);
+      record.endedListener = null;
+    }
+    const callback = record.terminalCallback;
+    record.terminalCallback = null;
+    remoteMediaTracks.delete(record.id);
+    const roomTrackIds = remoteMediaTrackIdsByRoom.get(record.roomId);
+    roomTrackIds?.delete(record.id);
+    if (roomTrackIds?.size === 0) remoteMediaTrackIdsByRoom.delete(record.roomId);
+    callback?.();
+  }
+  function terminateRemoteMediaWhere(predicate) {
+    for (const record of remoteMediaTracks.values()) {
+      if (predicate(record)) terminateRemoteMediaTrack(record);
+    }
+  }
+  function mediaTrackIsCurrent(record) {
+    const publication = currentPublication(record.roomId, record.locator);
+    return publication?.participant === record.participant && publication?.publication === record.publication && publication?.publication.track === record.track && mediaGeneration(record.track) === record.mediaGeneration;
+  }
+  function reconcileRoom(roomId) {
+    const trackIds = remoteMediaTrackIdsByRoom.get(roomId);
+    if (!trackIds) return;
+    for (const trackId of trackIds) {
+      const record = remoteMediaTracks.get(trackId);
+      if (!record || record.terminal) continue;
+      if (!mediaTrackIsCurrent(record)) terminateRemoteMediaTrack(record);
+    }
+  }
+  function rawParticipant(roomId, locator) {
+    const roomRecord = getRoom(roomId);
+    if (!roomRecord || roomRecord.released) throw new Error("Room Session is no longer available");
+    const participant = currentParticipant(roomId, locator);
+    if (!participant) throw new Error("Remote Participant is no longer available");
+    return participant;
+  }
+  function rawPublication(roomId, locator) {
+    const roomRecord = getRoom(roomId);
+    if (!roomRecord || roomRecord.released) throw new Error("Room Session is no longer available");
+    const current = currentPublication(roomId, locator);
+    if (!current) throw new Error("Remote Track Publication is no longer available");
+    return current.publication;
+  }
+  function rawMediaTrack(trackId) {
+    const record = mediaTrackRecord(trackId);
+    if (!mediaTrackIsCurrent(record)) {
+      terminateRemoteMediaTrack(record);
+      throw new Error("Remote Media Track is no longer available");
+    }
+    return record.track;
+  }
+  function setTrackSubscription(roomId, locator, subscribed) {
+    const roomRecord = getRoom(roomId);
+    if (!roomRecord || roomRecord.released) throw new Error("Room Session is no longer available");
+    const current = currentPublication(roomId, locator);
+    if (!current) throw new Error("Remote Track Publication is no longer available");
+    current.publication.setSubscribed(subscribed);
+  }
+  function resolveMediaTrack(roomId, locator, expectedMediaGeneration, onTerminal) {
+    const roomRecord = getRoom(roomId);
+    if (!roomRecord || roomRecord.released) throw new Error("Room Session is no longer available");
+    const current = currentPublication(roomId, locator);
+    const publication = current?.publication;
+    const track = publication?.track;
+    if (!track) return null;
+    const currentMediaGeneration = mediaGeneration(track);
+    if (currentMediaGeneration !== expectedMediaGeneration) {
+      throw new Error("Remote Media Track is no longer available");
+    }
+    const kind = publicationKind(track.kind);
+    if (kind !== "audio" && kind !== "video") {
+      throw new TypeError("Remote Track Publication does not contain audio or video");
+    }
+    const id = nextRemoteMediaTrackId++;
+    const record = {
+      id,
+      roomId,
+      locator,
+      participant: current.participant,
+      publication,
+      track,
+      mediaGeneration: currentMediaGeneration,
+      kind,
+      attachments: /* @__PURE__ */ new Map(),
+      audioAnalyserOwner: kind === "audio" ? audioAnalysers2.createAudioAnalyserOwner() : void 0,
+      terminal: false,
+      terminalCallback: onTerminal,
+      endedListener: null
+    };
+    record.endedListener = () => terminateRemoteMediaTrack(record);
+    track.on(globalThis.LivekitClient.TrackEvent.Ended, record.endedListener);
+    remoteMediaTracks.set(id, record);
+    let roomTrackIds = remoteMediaTrackIdsByRoom.get(roomId);
+    if (!roomTrackIds) {
+      roomTrackIds = /* @__PURE__ */ new Set();
+      remoteMediaTrackIdsByRoom.set(roomId, roomTrackIds);
+    }
+    roomTrackIds.add(id);
+    return { id, kind, generation: currentMediaGeneration };
+  }
+  async function remoteTrackReceiverStatistics(trackId, kind) {
+    const record = mediaTrackRecord(trackId);
+    if (record.kind !== kind) throw new TypeError(`Remote Media Track is not ${kind}`);
+    if (!mediaTrackIsCurrent(record)) {
+      terminateRemoteMediaTrack(record);
+      throw new Error("Remote Media Track is no longer available");
+    }
+    const track = record.track;
+    const statistics = await track.getReceiverStats();
+    if (mediaTrackRecord(trackId) !== record || record.track !== track || !mediaTrackIsCurrent(record)) {
+      terminateRemoteMediaTrack(record);
+      throw new Error("Remote Media Track is no longer available");
+    }
+    return statistics;
+  }
+  async function audioReceiverStatistics(trackId) {
+    const statistics = await remoteTrackReceiverStatistics(trackId, "audio");
+    if (!statistics) return null;
+    return {
+      ...normalizeReceiverStatistics(statistics),
+      concealed_samples: optionalUnsignedInteger(statistics.concealedSamples),
+      concealment_events: optionalUnsignedInteger(statistics.concealmentEvents),
+      silent_concealed_samples: optionalUnsignedInteger(statistics.silentConcealedSamples),
+      silent_concealment_events: optionalUnsignedInteger(statistics.silentConcealmentEvents),
+      total_audio_energy: optionalFiniteNumber(statistics.totalAudioEnergy),
+      total_samples_duration: optionalFiniteNumber(statistics.totalSamplesDuration)
+    };
+  }
+  async function videoReceiverStatistics(trackId) {
+    const statistics = await remoteTrackReceiverStatistics(trackId, "video");
+    if (!statistics) return null;
+    return {
+      ...normalizeReceiverStatistics(statistics),
+      frames_decoded: optionalUnsignedInteger(statistics.framesDecoded),
+      frames_dropped: optionalUnsignedInteger(statistics.framesDropped),
+      frames_received: optionalUnsignedInteger(statistics.framesReceived),
+      frame_width: optionalUnsignedInteger(statistics.frameWidth),
+      frame_height: optionalUnsignedInteger(statistics.frameHeight),
+      fir_count: optionalUnsignedInteger(statistics.firCount),
+      pli_count: optionalUnsignedInteger(statistics.pliCount),
+      nack_count: optionalUnsignedInteger(statistics.nackCount),
+      decoder_implementation: optionalString(statistics.decoderImplementation),
+      mime_type: optionalString(statistics.mimeType)
+    };
+  }
+  async function rawRtcStatsReport(trackId) {
+    const record = mediaTrackRecord(trackId);
+    if (!mediaTrackIsCurrent(record)) {
+      terminateRemoteMediaTrack(record);
+      throw new Error("Remote Media Track is no longer available");
+    }
+    const track = record.track;
+    if (typeof track.getRTCStatsReport !== "function") {
+      throw new TypeError("LiveKit Remote Media Track does not expose RTCStatsReport");
+    }
+    const report = await track.getRTCStatsReport();
+    if (mediaTrackRecord(trackId) !== record || record.track !== track || !mediaTrackIsCurrent(record)) {
+      terminateRemoteMediaTrack(record);
+      throw new Error("Remote Media Track is no longer available");
+    }
+    return report ?? null;
+  }
+  function attachVideoTrack(trackId, element) {
+    const record = mediaTrackRecord(trackId);
+    if (record.kind !== "video") throw new TypeError("Remote Media Track is not video");
+    const attachmentId = allocateAttachmentId2();
+    record.track.attach(element);
+    record.attachments.set(attachmentId, element);
+    return attachmentId;
+  }
+  function attachAudioTrack(trackId, element) {
+    const record = mediaTrackRecord(trackId);
+    if (record.kind !== "audio") throw new TypeError("Remote Media Track is not audio");
+    const attachmentId = allocateAttachmentId2();
+    record.track.attach(element);
+    record.attachments.set(attachmentId, element);
+    return attachmentId;
+  }
+  function detachTrack(trackId, attachmentId) {
+    detachRemoteElement(mediaTrackRecord(trackId), attachmentId);
+  }
+  function dropTrackAttachment(trackId, attachmentId) {
+    const record = remoteMediaTracks.get(trackId);
+    if (!record) return;
+    try {
+      detachRemoteElement(record, attachmentId);
+    } catch {
+    }
+  }
+  function dropMediaTrack(trackId) {
+    const record = remoteMediaTracks.get(trackId);
+    if (record) terminateRemoteMediaTrack(record);
+  }
+  function dropMediaTrackDescriptor(descriptor) {
+    const id = descriptor?.id;
+    if (typeof id === "number" && Number.isInteger(id)) dropMediaTrack(id);
+  }
+  function createRemoteAudioAnalyser2(trackId, onTerminal) {
+    const record = mediaTrackRecord(trackId);
+    if (record.kind !== "audio") throw new TypeError("Remote Media Track is not audio");
+    if (!mediaTrackIsCurrent(record)) {
+      terminateRemoteMediaTrack(record);
+      throw new Error("Remote Media Track is no longer available");
+    }
+    const sourceTrack = audioAnalysers2.mediaStreamAudioSource(record.track);
+    return audioAnalysers2.createAudioAnalyser(
+      record.audioAnalyserOwner,
+      sourceTrack,
+      () => remoteMediaTracks.get(record.id) === record && !record.terminal && mediaTrackIsCurrent(record) && record.track.mediaStreamTrack === sourceTrack,
+      onTerminal
+    );
+  }
+  function participantDisconnected(roomId, participant) {
+    terminateRemoteMediaWhere(
+      (track) => track.roomId === roomId && track.participant === participant
+    );
+  }
+  function publicationUnpublished(roomId, participant, publication) {
+    terminateRemoteMediaWhere(
+      (track) => track.roomId === roomId && track.participant === participant && track.publication === publication
+    );
+  }
+  function trackSubscribed(roomId) {
+    reconcileRoom(roomId);
+  }
+  function trackUnsubscribed(roomId, track, publication, participant) {
+    terminateRemoteMediaWhere(
+      (media) => media.roomId === roomId && media.participant === participant && media.publication === publication && media.track === track
+    );
+  }
+  function releaseRoom2(roomId) {
+    terminateRemoteMediaWhere((track) => track.roomId === roomId);
+    remoteMediaTrackIdsByRoom.delete(roomId);
+  }
+  return {
+    participantGeneration,
+    publicationGeneration,
+    mediaGeneration,
+    participantIsCurrent,
+    publicationIsCurrent,
+    publicationWasReplaced,
+    reconcileRoom,
+    rawParticipant,
+    rawPublication,
+    rawMediaTrack,
+    setTrackSubscription,
+    resolveMediaTrack,
+    audioReceiverStatistics,
+    videoReceiverStatistics,
+    rawRtcStatsReport,
+    attachVideoTrack,
+    detachVideoTrack: detachTrack,
+    dropVideoTrackAttachment: dropTrackAttachment,
+    attachAudioTrack,
+    detachAudioTrack: detachTrack,
+    dropAudioTrackAttachment: dropTrackAttachment,
+    dropMediaTrack,
+    dropMediaTrackDescriptor,
+    createRemoteAudioAnalyser: createRemoteAudioAnalyser2,
+    participantDisconnected,
+    publicationUnpublished,
+    trackSubscribed,
+    trackUnsubscribed,
+    releaseRoom: releaseRoom2
+  };
+}
+function publicationKind(kind) {
+  switch (kind) {
+    case "audio":
+    case "video":
+    case "data":
+      return kind;
+    default:
+      return "unknown";
+  }
+}
+
+// src/audio-analysers.ts
+var nextAudioAnalyserId = 1;
+var audioAnalysers = /* @__PURE__ */ new Map();
+var ownerAnalysers = /* @__PURE__ */ new Map();
+function createAudioAnalyserOwner() {
+  return {};
+}
+function audioContextConstructor() {
+  const AudioContext = globalThis.AudioContext || globalThis.webkitAudioContext;
+  if (typeof AudioContext !== "function") {
+    throw new TypeError("Web Audio AudioContext is unavailable");
+  }
+  return AudioContext;
+}
+function mediaStreamAudioSource(track) {
+  const source = track?.mediaStreamTrack;
+  if (!(source instanceof MediaStreamTrack) || source.kind !== "audio") {
+    throw new TypeError("Media Track does not expose a browser audio source");
+  }
+  if (source.readyState === "ended") throw new Error("Media Track audio source has ended");
+  return source;
+}
+function createAudioAnalyser(owner, sourceTrack, isCurrent, onTerminal) {
+  const AudioContext = audioContextConstructor();
+  const context = new AudioContext();
+  let sourceNode;
+  let analyserNode;
+  let silentSink;
+  try {
+    sourceNode = context.createMediaStreamSource(new MediaStream([sourceTrack]));
+    analyserNode = context.createAnalyser();
+    analyserNode.fftSize = 2048;
+    silentSink = context.createGain();
+    silentSink.gain.value = 0;
+    sourceNode.connect(analyserNode);
+    analyserNode.connect(silentSink);
+    silentSink.connect(context.destination);
+  } catch (error) {
+    void context.close().catch(() => {
+    });
+    throw error;
+  }
+  const id = nextAudioAnalyserId++;
+  const record = {
+    id,
+    owner,
+    sourceTrack,
+    isCurrent,
+    sourceNode,
+    analyserNode,
+    silentSink,
+    context,
+    terminal: false,
+    terminalCallback: onTerminal,
+    endedListener: null,
+    closeOperation: null
+  };
+  record.endedListener = () => void terminateAudioAnalyser(record).catch(() => {
+  });
+  sourceTrack.addEventListener("ended", record.endedListener);
+  audioAnalysers.set(id, record);
+  let analyserIds = ownerAnalysers.get(owner);
+  if (!analyserIds) {
+    analyserIds = /* @__PURE__ */ new Set();
+    ownerAnalysers.set(owner, analyserIds);
+  }
+  analyserIds.add(id);
+  if (context.state === "suspended") void context.resume().catch(() => {
+  });
+  return id;
+}
+function terminateAudioAnalyser(record) {
+  if (record.terminal) return record.closeOperation || Promise.resolve();
+  record.terminal = true;
+  if (record.endedListener) {
+    record.sourceTrack.removeEventListener("ended", record.endedListener);
+    record.endedListener = null;
+  }
+  try {
+    record.sourceNode.disconnect();
+  } catch {
+  }
+  try {
+    record.analyserNode.disconnect();
+  } catch {
+  }
+  try {
+    record.silentSink.disconnect();
+  } catch {
+  }
+  const analyserIds = ownerAnalysers.get(record.owner);
+  analyserIds?.delete(record.id);
+  if (analyserIds?.size === 0) ownerAnalysers.delete(record.owner);
+  audioAnalysers.delete(record.id);
+  const callback = record.terminalCallback;
+  record.terminalCallback = null;
+  let callbackError = null;
+  try {
+    callback?.();
+  } catch (error) {
+    callbackError = error;
+  }
+  try {
+    record.closeOperation = record.context.state === "closed" ? Promise.resolve() : record.context.close();
+  } catch (error) {
+    record.closeOperation = Promise.reject(error);
+  }
+  if (callbackError != null) {
+    record.closeOperation = record.closeOperation.then(() => {
+      throw callbackError;
+    });
+  }
+  return record.closeOperation;
+}
+function terminateAudioAnalyserOwner(owner) {
+  const analyserIds = ownerAnalysers.get(owner);
+  if (!analyserIds) return;
+  for (const analyserId of [...analyserIds]) {
+    const analyser = audioAnalysers.get(analyserId);
+    if (!analyser) continue;
+    try {
+      void terminateAudioAnalyser(analyser).catch(() => {
+      });
+    } catch {
+    }
+  }
+}
+function readAudioAnalyser(analyserId) {
+  const record = audioAnalysers.get(analyserId);
+  if (!record || record.terminal) throw new Error("Audio Analyser is no longer available");
+  if (record.sourceTrack.readyState === "ended" || !record.isCurrent()) {
+    void terminateAudioAnalyser(record).catch(() => {
+    });
+    throw new Error("Audio Analyser source is no longer available");
+  }
+  const waveform = new Float32Array(record.analyserNode.fftSize);
+  record.analyserNode.getFloatTimeDomainData(waveform);
+  return waveform;
+}
+function closeAudioAnalyser(analyserId) {
+  const record = audioAnalysers.get(analyserId);
+  if (!record) return Promise.resolve();
+  return terminateAudioAnalyser(record);
+}
+function dropAudioAnalyser(analyserId) {
+  const record = audioAnalysers.get(analyserId);
+  if (record) void terminateAudioAnalyser(record).catch(() => {
+  });
+}
+
 // src/devices.ts
 function normalizedDeviceKind(kind) {
   switch (kind) {
@@ -1377,366 +3064,93 @@ function installLogExtension(onLog) {
 // src/core.ts
 var nextRoomId = 1;
 var roomSessions = /* @__PURE__ */ new Map();
-var nextLocalVideoTrackId = 1;
 var nextAttachmentId = 1;
-var localVideoTracks = /* @__PURE__ */ new Map();
-var nextLocalAudioTrackId = 1;
-var localAudioTracks = /* @__PURE__ */ new Map();
-var nextRemoteMediaTrackId = 1;
-var remoteMediaTracks = /* @__PURE__ */ new Map();
-var nextAudioAnalyserId = 1;
-var audioAnalysers = /* @__PURE__ */ new Map();
-var nextRemoteObjectGeneration = 1;
-var remoteParticipantGenerations = /* @__PURE__ */ new WeakMap();
-var remotePublicationGenerations = /* @__PURE__ */ new WeakMap();
-var remoteMediaGenerations = /* @__PURE__ */ new WeakMap();
-function remoteParticipantGeneration(participant) {
-  let state = remoteParticipantGenerations.get(participant);
-  if (state?.identity !== participant.identity || state?.sid !== participant.sid) {
-    state = {
-      generation: nextRemoteObjectGeneration++,
-      identity: participant.identity,
-      sid: participant.sid
-    };
-    remoteParticipantGenerations.set(participant, state);
-  }
-  return state.generation;
+function allocateAttachmentId() {
+  return nextAttachmentId++;
 }
-function remotePublicationGeneration(publication, sid = publication.trackSid) {
-  let state = remotePublicationGenerations.get(publication);
-  if (!state || state.sid !== sid) {
-    state = { generation: nextRemoteObjectGeneration++, sid };
-    remotePublicationGenerations.set(publication, state);
-  }
-  return state.generation;
-}
-function remoteMediaGeneration(track) {
-  const source = track.mediaStreamTrack ?? track;
-  let state = remoteMediaGenerations.get(track);
-  if (state?.source !== source) {
-    state = { generation: nextRemoteObjectGeneration++, source };
-    remoteMediaGenerations.set(track, state);
-  }
-  return state.generation;
-}
-function localVideoTrackRecord(trackId) {
-  const record = localVideoTracks.get(trackId);
-  if (!record) throw new Error("Local Video Track is no longer available");
-  return record;
-}
-function enqueueLocalTrackMutation(record, operation) {
-  const result = record.mutationTail.then(operation, operation);
-  record.mutationTail = result.catch(() => {
-  });
-  return result;
-}
-function registerLocalVideoTrack(track, captureOptions, source) {
-  const id = nextLocalVideoTrackId++;
-  localVideoTracks.set(id, {
-    id,
-    track,
-    mediaKind: "video",
-    source,
-    captureOptions,
-    captureStopped: false,
-    stopRequested: false,
-    stopOperation: null,
-    ownerDropped: false,
-    attachments: /* @__PURE__ */ new Map(),
-    publishedRoomId: null,
-    pendingPublishRoomId: null,
-    publicationId: null,
-    pendingPublicationId: null,
-    publication: null,
-    publicationReplacementCallback: null,
-    awaitingPublicationReplacement: null,
-    explicitUnpublishId: null,
-    explicitUnpublishObservedId: null,
-    mutationTail: Promise.resolve(),
-    ended: false,
-    endedCallback: null,
-    endedListener: null,
-    browserEndedPeer: null,
-    endedCleanupComplete: false,
-    endedCleanupRunning: false
-  });
-  return id;
-}
-function registerLocalAudioTrack(track, captureOptions, source) {
-  const id = nextLocalAudioTrackId++;
-  localAudioTracks.set(id, {
-    id,
-    track,
-    mediaKind: "audio",
-    source,
-    captureOptions,
-    captureStopped: false,
-    stopRequested: false,
-    stopOperation: null,
-    ownerDropped: false,
-    attachments: /* @__PURE__ */ new Map(),
-    audioAnalyserIds: /* @__PURE__ */ new Set(),
-    publishedRoomId: null,
-    pendingPublishRoomId: null,
-    publicationId: null,
-    pendingPublicationId: null,
-    publication: null,
-    publicationReplacementCallback: null,
-    awaitingPublicationReplacement: null,
-    explicitUnpublishId: null,
-    explicitUnpublishObservedId: null,
-    mutationTail: Promise.resolve(),
-    ended: false,
-    endedCallback: null,
-    endedListener: null,
-    browserEndedPeer: null,
-    endedCleanupComplete: false,
-    endedCleanupRunning: false
-  });
-  return id;
-}
-function removeLocalTrackEndedListener(record) {
-  if (record.endedListener) {
-    record.track.off(globalThis.LivekitClient.TrackEvent.Ended, record.endedListener);
-    record.endedListener = null;
-  }
-  record.endedCallback = null;
-  record.browserEndedPeer = null;
-}
-function finishBrowserEnded(record, sourceEnded) {
-  if (record.ended) return;
-  record.ended = true;
-  record.stopRequested = true;
-  record.captureStopped = sourceEnded;
-  if (record.mediaKind === "audio") terminateAudioAnalysers(record);
-  if (record.attachments) {
-    for (const attachmentId of [...record.attachments.keys()]) {
-      try {
-        if (record.mediaKind === "video") detachLocalVideoElement(record, attachmentId);
-        else detachLocalAudioElement(record, attachmentId);
-      } catch {
-      }
-    }
-  }
-  if (record.endedListener) {
-    record.track.off(globalThis.LivekitClient.TrackEvent.Ended, record.endedListener);
-    record.endedListener = null;
-  }
-  const callback = record.endedCallback;
-  record.endedCallback = null;
-  callback?.();
-  const peer = record.browserEndedPeer;
-  record.browserEndedPeer = null;
-  if (peer) finishBrowserEnded(peer, false);
-  finishBrowserEndedCleanup(record);
-}
-function deleteFinishedBrowserEndedRecord(record) {
-  if (!record.ownerDropped || !record.endedCleanupComplete || record.publication || record.publishedRoomId != null || record.pendingPublishRoomId != null || record.attachments.size > 0) {
-    return;
-  }
-  const records = record.mediaKind === "video" ? localVideoTracks : localAudioTracks;
-  records.delete(record.id);
-}
-function finishBrowserEndedCleanup(record, retryDelay = 0) {
-  if (record.endedCleanupRunning || record.endedCleanupComplete) return;
-  record.endedCleanupRunning = true;
-  const operation = enqueueLocalTrackMutation(record, async () => {
-    let failure = null;
-    const room = record.publishedRoomId == null ? void 0 : roomSessions.get(record.publishedRoomId);
-    if (record.publication && room && !room.released) {
-      try {
-        await room.room.localParticipant.unpublishTrack(record.track, false);
-        record.publication = null;
-        record.publishedRoomId = null;
-        record.publicationId = null;
-      } catch (error) {
-        failure = error;
-      }
-    } else if (!room || room.released) {
-      record.publication = null;
-      record.publishedRoomId = null;
-      record.publicationId = null;
-    }
-    try {
-      if (record.mediaKind === "video") stopLocalVideoRecord(record);
-      else stopLocalAudioRecord(record);
-    } catch (error) {
-      failure ??= error;
-    }
-    if (failure) throw failure;
-  });
-  record.stopOperation = operation;
-  void operation.then(
-    () => {
-      if (record.stopOperation === operation) record.stopOperation = null;
-      record.endedCleanupRunning = false;
-      record.endedCleanupComplete = true;
-      deleteFinishedBrowserEndedRecord(record);
-    },
-    () => {
-      if (record.stopOperation === operation) record.stopOperation = null;
-      record.endedCleanupRunning = false;
-      const nextDelay = Math.min(Math.max(retryDelay * 2, 10), 1e3);
-      setTimeout(() => finishBrowserEndedCleanup(record, nextDelay), nextDelay);
-    }
-  );
-}
-function installLocalTrackEndedListener(record, onEnded) {
-  const listener = () => finishBrowserEnded(record, true);
-  record.endedListener = listener;
-  record.track.on(globalThis.LivekitClient.TrackEvent.Ended, listener);
-  if (onEnded) record.endedCallback = onEnded;
-}
-function observeLocalVideoTrackEnded(trackId, onEnded) {
-  const record = localVideoTrackRecord(trackId);
-  if (record.ended) queueMicrotask(onEnded);
-  else record.endedCallback = onEnded;
-}
-function observeLocalAudioTrackEnded(trackId, onEnded) {
-  const record = localAudioTrackRecord(trackId);
-  if (record.ended) queueMicrotask(onEnded);
-  else record.endedCallback = onEnded;
-}
-function createLocalClipMediaStream(audioTrackIds, videoTrackIds) {
-  const source = (records, trackId, expectedKind) => {
-    const record = records.get(trackId);
-    if (!record || record.mediaKind !== expectedKind) {
-      throw new Error(`Local ${expectedKind} Track is no longer available`);
-    }
-    if (record.stopRequested || record.captureStopped || record.ended) {
-      throw new Error(`Local ${expectedKind} Track has stopped`);
-    }
-    const mediaStreamTrack = record.track?.mediaStreamTrack;
-    if (!(mediaStreamTrack instanceof MediaStreamTrack) || mediaStreamTrack.readyState !== "live") {
-      throw new TypeError(`Local ${expectedKind} Track has no live browser source`);
-    }
-    return mediaStreamTrack;
-  };
-  return new MediaStream([
-    ...audioTrackIds.map((trackId) => source(localAudioTracks, trackId, "audio")),
-    ...videoTrackIds.map((trackId) => source(localVideoTracks, trackId, "video"))
-  ]);
-}
-async function restartVideoTrack(record, options) {
-  const restartOptions = cloneCaptureOptions(options);
-  delete restartOptions.resolution;
-  delete restartOptions.frameRate;
-  await record.track.restartTrack(restartOptions);
-  const constraints = {};
-  if (options.resolution?.width != null) {
-    constraints.width = { ideal: options.resolution.width };
-  }
-  if (options.resolution?.height != null) {
-    constraints.height = { ideal: options.resolution.height };
-  }
-  if (options.frameRate != null) constraints.frameRate = { ideal: options.frameRate };
-  if (Object.keys(constraints).length > 0) {
-    await record.track.mediaStreamTrack.applyConstraints(constraints);
-  }
-  record.track._constraints = {
-    ...record.track._constraints,
-    ...constraints
-  };
-}
-function restartLocalTrack({
-  record,
-  nextOptions,
-  normalizeOptions,
-  performRestart,
-  terminate,
-  onComplete
-}) {
-  let becameTerminal = false;
-  let operation;
-  try {
-    if (typeof record.track.restartTrack !== "function") {
-      throw new TypeError("LiveKit Local Track does not support restart");
-    }
-    operation = enqueueLocalTrackMutation(record, async () => {
-      if (record.stopRequested) throw new Error("Local Media Track capture has stopped");
-      const previousOptions = cloneCaptureOptions(record.captureOptions);
-      const requestedOptions = normalizeOptions(nextOptions(previousOptions));
-      const previousSource = record.mediaKind === "audio" ? record.track.mediaStreamTrack : null;
-      try {
-        await performRestart(record, cloneCaptureOptions(requestedOptions));
-        record.captureOptions = requestedOptions;
-      } catch (error) {
-        try {
-          await performRestart(record, cloneCaptureOptions(previousOptions));
-        } catch {
-          becameTerminal = true;
-          terminate(record);
-        }
-        throw error;
-      } finally {
-        if (previousSource && record.track.mediaStreamTrack !== previousSource) {
-          terminateAudioAnalysers(record);
-        }
-      }
-    });
-  } catch (error) {
-    operation = Promise.reject(error);
-  }
-  return operation.then(
-    (value) => {
-      onComplete(false);
-      return value;
-    },
-    (error) => {
-      onComplete(becameTerminal);
-      throw error;
-    }
-  );
-}
-function detachLocalVideoElement(record, attachmentId) {
-  const element = record.attachments.get(attachmentId);
-  if (!element) return;
-  const clearIfStillDetached = () => {
-    if (![...record.attachments.values()].includes(element)) element.srcObject = null;
-  };
-  try {
-    record.track.detach(element);
-  } finally {
-    record.attachments.delete(attachmentId);
-    clearIfStillDetached();
-    queueMicrotask(clearIfStillDetached);
-    setTimeout(clearIfStillDetached, 0);
-  }
-}
-function detachLocalAudioElement(record, attachmentId) {
-  const element = record.attachments.get(attachmentId);
-  if (!element) return;
-  const clearIfStillDetached = () => {
-    if (![...record.attachments.values()].includes(element)) element.srcObject = null;
-  };
-  try {
-    record.track.detach(element);
-  } finally {
-    record.attachments.delete(attachmentId);
-    clearIfStillDetached();
-    queueMicrotask(clearIfStillDetached);
-    setTimeout(clearIfStillDetached, 0);
-  }
-}
-function remoteMediaTrackRecord(trackId) {
-  const record = remoteMediaTracks.get(trackId);
-  if (!record || record.terminal) throw new Error("Remote Media Track is no longer available");
-  return record;
-}
-function currentRemotePublication(roomRecord, locator) {
-  const participant = currentRemoteParticipant(roomRecord, locator.participant);
-  if (!participant) return null;
-  const publication = participant.trackPublications.get(locator.sid);
-  if (!publication || remotePublicationGeneration(publication) !== locator.generation) return null;
-  return { participant, publication };
-}
-function currentRemoteParticipant(roomRecord, locator) {
-  const participant = roomRecord.room.remoteParticipants.get(locator.identity);
-  if (!participant || participant.sid !== locator.sid || remoteParticipantGeneration(participant) !== locator.generation) {
-    return null;
-  }
-  return participant;
-}
+var audioAnalyserSubsystem = {
+  createAudioAnalyser,
+  createAudioAnalyserOwner,
+  mediaStreamAudioSource,
+  terminateAudioAnalyserOwner
+};
+var localMedia = createLocalMediaSubsystem({
+  getRoom: (roomId) => roomSessions.get(roomId),
+  allocateAttachmentId,
+  audioAnalysers: audioAnalyserSubsystem
+});
+var remoteMedia = createRemoteMediaSubsystem({
+  getRoom: (roomId) => roomSessions.get(roomId),
+  allocateAttachmentId,
+  audioAnalysers: audioAnalyserSubsystem
+});
+var {
+  observeLocalVideoTrackEnded,
+  observeLocalAudioTrackEnded,
+  createLocalClipMediaStream,
+  rawLocalMediaTrack,
+  rawLocalPublication,
+  setLocalMediaTrackProcessor,
+  rawLocalMediaTrackProcessor,
+  stopLocalMediaTrackProcessor,
+  createLocalAudioAnalyser,
+  createCameraVideoTrack,
+  localVideoTrackDeviceId,
+  restartLocalVideoTrack,
+  restartLocalVideoTrackWithOptions,
+  switchLocalVideoTrackDevice,
+  attachLocalVideoTrack,
+  detachLocalVideoTrack,
+  stopLocalVideoTrack,
+  dropLocalVideoTrackAttachment,
+  dropLocalVideoTrack,
+  createMicrophoneAudioTrack,
+  createScreenCapture,
+  localAudioTrackDeviceId,
+  restartLocalAudioTrack,
+  restartLocalAudioTrackWithOptions,
+  switchLocalAudioTrackDevice,
+  attachLocalAudioTrack,
+  detachLocalAudioTrack,
+  stopLocalAudioTrack,
+  dropLocalAudioTrackAttachment,
+  dropLocalAudioTrack,
+  publishLocalAudioTrack,
+  setLocalAudioTrackMuted,
+  unpublishLocalAudioTrack,
+  localAudioSenderStatistics,
+  rawLocalRtcStatsReport,
+  publishLocalVideoTrack,
+  setLocalVideoTrackMuted,
+  unpublishLocalVideoTrack,
+  localVideoSenderStatistics
+} = localMedia;
+var {
+  participantGeneration: remoteParticipantGeneration,
+  publicationGeneration: remotePublicationGeneration,
+  mediaGeneration: remoteMediaGeneration,
+  participantIsCurrent: remoteParticipantIsCurrent,
+  publicationIsCurrent: remotePublicationIsCurrent,
+  publicationWasReplaced: remotePublicationWasReplaced,
+  reconcileRoom: reconcileRemoteMediaTracks,
+  rawParticipant: rawRemoteParticipant,
+  rawPublication: rawRemotePublication,
+  rawMediaTrack: rawRemoteMediaTrack,
+  setTrackSubscription: setRemoteTrackSubscription,
+  resolveMediaTrack: resolveRemoteMediaTrack,
+  audioReceiverStatistics: remoteAudioReceiverStatistics,
+  videoReceiverStatistics: remoteVideoReceiverStatistics,
+  rawRtcStatsReport: rawRemoteRtcStatsReport,
+  attachVideoTrack: attachRemoteVideoTrack,
+  detachVideoTrack: detachRemoteVideoTrack,
+  dropVideoTrackAttachment: dropRemoteVideoTrackAttachment,
+  attachAudioTrack: attachRemoteAudioTrack,
+  detachAudioTrack: detachRemoteAudioTrack,
+  dropAudioTrackAttachment: dropRemoteAudioTrackAttachment,
+  dropMediaTrack: dropRemoteMediaTrack,
+  dropMediaTrackDescriptor: dropRemoteMediaTrackDescriptor,
+  createRemoteAudioAnalyser
+} = remoteMedia;
 function rawRoom(roomId) {
   const record = roomSessions.get(roomId);
   if (!record || record.released) throw new Error("Room Session is no longer available");
@@ -1744,160 +3158,6 @@ function rawRoom(roomId) {
 }
 function rawLocalParticipant(roomId) {
   return rawRoom(roomId).localParticipant;
-}
-function rawRemoteParticipant(roomId, locator) {
-  const record = roomSessions.get(roomId);
-  if (!record || record.released) throw new Error("Room Session is no longer available");
-  const participant = currentRemoteParticipant(record, locator);
-  if (!participant) throw new Error("Remote Participant is no longer available");
-  return participant;
-}
-function rawRemotePublication(roomId, locator) {
-  const record = roomSessions.get(roomId);
-  if (!record || record.released) throw new Error("Room Session is no longer available");
-  const current = currentRemotePublication(record, locator);
-  if (!current) {
-    throw new Error("Remote Track Publication is no longer available");
-  }
-  return current.publication;
-}
-function localMediaTrackResources(kind) {
-  if (kind === "video") return { records: localVideoTracks, recordFor: localVideoTrackRecord };
-  if (kind === "audio") return { records: localAudioTracks, recordFor: localAudioTrackRecord };
-  throw new TypeError(`unsupported Local Media Track kind: ${kind}`);
-}
-function localMediaTrackRecord(trackId, kind) {
-  return localMediaTrackResources(kind).recordFor(trackId);
-}
-function rawLocalMediaTrack(trackId, kind) {
-  const record = localMediaTrackRecord(trackId, kind);
-  if (record.stopRequested || record.captureStopped || record.ended) {
-    throw new Error("Local Media Track is no longer available");
-  }
-  return record.track;
-}
-function rawLocalPublication(trackId, publicationId, kind) {
-  const record = localMediaTrackRecord(trackId, kind);
-  if (record.publicationId !== publicationId || !record.publication) {
-    throw new Error("Local Track Publication is no longer available");
-  }
-  return record.publication;
-}
-function rawRemoteMediaTrack(trackId) {
-  const record = remoteMediaTrackRecord(trackId);
-  if (!remoteMediaTrackIsCurrent(record)) {
-    terminateRemoteMediaTrack(record);
-    throw new Error("Remote Media Track is no longer available");
-  }
-  return record.track;
-}
-function setLocalMediaTrackProcessor(trackId, kind, processor, showProcessedStreamLocally) {
-  const record = localMediaTrackRecord(trackId, kind);
-  if (record.stopRequested || record.captureStopped || record.ended) {
-    return Promise.reject(new Error("Local Media Track is no longer available"));
-  }
-  if (typeof record.track.setProcessor !== "function") {
-    return Promise.reject(new TypeError("LiveKit Local Media Track does not support processors"));
-  }
-  return enqueueLocalTrackMutation(record, async () => {
-    if (record.stopRequested || record.captureStopped || record.ended) {
-      throw new Error("Local Media Track is no longer available");
-    }
-    await record.track.setProcessor(processor, showProcessedStreamLocally);
-    if (kind === "audio") terminateAudioAnalysers(record);
-  });
-}
-function rawLocalMediaTrackProcessor(trackId, kind) {
-  const record = localMediaTrackRecord(trackId, kind);
-  if (record.stopRequested || record.captureStopped || record.ended) {
-    throw new Error("Local Media Track is no longer available");
-  }
-  if (typeof record.track.getProcessor !== "function") {
-    throw new TypeError("LiveKit Local Media Track does not support processors");
-  }
-  return record.track.getProcessor() ?? null;
-}
-function stopLocalMediaTrackProcessor(trackId, kind) {
-  const record = localMediaTrackRecord(trackId, kind);
-  if (typeof record.track.stopProcessor !== "function") {
-    return Promise.reject(new TypeError("LiveKit Local Media Track does not support processors"));
-  }
-  return enqueueLocalTrackMutation(record, async () => {
-    if (record.stopRequested || record.captureStopped || record.ended) {
-      throw new Error("Local Media Track is no longer available");
-    }
-    await record.track.stopProcessor(false);
-    if (kind === "audio") terminateAudioAnalysers(record);
-  });
-}
-function clearDetachedRemoteElement(element) {
-  if (!hasRemoteElementAttachment(null, element)) element.srcObject = null;
-}
-function hasRemoteElementAttachment(track, element) {
-  for (const candidate of remoteMediaTracks.values()) {
-    if ((!track || candidate.track === track) && [...candidate.attachments.values()].includes(element)) {
-      return true;
-    }
-  }
-  return false;
-}
-function detachRemoteElement(record, attachmentId) {
-  const element = record.attachments.get(attachmentId);
-  if (!element) return;
-  const clearIfStillDetached = () => clearDetachedRemoteElement(element);
-  record.attachments.delete(attachmentId);
-  try {
-    if (!hasRemoteElementAttachment(record.track, element)) record.track.detach(element);
-  } finally {
-    clearIfStillDetached();
-    queueMicrotask(clearIfStillDetached);
-    setTimeout(clearIfStillDetached, 0);
-  }
-}
-function terminateRemoteMediaTrack(record) {
-  if (record.terminal) return;
-  record.terminal = true;
-  terminateAudioAnalysers(record);
-  for (const attachmentId of [...record.attachments.keys()]) {
-    try {
-      detachRemoteElement(record, attachmentId);
-    } catch {
-    }
-  }
-  if (record.endedListener) {
-    record.track.off(globalThis.LivekitClient.TrackEvent.Ended, record.endedListener);
-    record.endedListener = null;
-  }
-  const callback = record.terminalCallback;
-  record.terminalCallback = null;
-  remoteMediaTracks.delete(record.id);
-  roomSessions.get(record.roomId)?.remoteMediaTrackIds.delete(record.id);
-  callback?.();
-}
-function terminateRemoteMediaWhere(predicate) {
-  for (const record of remoteMediaTracks.values()) {
-    if (predicate(record)) terminateRemoteMediaTrack(record);
-  }
-}
-function reconcileRemoteMediaTracks(roomRecord) {
-  for (const trackId of roomRecord.remoteMediaTrackIds) {
-    const record = remoteMediaTracks.get(trackId);
-    if (!record || record.terminal) continue;
-    if (!remoteMediaTrackIsCurrent(record)) terminateRemoteMediaTrack(record);
-  }
-}
-function remoteMediaTrackIsCurrent(record) {
-  const roomRecord = roomSessions.get(record.roomId);
-  if (!roomRecord || roomRecord.released) return false;
-  const publication = currentRemotePublication(roomRecord, record.locator);
-  return publication?.participant === record.participant && publication?.publication === record.publication && publication?.publication.track === record.track && remoteMediaGeneration(record.track) === record.mediaGeneration;
-}
-function setRemoteTrackSubscription(roomId, locator, subscribed) {
-  const roomRecord = roomSessions.get(roomId);
-  if (!roomRecord || roomRecord.released) throw new Error("Room Session is no longer available");
-  const current = currentRemotePublication(roomRecord, locator);
-  if (!current) throw new Error("Remote Track Publication is no longer available");
-  current.publication.setSubscribed(subscribed);
 }
 function setTrackSubscriptionPermissions(roomId, permissions) {
   const roomRecord = roomSessions.get(roomId);
@@ -2129,1018 +3389,6 @@ var {
   dropParticipantRpcInvocation,
   dropParticipantRpcInvocationDescriptor
 } = participantRpc;
-function resolveRemoteMediaTrack(roomId, locator, mediaGeneration, onTerminal) {
-  const roomRecord = roomSessions.get(roomId);
-  if (!roomRecord || roomRecord.released) throw new Error("Room Session is no longer available");
-  const current = currentRemotePublication(roomRecord, locator);
-  const publication = current?.publication;
-  const track = publication?.track;
-  if (!track) return null;
-  const currentMediaGeneration = remoteMediaGeneration(track);
-  if (currentMediaGeneration !== mediaGeneration) {
-    throw new Error("Remote Media Track is no longer available");
-  }
-  const kind = publicationKind(track.kind);
-  if (kind !== "audio" && kind !== "video") {
-    throw new TypeError("Remote Track Publication does not contain audio or video");
-  }
-  const id = nextRemoteMediaTrackId++;
-  const record = {
-    id,
-    roomId,
-    locator,
-    participant: current.participant,
-    publication,
-    track,
-    mediaGeneration: currentMediaGeneration,
-    kind,
-    attachments: /* @__PURE__ */ new Map(),
-    audioAnalyserIds: /* @__PURE__ */ new Set(),
-    terminal: false,
-    terminalCallback: onTerminal,
-    endedListener: null
-  };
-  record.endedListener = () => terminateRemoteMediaTrack(record);
-  track.on(globalThis.LivekitClient.TrackEvent.Ended, record.endedListener);
-  remoteMediaTracks.set(id, record);
-  roomRecord.remoteMediaTrackIds.add(id);
-  return { id, kind, generation: currentMediaGeneration };
-}
-async function remoteTrackReceiverStatistics(trackId, kind) {
-  const record = remoteMediaTrackRecord(trackId);
-  if (record.kind !== kind) throw new TypeError(`Remote Media Track is not ${kind}`);
-  if (!remoteMediaTrackIsCurrent(record)) {
-    terminateRemoteMediaTrack(record);
-    throw new Error("Remote Media Track is no longer available");
-  }
-  const track = record.track;
-  const statistics = await track.getReceiverStats();
-  if (remoteMediaTrackRecord(trackId) !== record || record.track !== track || !remoteMediaTrackIsCurrent(record)) {
-    terminateRemoteMediaTrack(record);
-    throw new Error("Remote Media Track is no longer available");
-  }
-  return statistics;
-}
-async function remoteAudioReceiverStatistics(trackId) {
-  const statistics = await remoteTrackReceiverStatistics(trackId, "audio");
-  if (!statistics) return null;
-  return {
-    ...normalizeReceiverStatistics(statistics),
-    concealed_samples: optionalUnsignedInteger(statistics.concealedSamples),
-    concealment_events: optionalUnsignedInteger(statistics.concealmentEvents),
-    silent_concealed_samples: optionalUnsignedInteger(statistics.silentConcealedSamples),
-    silent_concealment_events: optionalUnsignedInteger(statistics.silentConcealmentEvents),
-    total_audio_energy: optionalFiniteNumber(statistics.totalAudioEnergy),
-    total_samples_duration: optionalFiniteNumber(statistics.totalSamplesDuration)
-  };
-}
-async function remoteVideoReceiverStatistics(trackId) {
-  const statistics = await remoteTrackReceiverStatistics(trackId, "video");
-  if (!statistics) return null;
-  return {
-    ...normalizeReceiverStatistics(statistics),
-    frames_decoded: optionalUnsignedInteger(statistics.framesDecoded),
-    frames_dropped: optionalUnsignedInteger(statistics.framesDropped),
-    frames_received: optionalUnsignedInteger(statistics.framesReceived),
-    frame_width: optionalUnsignedInteger(statistics.frameWidth),
-    frame_height: optionalUnsignedInteger(statistics.frameHeight),
-    fir_count: optionalUnsignedInteger(statistics.firCount),
-    pli_count: optionalUnsignedInteger(statistics.pliCount),
-    nack_count: optionalUnsignedInteger(statistics.nackCount),
-    decoder_implementation: optionalString(statistics.decoderImplementation),
-    mime_type: optionalString(statistics.mimeType)
-  };
-}
-async function rawRemoteRtcStatsReport(trackId) {
-  const record = remoteMediaTrackRecord(trackId);
-  if (!remoteMediaTrackIsCurrent(record)) {
-    terminateRemoteMediaTrack(record);
-    throw new Error("Remote Media Track is no longer available");
-  }
-  const track = record.track;
-  if (typeof track.getRTCStatsReport !== "function") {
-    throw new TypeError("LiveKit Remote Media Track does not expose RTCStatsReport");
-  }
-  const report = await track.getRTCStatsReport();
-  if (remoteMediaTrackRecord(trackId) !== record || record.track !== track || !remoteMediaTrackIsCurrent(record)) {
-    terminateRemoteMediaTrack(record);
-    throw new Error("Remote Media Track is no longer available");
-  }
-  return report ?? null;
-}
-function attachRemoteVideoTrack(trackId, element) {
-  const record = remoteMediaTrackRecord(trackId);
-  if (record.kind !== "video") throw new TypeError("Remote Media Track is not video");
-  const attachmentId = nextAttachmentId++;
-  record.track.attach(element);
-  record.attachments.set(attachmentId, element);
-  return attachmentId;
-}
-function detachRemoteVideoTrack(trackId, attachmentId) {
-  detachRemoteElement(remoteMediaTrackRecord(trackId), attachmentId);
-}
-function dropRemoteVideoTrackAttachment(trackId, attachmentId) {
-  const record = remoteMediaTracks.get(trackId);
-  if (!record) return;
-  try {
-    detachRemoteElement(record, attachmentId);
-  } catch {
-  }
-}
-function attachRemoteAudioTrack(trackId, element) {
-  const record = remoteMediaTrackRecord(trackId);
-  if (record.kind !== "audio") throw new TypeError("Remote Media Track is not audio");
-  const attachmentId = nextAttachmentId++;
-  record.track.attach(element);
-  record.attachments.set(attachmentId, element);
-  return attachmentId;
-}
-function detachRemoteAudioTrack(trackId, attachmentId) {
-  detachRemoteElement(remoteMediaTrackRecord(trackId), attachmentId);
-}
-function dropRemoteAudioTrackAttachment(trackId, attachmentId) {
-  const record = remoteMediaTracks.get(trackId);
-  if (!record) return;
-  try {
-    detachRemoteElement(record, attachmentId);
-  } catch {
-  }
-}
-function dropRemoteMediaTrack(trackId) {
-  const record = remoteMediaTracks.get(trackId);
-  if (!record) return;
-  terminateRemoteMediaTrack(record);
-}
-function dropRemoteMediaTrackDescriptor(descriptor) {
-  const id = descriptor?.id;
-  if (typeof id === "number" && Number.isInteger(id)) dropRemoteMediaTrack(id);
-}
-function audioContextConstructor() {
-  const AudioContext = globalThis.AudioContext || globalThis.webkitAudioContext;
-  if (typeof AudioContext !== "function") {
-    throw new TypeError("Web Audio AudioContext is unavailable");
-  }
-  return AudioContext;
-}
-function mediaStreamAudioSource(track) {
-  const source = track?.mediaStreamTrack;
-  if (!(source instanceof MediaStreamTrack) || source.kind !== "audio") {
-    throw new TypeError("Media Track does not expose a browser audio source");
-  }
-  if (source.readyState === "ended") throw new Error("Media Track audio source has ended");
-  return source;
-}
-function createAudioAnalyser(owner, ownerKind, sourceTrack, onTerminal) {
-  const AudioContext = audioContextConstructor();
-  const context = new AudioContext();
-  let sourceNode;
-  let analyserNode;
-  let silentSink;
-  try {
-    sourceNode = context.createMediaStreamSource(new MediaStream([sourceTrack]));
-    analyserNode = context.createAnalyser();
-    analyserNode.fftSize = 2048;
-    silentSink = context.createGain();
-    silentSink.gain.value = 0;
-    sourceNode.connect(analyserNode);
-    analyserNode.connect(silentSink);
-    silentSink.connect(context.destination);
-  } catch (error) {
-    void context.close().catch(() => {
-    });
-    throw error;
-  }
-  const id = nextAudioAnalyserId++;
-  const record = {
-    id,
-    owner,
-    ownerKind,
-    sourceTrack,
-    sourceNode,
-    analyserNode,
-    silentSink,
-    context,
-    terminal: false,
-    terminalCallback: onTerminal,
-    endedListener: null,
-    closeOperation: null
-  };
-  record.endedListener = () => void terminateAudioAnalyser(record).catch(() => {
-  });
-  sourceTrack.addEventListener("ended", record.endedListener);
-  audioAnalysers.set(id, record);
-  owner.audioAnalyserIds.add(id);
-  if (context.state === "suspended") void context.resume().catch(() => {
-  });
-  return id;
-}
-function terminateAudioAnalyser(record) {
-  if (record.terminal) return record.closeOperation || Promise.resolve();
-  record.terminal = true;
-  if (record.endedListener) {
-    record.sourceTrack.removeEventListener("ended", record.endedListener);
-    record.endedListener = null;
-  }
-  try {
-    record.sourceNode.disconnect();
-  } catch {
-  }
-  try {
-    record.analyserNode.disconnect();
-  } catch {
-  }
-  try {
-    record.silentSink.disconnect();
-  } catch {
-  }
-  record.owner.audioAnalyserIds?.delete(record.id);
-  audioAnalysers.delete(record.id);
-  const callback = record.terminalCallback;
-  record.terminalCallback = null;
-  callback?.();
-  try {
-    record.closeOperation = record.context.state === "closed" ? Promise.resolve() : record.context.close();
-  } catch (error) {
-    record.closeOperation = Promise.reject(error);
-  }
-  return record.closeOperation;
-}
-function terminateAudioAnalysers(owner) {
-  if (!owner.audioAnalyserIds) return;
-  for (const analyserId of [...owner.audioAnalyserIds]) {
-    const analyser = audioAnalysers.get(analyserId);
-    if (analyser) void terminateAudioAnalyser(analyser).catch(() => {
-    });
-  }
-}
-function audioAnalyserIsCurrent(record) {
-  if (record.sourceTrack.readyState === "ended") return false;
-  if (record.ownerKind === "local") {
-    return localAudioTracks.get(record.owner.id) === record.owner && !record.owner.stopRequested && record.owner.track.mediaStreamTrack === record.sourceTrack;
-  }
-  return remoteMediaTracks.get(record.owner.id) === record.owner && !record.owner.terminal && remoteMediaTrackIsCurrent(record.owner) && record.owner.track.mediaStreamTrack === record.sourceTrack;
-}
-function createLocalAudioAnalyser(trackId, onTerminal) {
-  const record = localAudioTrackRecord(trackId);
-  if (record.stopRequested) throw new Error("Local Audio Track capture has stopped");
-  return createAudioAnalyser(record, "local", mediaStreamAudioSource(record.track), onTerminal);
-}
-function createRemoteAudioAnalyser(trackId, onTerminal) {
-  const record = remoteMediaTrackRecord(trackId);
-  if (record.kind !== "audio") throw new TypeError("Remote Media Track is not audio");
-  if (!remoteMediaTrackIsCurrent(record)) {
-    terminateRemoteMediaTrack(record);
-    throw new Error("Remote Media Track is no longer available");
-  }
-  return createAudioAnalyser(
-    record,
-    "remote",
-    mediaStreamAudioSource(record.track),
-    onTerminal
-  );
-}
-function readAudioAnalyser(analyserId) {
-  const record = audioAnalysers.get(analyserId);
-  if (!record || record.terminal) throw new Error("Audio Analyser is no longer available");
-  if (!audioAnalyserIsCurrent(record)) {
-    void terminateAudioAnalyser(record).catch(() => {
-    });
-    throw new Error("Audio Analyser source is no longer available");
-  }
-  const waveform = new Float32Array(record.analyserNode.fftSize);
-  record.analyserNode.getFloatTimeDomainData(waveform);
-  return waveform;
-}
-function closeAudioAnalyser(analyserId) {
-  const record = audioAnalysers.get(analyserId);
-  if (!record) return Promise.resolve();
-  return terminateAudioAnalyser(record);
-}
-function dropAudioAnalyser(analyserId) {
-  const record = audioAnalysers.get(analyserId);
-  if (record) void terminateAudioAnalyser(record).catch(() => {
-  });
-}
-function stopLocalVideoRecord(record) {
-  let failure = null;
-  for (const attachmentId of [...record.attachments.keys()]) {
-    try {
-      detachLocalVideoElement(record, attachmentId);
-    } catch (error) {
-      failure ??= error;
-    }
-  }
-  if (!record.captureStopped) {
-    try {
-      record.track.stop();
-      record.captureStopped = true;
-    } catch (error) {
-      failure ??= error;
-    }
-  }
-  if (failure) throw failure;
-}
-function terminateLocalVideoAfterRestartFailure(record) {
-  record.stopRequested = true;
-  try {
-    stopLocalVideoRecord(record);
-  } catch {
-    record.captureStopped = true;
-  }
-}
-function queueLocalVideoStop(record) {
-  record.stopRequested = true;
-  removeLocalTrackEndedListener(record);
-  if (record.stopOperation) return record.stopOperation;
-  const operation = enqueueLocalTrackMutation(record, () => stopLocalVideoRecord(record));
-  record.stopOperation = operation;
-  void operation.catch(() => {
-    if (record.stopOperation === operation) record.stopOperation = null;
-  });
-  return operation;
-}
-function requireLocalTrackInstance(track, name) {
-  requireMethods(track, name, [
-    "on",
-    "off",
-    "attach",
-    "detach",
-    "stop",
-    "getDeviceId",
-    "restartTrack",
-    "mute",
-    "unmute",
-    "getSenderStats"
-  ]);
-}
-function createCameraVideoTrack(options, raw, onComplete) {
-  const captureOptions = cameraCaptureOptions(options, raw);
-  void globalThis.LivekitClient.createLocalVideoTrack(cloneCaptureOptions(captureOptions)).then(
-    (track) => {
-      try {
-        requireLocalTrackInstance(track, "LocalVideoTrack instance");
-        const id = registerLocalVideoTrack(track, captureOptions, "camera");
-        onComplete(true, id);
-      } catch (error) {
-        try {
-          track?.stop?.();
-        } catch {
-        }
-        onComplete(false, error);
-      }
-    },
-    (error) => onComplete(false, error)
-  );
-}
-function localVideoTrackDeviceId(trackId) {
-  const record = localVideoTrackRecord(trackId);
-  return enqueueLocalTrackMutation(record, async () => {
-    if (record.stopRequested) throw new Error("Local Video Track capture has stopped");
-    return await record.track.getDeviceId() ?? null;
-  });
-}
-function restartLocalVideoTrack(trackId, onComplete) {
-  const record = localVideoTrackRecord(trackId);
-  return restartLocalTrack({
-    record,
-    nextOptions: (previous) => previous,
-    normalizeOptions: (requested) => cameraCaptureOptions(requested, void 0),
-    performRestart: restartVideoTrack,
-    terminate: terminateLocalVideoAfterRestartFailure,
-    onComplete
-  });
-}
-function restartLocalVideoTrackWithOptions(trackId, options, raw, onComplete) {
-  const record = localVideoTrackRecord(trackId);
-  return restartLocalTrack({
-    record,
-    nextOptions: () => cameraCaptureOptions(options, raw),
-    normalizeOptions: (requested) => requested,
-    performRestart: restartVideoTrack,
-    terminate: terminateLocalVideoAfterRestartFailure,
-    onComplete
-  });
-}
-function switchLocalVideoTrackDevice(trackId, deviceId, onComplete) {
-  const record = localVideoTrackRecord(trackId);
-  return restartLocalTrack({
-    record,
-    nextOptions: (previous) => ({ ...previous, deviceId: { exact: deviceId } }),
-    normalizeOptions: (requested) => cameraCaptureOptions(requested, void 0),
-    performRestart: restartVideoTrack,
-    terminate: terminateLocalVideoAfterRestartFailure,
-    onComplete
-  });
-}
-function attachLocalVideoTrack(trackId, element) {
-  const record = localVideoTrackRecord(trackId);
-  if (record.stopRequested) throw new Error("Local Video Track capture has stopped");
-  const attachmentId = nextAttachmentId++;
-  record.track.attach(element);
-  record.attachments.set(attachmentId, element);
-  return attachmentId;
-}
-function detachLocalVideoTrack(trackId, attachmentId) {
-  detachLocalVideoElement(localVideoTrackRecord(trackId), attachmentId);
-}
-function stopLocalVideoTrack(trackId) {
-  return queueLocalVideoStop(localVideoTrackRecord(trackId));
-}
-function dropLocalVideoTrackAttachment(trackId, attachmentId) {
-  const record = localVideoTracks.get(trackId);
-  if (record) detachLocalVideoElement(record, attachmentId);
-}
-function finishDroppedLocalVideoTrack(record, trackId, retryDelay = 0) {
-  if (record.ended) {
-    deleteFinishedBrowserEndedRecord(record);
-    return;
-  }
-  void queueLocalVideoStop(record).then(
-    () => {
-      if (record.attachments.size === 0 && record.publishedRoomId == null) {
-        localVideoTracks.delete(trackId);
-      }
-    },
-    () => {
-      const nextDelay = Math.min(Math.max(retryDelay * 2, 10), 1e3);
-      setTimeout(() => finishDroppedLocalVideoTrack(record, trackId, nextDelay), nextDelay);
-    }
-  );
-}
-function dropLocalVideoTrack(trackId) {
-  const record = localVideoTracks.get(trackId);
-  if (!record) return;
-  removeLocalTrackEndedListener(record);
-  record.ownerDropped = true;
-  finishDroppedLocalVideoTrack(record, trackId);
-}
-function localAudioTrackRecord(trackId) {
-  const record = localAudioTracks.get(trackId);
-  if (!record) throw new Error("Local Audio Track is no longer available");
-  return record;
-}
-function stopLocalAudioRecord(record) {
-  let failure = null;
-  terminateAudioAnalysers(record);
-  for (const attachmentId of [...record.attachments.keys()]) {
-    try {
-      detachLocalAudioElement(record, attachmentId);
-    } catch (error) {
-      failure ??= error;
-    }
-  }
-  if (!record.captureStopped) {
-    try {
-      record.track.stop();
-      record.captureStopped = true;
-    } catch (error) {
-      failure ??= error;
-    }
-  }
-  if (failure) throw failure;
-}
-function terminateLocalAudioAfterRestartFailure(record) {
-  record.stopRequested = true;
-  try {
-    stopLocalAudioRecord(record);
-  } catch {
-    record.captureStopped = true;
-  }
-}
-function queueLocalAudioStop(record) {
-  record.stopRequested = true;
-  removeLocalTrackEndedListener(record);
-  if (record.stopOperation) return record.stopOperation;
-  const operation = enqueueLocalTrackMutation(record, () => stopLocalAudioRecord(record));
-  record.stopOperation = operation;
-  void operation.catch(() => {
-    if (record.stopOperation === operation) record.stopOperation = null;
-  });
-  return operation;
-}
-function createMicrophoneAudioTrack(options, raw, onComplete) {
-  const captureOptions = microphoneCaptureOptions(options, raw);
-  void globalThis.LivekitClient.createLocalAudioTrack(cloneCaptureOptions(captureOptions)).then(
-    (track) => {
-      try {
-        requireLocalTrackInstance(track, "LocalAudioTrack instance");
-        const id = registerLocalAudioTrack(track, captureOptions, "microphone");
-        onComplete(true, id);
-      } catch (error) {
-        try {
-          track?.stop?.();
-        } catch {
-        }
-        onComplete(false, error);
-      }
-    },
-    (error) => onComplete(false, error)
-  );
-}
-function createScreenCapture(options, raw, onComplete) {
-  const captureOptions = screenCaptureOptions(options, raw);
-  void globalThis.LivekitClient.createLocalScreenTracks(cloneCaptureOptions(captureOptions)).then(
-    (tracks) => {
-      let videoTrackId = null;
-      let audioTrackId = null;
-      try {
-        if (!Array.isArray(tracks)) {
-          throw new TypeError("LiveKit display capture did not return a track array");
-        }
-        const videoTracks = tracks.filter(
-          (track) => track.kind === "video"
-        );
-        const audioTracks = tracks.filter(
-          (track) => track.kind === "audio"
-        );
-        if (videoTracks.length !== 1 || audioTracks.length > 1 || tracks.length > 2) {
-          throw new TypeError(
-            "LiveKit display capture must return one video track and at most one audio track"
-          );
-        }
-        requireLocalTrackInstance(videoTracks[0], "LocalVideoTrack instance");
-        videoTrackId = registerLocalVideoTrack(videoTracks[0], captureOptions, "screenShare");
-        const videoRecord = localVideoTrackRecord(videoTrackId);
-        installLocalTrackEndedListener(videoRecord, null);
-        if (audioTracks.length === 1) {
-          requireLocalTrackInstance(audioTracks[0], "LocalAudioTrack instance");
-          audioTrackId = registerLocalAudioTrack(
-            audioTracks[0],
-            captureOptions,
-            "screenShareAudio"
-          );
-          const audioRecord = localAudioTrackRecord(audioTrackId);
-          installLocalTrackEndedListener(audioRecord, null);
-          videoRecord.browserEndedPeer = audioRecord;
-        }
-        onComplete(true, {
-          video_track_id: videoTrackId,
-          audio_track_id: audioTrackId
-        });
-      } catch (error) {
-        if (videoTrackId != null) {
-          const record = localVideoTracks.get(videoTrackId);
-          if (record) {
-            removeLocalTrackEndedListener(record);
-            try {
-              stopLocalVideoRecord(record);
-            } catch {
-            }
-            localVideoTracks.delete(videoTrackId);
-          }
-        }
-        if (audioTrackId != null) {
-          const record = localAudioTracks.get(audioTrackId);
-          if (record) {
-            removeLocalTrackEndedListener(record);
-            try {
-              stopLocalAudioRecord(record);
-            } catch {
-            }
-            localAudioTracks.delete(audioTrackId);
-          }
-        }
-        for (const track of Array.isArray(tracks) ? tracks : []) {
-          try {
-            track.stop();
-          } catch {
-          }
-        }
-        onComplete(false, error);
-      }
-    },
-    (error) => onComplete(false, error)
-  );
-}
-function localAudioTrackDeviceId(trackId) {
-  const record = localAudioTrackRecord(trackId);
-  return enqueueLocalTrackMutation(record, async () => {
-    if (record.stopRequested) throw new Error("Local Audio Track capture has stopped");
-    return await record.track.getDeviceId() ?? null;
-  });
-}
-function restartLocalAudioTrack(trackId, onComplete) {
-  const record = localAudioTrackRecord(trackId);
-  return restartLocalTrack({
-    record,
-    nextOptions: (previous) => previous,
-    normalizeOptions: (requested) => microphoneCaptureOptions(requested, void 0),
-    performRestart: (current, requested) => current.track.restartTrack(requested),
-    terminate: terminateLocalAudioAfterRestartFailure,
-    onComplete
-  });
-}
-function restartLocalAudioTrackWithOptions(trackId, options, raw, onComplete) {
-  const record = localAudioTrackRecord(trackId);
-  return restartLocalTrack({
-    record,
-    nextOptions: () => microphoneCaptureOptions(options, raw),
-    normalizeOptions: (requested) => requested,
-    performRestart: (current, requested) => current.track.restartTrack(requested),
-    terminate: terminateLocalAudioAfterRestartFailure,
-    onComplete
-  });
-}
-function switchLocalAudioTrackDevice(trackId, deviceId, onComplete) {
-  const record = localAudioTrackRecord(trackId);
-  return restartLocalTrack({
-    record,
-    nextOptions: (previous) => ({ ...previous, deviceId: { exact: deviceId } }),
-    normalizeOptions: (requested) => microphoneCaptureOptions(requested, void 0),
-    performRestart: (current, requested) => current.track.restartTrack(requested),
-    terminate: terminateLocalAudioAfterRestartFailure,
-    onComplete
-  });
-}
-function attachLocalAudioTrack(trackId, element) {
-  const record = localAudioTrackRecord(trackId);
-  if (record.stopRequested) throw new Error("Local Audio Track capture has stopped");
-  const attachmentId = nextAttachmentId++;
-  record.track.attach(element);
-  record.attachments.set(attachmentId, element);
-  return attachmentId;
-}
-function detachLocalAudioTrack(trackId, attachmentId) {
-  detachLocalAudioElement(localAudioTrackRecord(trackId), attachmentId);
-}
-function stopLocalAudioTrack(trackId) {
-  return queueLocalAudioStop(localAudioTrackRecord(trackId));
-}
-function dropLocalAudioTrackAttachment(trackId, attachmentId) {
-  const record = localAudioTracks.get(trackId);
-  if (record) detachLocalAudioElement(record, attachmentId);
-}
-function finishDroppedLocalAudioTrack(record, trackId, retryDelay = 0) {
-  if (record.ended) {
-    deleteFinishedBrowserEndedRecord(record);
-    return;
-  }
-  void queueLocalAudioStop(record).then(
-    () => {
-      if (record.attachments.size === 0 && record.publishedRoomId == null) {
-        localAudioTracks.delete(trackId);
-      }
-    },
-    () => {
-      const nextDelay = Math.min(Math.max(retryDelay * 2, 10), 1e3);
-      setTimeout(() => finishDroppedLocalAudioTrack(record, trackId, nextDelay), nextDelay);
-    }
-  );
-}
-function dropLocalAudioTrack(trackId) {
-  const record = localAudioTracks.get(trackId);
-  if (!record) return;
-  removeLocalTrackEndedListener(record);
-  record.ownerDropped = true;
-  finishDroppedLocalAudioTrack(record, trackId);
-}
-function audioPublicationOptions(options, raw, record) {
-  if (options.audioCodec != null && options.audioCodec !== "opus") {
-    throw new TypeError(`unsupported audio codec: ${options.audioCodec}`);
-  }
-  const normalized = { ...rawOptions(raw), source: livekitTrackSource(record.source) };
-  if (options.name != null) normalized.name = options.name;
-  if (options.dtx != null) normalized.dtx = options.dtx;
-  if (options.red != null) normalized.red = options.red;
-  return normalized;
-}
-function requirePublicationSid(publication) {
-  if (typeof publication.trackSid !== "string" || publication.trackSid.length === 0) {
-    throw new TypeError("LiveKit returned a Track Publication without a SID");
-  }
-  return publication.trackSid;
-}
-function publishLocalTrack({
-  roomId,
-  trackId,
-  publicationId,
-  options,
-  raw,
-  onComplete,
-  onReplaced,
-  recordFor,
-  normalizeOptions,
-  mediaName
-}) {
-  let operation;
-  try {
-    const room = roomSessions.get(roomId);
-    if (!room || room.released) throw new Error("Room Session is no longer available");
-    const record = recordFor(trackId);
-    if (record.awaitingPublicationReplacement && record.awaitingPublicationReplacement.roomId !== roomId) {
-      throw new Error(`${mediaName} is still associated with another Room Session`);
-    }
-    if (record.pendingPublishRoomId != null) {
-      throw new Error(`${mediaName} already has a pending publication`);
-    }
-    const normalizedOptions = normalizeOptions(options, raw, record);
-    record.pendingPublishRoomId = roomId;
-    record.pendingPublicationId = publicationId;
-    operation = enqueueLocalTrackMutation(record, async () => {
-      let publication = null;
-      try {
-        if (room.released) throw new Error("Room Session is no longer available");
-        if (record.stopRequested) throw new Error(`${mediaName} capture has stopped`);
-        if (record.publishedRoomId != null) {
-          throw new Error(`${mediaName} is already associated with a Room Session`);
-        }
-        publication = await room.room.localParticipant.publishTrack(
-          record.track,
-          normalizedOptions
-        );
-        if (room.released) {
-          try {
-            await room.room.localParticipant.unpublishTrack(record.track, false);
-          } catch {
-          }
-          publication = null;
-          throw new Error("Room Session is no longer available");
-        }
-        if (record.ended) {
-          try {
-            await room.room.localParticipant.unpublishTrack(record.track, false);
-          } catch (error) {
-            record.publication = publication;
-            record.publishedRoomId = roomId;
-            record.publicationId = publicationId;
-            publication = null;
-            throw error;
-          }
-          publication = null;
-          throw new Error(`${mediaName} capture ended while publication was completing`);
-        }
-        const sid = requirePublicationSid(publication);
-        record.publication = publication;
-        record.publishedRoomId = roomId;
-        record.publicationId = publicationId;
-        record.publicationReplacementCallback = onReplaced;
-        record.awaitingPublicationReplacement = null;
-        record.pendingPublishRoomId = null;
-        record.pendingPublicationId = null;
-        return sid;
-      } catch (error) {
-        if (publication) {
-          try {
-            await room.room.localParticipant.unpublishTrack(record.track, false);
-          } catch {
-          }
-        }
-        if (record.pendingPublicationId === publicationId) {
-          record.pendingPublishRoomId = null;
-          record.pendingPublicationId = null;
-        }
-        throw error;
-      }
-    });
-  } catch (error) {
-    operation = Promise.reject(error);
-  }
-  return operation.then(
-    (sid) => {
-      onComplete(true, sid);
-      return sid;
-    },
-    (error) => {
-      onComplete(false, null);
-      throw error;
-    }
-  );
-}
-function setLocalTrackMuted({
-  trackId,
-  publicationId,
-  muted,
-  onComplete,
-  recordFor,
-  mediaName
-}) {
-  let operation;
-  try {
-    const record = recordFor(trackId);
-    if (!muted && record.stopRequested) {
-      throw new Error(`${mediaName} capture has stopped`);
-    }
-    operation = enqueueLocalTrackMutation(record, async () => {
-      if (record.publicationId !== publicationId || !record.publication) {
-        throw new Error("Track Publication is no longer available");
-      }
-      if (muted) await record.track.mute();
-      else await record.track.unmute();
-    });
-  } catch (error) {
-    operation = Promise.reject(error);
-  }
-  return operation.then(
-    (value) => {
-      onComplete(true);
-      return value;
-    },
-    (error) => {
-      onComplete(false);
-      throw error;
-    }
-  );
-}
-function unpublishLocalTrack({
-  roomId,
-  trackId,
-  publicationId,
-  onComplete,
-  recordFor,
-  records
-}) {
-  let operation;
-  try {
-    const room = roomSessions.get(roomId);
-    if (!room || room.released) throw new Error("Room Session is no longer available");
-    const record = recordFor(trackId);
-    operation = enqueueLocalTrackMutation(record, async () => {
-      if (record.publishedRoomId !== roomId || record.publicationId !== publicationId || !record.publication) {
-        throw new Error("Track Publication is no longer available");
-      }
-      record.explicitUnpublishId = publicationId;
-      try {
-        try {
-          await room.room.localParticipant.unpublishTrack(record.track, false);
-        } catch (error) {
-          if (record.explicitUnpublishObservedId !== publicationId) throw error;
-        }
-        const replacement = [...room.room.localParticipant.trackPublications.values()].find(
-          (candidate) => candidate.track === record.track
-        );
-        if (replacement) {
-          try {
-            await room.room.localParticipant.unpublishTrack(record.track, false);
-          } catch (error) {
-            const stillPublished = [
-              ...room.room.localParticipant.trackPublications.values()
-            ].some((candidate) => candidate.track === record.track);
-            if (stillPublished) throw error;
-          }
-        }
-      } finally {
-        record.explicitUnpublishId = null;
-      }
-      record.publication = null;
-      record.publishedRoomId = null;
-      record.publicationId = null;
-      record.publicationReplacementCallback = null;
-      record.awaitingPublicationReplacement = null;
-      record.explicitUnpublishObservedId = null;
-      if (record.ownerDropped && record.pendingPublishRoomId == null) {
-        records.delete(trackId);
-      }
-    });
-  } catch (error) {
-    operation = Promise.reject(error);
-  }
-  return operation.then(
-    (value) => {
-      onComplete(true);
-      return value;
-    },
-    (error) => {
-      onComplete(false);
-      throw error;
-    }
-  );
-}
-function publishLocalAudioTrack(roomId, trackId, publicationId, options, raw, onReplaced, onComplete) {
-  return publishLocalTrack({
-    roomId,
-    trackId,
-    publicationId,
-    options,
-    raw,
-    onReplaced,
-    onComplete,
-    recordFor: localAudioTrackRecord,
-    normalizeOptions: audioPublicationOptions,
-    mediaName: "Local Audio Track"
-  });
-}
-function setLocalAudioTrackMuted(trackId, publicationId, muted, onComplete) {
-  return setLocalTrackMuted({
-    trackId,
-    publicationId,
-    muted,
-    onComplete,
-    recordFor: localAudioTrackRecord,
-    mediaName: "Local Audio Track"
-  });
-}
-function unpublishLocalAudioTrack(roomId, trackId, publicationId, onComplete) {
-  return unpublishLocalTrack({
-    roomId,
-    trackId,
-    publicationId,
-    onComplete,
-    recordFor: localAudioTrackRecord,
-    records: localAudioTracks
-  });
-}
-async function localTrackSenderStatistics(records, recordFor, trackId, publicationId) {
-  const record = recordFor(trackId);
-  const publication = record.publication;
-  const track = record.track;
-  const roomId = record.publishedRoomId;
-  const roomRecord = roomSessions.get(roomId);
-  if (record.publicationId !== publicationId || !publication || !roomRecord || roomRecord.released) {
-    throw new Error("Track Publication is no longer available");
-  }
-  const statistics = await track.getSenderStats();
-  if (records.get(trackId) !== record || record.publicationId !== publicationId || record.publication !== publication || record.track !== track || record.publishedRoomId !== roomId || roomSessions.get(roomId) !== roomRecord || roomRecord.released) {
-    throw new Error("Track Publication is no longer available");
-  }
-  return statistics;
-}
-async function localAudioSenderStatistics(trackId, publicationId) {
-  const statistics = await localTrackSenderStatistics(
-    localAudioTracks,
-    localAudioTrackRecord,
-    trackId,
-    publicationId
-  );
-  return statistics ? normalizeSenderStatistics(statistics) : null;
-}
-async function rawLocalRtcStatsReport(trackId, publicationId, kind) {
-  const { records, recordFor } = localMediaTrackResources(kind);
-  const record = recordFor(trackId);
-  const publication = record.publication;
-  const track = record.track;
-  const roomId = record.publishedRoomId;
-  const roomRecord = roomSessions.get(roomId);
-  if (record.publicationId !== publicationId || !publication || !roomRecord || roomRecord.released) {
-    throw new Error("Track Publication is no longer available");
-  }
-  if (typeof track.getRTCStatsReport !== "function") {
-    throw new TypeError("LiveKit Local Media Track does not expose RTCStatsReport");
-  }
-  const report = await track.getRTCStatsReport();
-  if (records.get(trackId) !== record || record.publicationId !== publicationId || record.publication !== publication || record.track !== track || record.publishedRoomId !== roomId || roomSessions.get(roomId) !== roomRecord || roomRecord.released) {
-    throw new Error("Track Publication is no longer available");
-  }
-  return report ?? null;
-}
-function videoPublicationOptions(options, raw, record) {
-  const normalized = { ...rawOptions(raw), source: livekitTrackSource(record.source) };
-  if (options.name != null) normalized.name = options.name;
-  if (options.videoCodec != null) normalized.videoCodec = options.videoCodec;
-  if (options.simulcast != null) normalized.simulcast = options.simulcast;
-  if (options.videoEncoding != null) {
-    const encoding = {
-      maxBitrate: options.videoEncoding.maxBitrate,
-      maxFramerate: options.videoEncoding.maxFramerate
-    };
-    if (record.source === "screenShare") normalized.screenShareEncoding = encoding;
-    else normalized.videoEncoding = encoding;
-  }
-  return normalized;
-}
-function publishLocalVideoTrack(roomId, trackId, publicationId, options, raw, onReplaced, onComplete) {
-  return publishLocalTrack({
-    roomId,
-    trackId,
-    publicationId,
-    options,
-    raw,
-    onReplaced,
-    onComplete,
-    recordFor: localVideoTrackRecord,
-    normalizeOptions: videoPublicationOptions,
-    mediaName: "Local Video Track"
-  });
-}
-function setLocalVideoTrackMuted(trackId, publicationId, muted, onComplete) {
-  return setLocalTrackMuted({
-    trackId,
-    publicationId,
-    muted,
-    onComplete,
-    recordFor: localVideoTrackRecord,
-    mediaName: "Local Video Track"
-  });
-}
-function unpublishLocalVideoTrack(roomId, trackId, publicationId, onComplete) {
-  return unpublishLocalTrack({
-    roomId,
-    trackId,
-    publicationId,
-    onComplete,
-    recordFor: localVideoTrackRecord,
-    records: localVideoTracks
-  });
-}
-async function localVideoSenderStatistics(trackId, publicationId) {
-  const statistics = await localTrackSenderStatistics(
-    localVideoTracks,
-    localVideoTrackRecord,
-    trackId,
-    publicationId
-  );
-  if (!Array.isArray(statistics)) throw new TypeError("LiveKit returned invalid sender statistics");
-  return statistics.map(normalizeVideoSenderStatistics);
-}
 var publicationSource = (source) => trackSources[source]?.normalized ?? "unknown";
 var participantConnectionQuality = (quality) => {
   switch (quality) {
@@ -3153,7 +3401,7 @@ var participantConnectionQuality = (quality) => {
       return "unknown";
   }
 };
-var publicationKind = (kind) => {
+var publicationKind2 = (kind) => {
   switch (kind) {
     case "audio":
     case "video":
@@ -3201,7 +3449,7 @@ function publicationState(publication) {
     sid,
     name: publication.trackName || "",
     source: publicationSource(publication.source),
-    kind: publicationKind(publication.kind),
+    kind: publicationKind2(publication.kind),
     muted: publication.isMuted === true
   };
 }
@@ -3275,11 +3523,9 @@ function normalizeActiveSpeakers(record) {
   return identities;
 }
 function normalizeSnapshot(record) {
-  reconcileRemoteMediaTracks(record);
+  reconcileRemoteMediaTracks(record.id);
   const participant = record.room.localParticipant;
-  for (const publication of participant.trackPublications.values()) {
-    reconcileLocalTrackPublished(record, publication);
-  }
+  localMedia.reconcileSnapshot(record.id, participant);
   return {
     revision: record.revision,
     connection: record.room.state,
@@ -3339,7 +3585,7 @@ function queueRemoteParticipantEvent(record, type, participant) {
   const current = record.room.remoteParticipants.get(identity);
   if (type === "remoteParticipantLeft") {
     if (current && current !== participant) return;
-  } else if (current !== participant) return;
+  } else if (!remoteParticipantIsCurrent(record.id, participant)) return;
   queueEvent(record, { type, identity });
 }
 function queueRemotePublicationsEvent(record, participant) {
@@ -3352,16 +3598,6 @@ function queueRemoteDataTracksEvent(record, participant) {
     type: "remoteDataTracksChanged",
     participant_identity: participant.identity
   });
-}
-function remotePublicationIsCurrent(record, participant, publication) {
-  return record.room.remoteParticipants.get(participant?.identity) === participant && participant?.trackPublications.get(publication?.trackSid) === publication;
-}
-function remotePublicationWasReplaced(record, participant, publication) {
-  const currentParticipant = record.room.remoteParticipants.get(participant?.identity);
-  if (currentParticipant !== participant) return true;
-  const sid = publication?.trackSid;
-  const currentPublication = participant?.trackPublications.get(sid);
-  return currentPublication != null && currentPublication !== publication;
 }
 function dataTrackWithSid(participant, sid) {
   for (const track of participant?.dataTracks.values() ?? []) {
@@ -3376,82 +3612,6 @@ function queueRemotePublicationsEventByIdentity(record, participantIdentity) {
       participant_identity: participantIdentity
     });
   }
-}
-function reconcileLocalTrackPublished(roomRecord, publication) {
-  const reconcile = (records) => {
-    for (const record of records.values()) {
-      let awaiting = record.awaitingPublicationReplacement;
-      if (!awaiting && record.publishedRoomId === roomRecord.id && record.publication && record.publication !== publication && record.publicationReplacementCallback && publication?.track === record.track) {
-        const publicationId = record.publicationId;
-        record.publicationReplacementCallback(publicationId, null, false);
-        awaiting = {
-          roomId: roomRecord.id,
-          publicationId,
-          callback: record.publicationReplacementCallback
-        };
-        record.awaitingPublicationReplacement = awaiting;
-        record.publication = null;
-      }
-      if (!awaiting || awaiting.roomId !== roomRecord.id || record.pendingPublishRoomId === roomRecord.id || publication?.track !== record.track) {
-        continue;
-      }
-      const sid = requirePublicationSid(publication);
-      const nextId = awaiting.callback(
-        awaiting.publicationId,
-        sid,
-        publication.isMuted === true
-      );
-      if (!Number.isInteger(nextId) || nextId <= 0) {
-        throw new TypeError("Rust rejected the replacement Local Track Publication");
-      }
-      record.publication = publication;
-      record.publicationId = nextId;
-      record.publishedRoomId = roomRecord.id;
-      record.publicationReplacementCallback = awaiting.callback;
-      record.awaitingPublicationReplacement = null;
-    }
-  };
-  reconcile(localVideoTracks);
-  reconcile(localAudioTracks);
-}
-function reconcileLocalTrackUnpublished(roomRecord, publication) {
-  const reconcile = (records, finishDropped) => {
-    for (const [trackId, record] of records) {
-      if (record.publication !== publication) continue;
-      if (record.explicitUnpublishId === record.publicationId) {
-        record.explicitUnpublishObservedId = record.publicationId;
-        continue;
-      }
-      const callback = record.publicationReplacementCallback;
-      if (record.publishedRoomId === roomRecord.id && callback) {
-        const publicationId = record.publicationId;
-        callback(publicationId, null, false);
-        record.awaitingPublicationReplacement = {
-          roomId: roomRecord.id,
-          publicationId,
-          callback
-        };
-        record.publication = null;
-        record.publishedRoomId = null;
-        record.publicationId = null;
-        record.publicationReplacementCallback = null;
-        if (record.ownerDropped && record.pendingPublishRoomId == null) {
-          finishDropped(record, trackId);
-        }
-        continue;
-      }
-      record.publication = null;
-      record.publishedRoomId = null;
-      record.publicationId = null;
-      record.publicationReplacementCallback = null;
-      record.awaitingPublicationReplacement = null;
-      if (record.ownerDropped && record.pendingPublishRoomId == null) {
-        finishDropped(record, trackId);
-      }
-    }
-  };
-  reconcile(localVideoTracks, finishDroppedLocalVideoTrack);
-  reconcile(localAudioTracks, finishDroppedLocalAudioTrack);
 }
 function listen(record, event, listener) {
   record.room.on(event, listener);
@@ -3473,40 +3633,18 @@ function releaseDataStreams(record) {
 function releaseParticipantRpc(record) {
   participantRpc.releaseRoom(record);
 }
-function releaseLocalTrackAssociations(tracks, roomId, finishDropped) {
-  for (const [trackId, trackRecord] of tracks) {
-    if (trackRecord.publishedRoomId !== roomId && trackRecord.pendingPublishRoomId !== roomId && trackRecord.awaitingPublicationReplacement?.roomId !== roomId) {
-      continue;
-    }
-    trackRecord.publication = null;
-    trackRecord.publicationReplacementCallback = null;
-    trackRecord.awaitingPublicationReplacement = null;
-    trackRecord.explicitUnpublishId = null;
-    trackRecord.explicitUnpublishObservedId = null;
-    if (trackRecord.publishedRoomId === roomId) {
-      trackRecord.publishedRoomId = null;
-      trackRecord.publicationId = null;
-    }
-    if (trackRecord.pendingPublishRoomId === roomId) {
-      trackRecord.pendingPublishRoomId = null;
-      trackRecord.pendingPublicationId = null;
-    }
-    if (trackRecord.ownerDropped) finishDropped(trackRecord, trackId);
-  }
-}
 async function releaseRoom(record) {
   if (record.released) return;
   releaseDataStreams(record);
   record.released = true;
   releaseParticipantRpc(record);
-  terminateRemoteMediaWhere((track) => track.roomId === record.id);
+  remoteMedia.releaseRoom(record.id);
   removeAdapterListeners(record);
   roomSessions.delete(record.id);
   try {
     await record.room.disconnect(false);
   } finally {
-    releaseLocalTrackAssociations(localVideoTracks, record.id, finishDroppedLocalVideoTrack);
-    releaseLocalTrackAssociations(localAudioTracks, record.id, finishDroppedLocalAudioTrack);
+    localMedia.releaseRoom(record.id);
     record.room.removeAllListeners();
   }
 }
@@ -3565,8 +3703,7 @@ function createRoom(raw) {
     localParticipantMutation: Promise.resolve(),
     reliableDataMutation: Promise.resolve(),
     released: false,
-    remoteDataTracksBySid: /* @__PURE__ */ new Map(),
-    remoteMediaTrackIds: /* @__PURE__ */ new Set()
+    remoteDataTracksBySid: /* @__PURE__ */ new Map()
   };
   roomSessions.set(record.id, record);
   const events = sdk.RoomEvent;
@@ -3608,18 +3745,18 @@ function createRoom(raw) {
     queueEvent(record, { type: "activeSpeakersChanged" });
   });
   listen(record, events.LocalTrackPublished, (publication) => {
-    reconcileLocalTrackPublished(record, publication);
+    localMedia.reconcilePublished(record.id, publication);
     queueEvent(record, { type: "localTrackPublicationsChanged" });
   });
   listen(record, events.LocalTrackUnpublished, (publication) => {
-    reconcileLocalTrackUnpublished(record, publication);
+    localMedia.reconcileUnpublished(record.id, publication);
     queueEvent(record, { type: "localTrackPublicationsChanged" });
   });
   listen(record, events.TrackMuted, (publication, participant) => {
     if (participant === room.localParticipant) {
       queueEvent(record, { type: "localTrackPublicationsChanged" });
     } else if (remotePublicationIsCurrent(
-      record,
+      record.id,
       participant,
       publication
     )) {
@@ -3630,7 +3767,7 @@ function createRoom(raw) {
     if (participant === room.localParticipant) {
       queueEvent(record, { type: "localTrackPublicationsChanged" });
     } else if (remotePublicationIsCurrent(
-      record,
+      record.id,
       participant,
       publication
     )) {
@@ -3642,39 +3779,33 @@ function createRoom(raw) {
   });
   listen(record, events.ParticipantDisconnected, (participant) => {
     dataStreams.participantDisconnected(record, participant);
-    terminateRemoteMediaWhere(
-      (track) => track.roomId === record.id && track.participant === participant
-    );
+    remoteMedia.participantDisconnected(record.id, participant);
     queueRemoteParticipantEvent(record, "remoteParticipantLeft", participant);
   });
   listen(record, events.TrackPublished, (publication, participant) => {
-    if (!remotePublicationIsCurrent(record, participant, publication)) return;
+    if (!remotePublicationIsCurrent(record.id, participant, publication)) return;
     queueRemotePublicationsEvent(record, participant);
   });
   listen(record, events.TrackUnpublished, (publication, participant) => {
-    terminateRemoteMediaWhere(
-      (track) => track.roomId === record.id && track.participant === participant && track.publication === publication
-    );
-    if (remotePublicationWasReplaced(record, participant, publication)) return;
+    remoteMedia.publicationUnpublished(record.id, participant, publication);
+    if (remotePublicationWasReplaced(record.id, participant, publication)) return;
     queueRemotePublicationsEvent(record, participant);
   });
   listen(record, events.TrackSubscribed, (_track, publication, participant) => {
-    if (!remotePublicationIsCurrent(record, participant, publication)) return;
-    reconcileRemoteMediaTracks(record);
+    if (!remotePublicationIsCurrent(record.id, participant, publication)) return;
+    remoteMedia.trackSubscribed(record.id);
     queueRemotePublicationsEvent(record, participant);
   });
   listen(record, events.TrackUnsubscribed, (track, publication, participant) => {
-    terminateRemoteMediaWhere(
-      (media) => media.roomId === record.id && media.participant === participant && media.publication === publication && media.track === track
-    );
-    if (remotePublicationWasReplaced(record, participant, publication)) return;
+    remoteMedia.trackUnsubscribed(record.id, track, publication, participant);
+    if (remotePublicationWasReplaced(record.id, participant, publication)) return;
     queueRemotePublicationsEvent(record, participant);
   });
   listen(record, events.TrackSubscriptionFailed, (_trackSid, participant) => {
     queueRemotePublicationsEvent(record, participant);
   });
   listen(record, events.TrackSubscriptionStatusChanged, (publication, _status, participant) => {
-    if (!remotePublicationIsCurrent(record, participant, publication)) return;
+    if (!remotePublicationIsCurrent(record.id, participant, publication)) return;
     queueRemotePublicationsEvent(record, participant);
   });
   listen(record, events.DataTrackPublished, (track) => {

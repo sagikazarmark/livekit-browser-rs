@@ -8,8 +8,11 @@ WORKDIR /app/crates/livekit-browser/js
 COPY crates/livekit-browser/js/package.json crates/livekit-browser/js/package-lock.json ./
 RUN npm ci --no-audit --no-fund
 COPY crates/livekit-browser/js ./
+COPY test-prototype.sh /app/test-prototype.sh
+COPY tests/test-prototype.test.sh /app/tests/test-prototype.test.sh
 COPY --from=livekit-sdk /app/examples/dioxus-room/node_modules/livekit-client/dist/livekit-client.umd.js /app/livekit-client.umd.js
-RUN LIVEKIT_CLIENT_UMD=/app/livekit-client.umd.js npm run check \
+RUN sh /app/tests/test-prototype.test.sh \
+    && LIVEKIT_CLIENT_UMD=/app/livekit-client.umd.js npm run check \
     && touch /adapter-contracts-passed
 
 FROM rust:trixie AS frontend

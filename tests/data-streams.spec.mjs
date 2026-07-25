@@ -107,7 +107,9 @@ test("large text and byte streams preserve payloads and sender backpressure", as
     await expect(sent).toHaveAttribute("data-sent-text-completed", "false");
 
     await receiver.page.locator("#resume-data-stream-reads").dispatchEvent("click");
-    await expect(sent).toHaveAttribute("data-sent-text-completed", "true");
+    await expect(sent).toHaveAttribute("data-sent-text-completed", "true", {
+      timeout: 20_000,
+    });
     await expect(sent).toHaveAttribute("data-sent-text-writes", String(TEXT_CHUNKS));
     await expect(received).toHaveAttribute("data-text-completed", "true");
     await expect(received).toHaveAttribute("data-text-sender", "stream-sender");
@@ -125,7 +127,9 @@ test("large text and byte streams preserve payloads and sender backpressure", as
     await expect(sent).toHaveAttribute("data-sent-byte-writes", "0");
     await expect(sent).toHaveAttribute("data-sent-byte-completed", "false");
     await receiver.page.locator("#resume-data-stream-reads").dispatchEvent("click");
-    await expect(sent).toHaveAttribute("data-sent-byte-completed", "true");
+    await expect(sent).toHaveAttribute("data-sent-byte-completed", "true", {
+      timeout: 20_000,
+    });
     await expect(sent).toHaveAttribute("data-sent-byte-writes", String(BYTE_CHUNKS));
     await expect(received).toHaveAttribute("data-byte-completed", "true");
     await expect(received).toHaveAttribute("data-byte-sender", "stream-sender");

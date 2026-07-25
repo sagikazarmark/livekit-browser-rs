@@ -168,8 +168,10 @@ Upgrade `livekit-client` as one commit; never merge an intermediate mixed-versio
    and unsupported-feature documentation.
 5. Update adapter, runtime-failure, browser workflow, mobile capability, cleanup, and snapshot profile
    contracts for the new behavior.
-6. Run `./test-prototype.sh`. This runs lower-level adapter/Rust checks and the Chromium, Firefox,
-   WebKit, mobile-sized, target-scale, and local-LiveKit two-participant workflows.
+6. Run `./test-prototype.sh`. The required gate forces the pinned local LiveKit service even when
+   `.env` configures Cloud, then runs lower-level adapter/Rust checks and the Chromium, Firefox,
+   WebKit, mobile-sized, target-scale, and two-participant workflows. Use
+   `./test-prototype.sh cloud` only for an explicit, non-deterministic Cloud integration run.
 7. Manually complete one two-participant physical-device acceptance pass: join, publish camera and
    microphone, subscribe and attach remote media, exchange each messaging family used by the
    application, record and revoke a Local Clip, leave, and confirm hardware/listener cleanup.
