@@ -1,4 +1,5 @@
 import type { LiveKitClientSdk } from "./livekit-client";
+import type { RuntimeInspection } from "./generated/adapter-contracts";
 import { localClipRecordingSupported } from "./recording";
 
 type DynamicSdk = LiveKitClientSdk & Record<string, any>;
@@ -36,7 +37,7 @@ function requireStringValues(
   }
 }
 
-export function inspectBrowserRuntime(expectedVersion: string) {
+export function inspectBrowserRuntime(expectedVersion: string): RuntimeInspection {
   const sdk = globalThis.LivekitClient as DynamicSdk | undefined;
   if (!sdk) return { status: "sdkMissing" };
 

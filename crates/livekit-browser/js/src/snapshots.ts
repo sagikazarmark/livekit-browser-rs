@@ -1,9 +1,21 @@
 import { trackSources } from "./options";
 import type {
-  NormalizedRoomEvent,
   PendingRoomEvent,
   RemoteDataTrackLike,
 } from "./room-events";
+import type { NormalizedRoomEvent } from "./room-events";
+import type {
+  AdapterRemoteParticipantSnapshot as RemoteParticipantSnapshot,
+  AdapterRemoteTrackPublicationSnapshot as RemotePublicationSnapshot,
+  AdapterRoomSnapshot as RoomSnapshot,
+  ConnectionQuality,
+  LocalParticipantSnapshot,
+  LocalTrackPublicationSnapshot as PublicationSnapshot,
+  ParticipantGrants as ParticipantGrantsSnapshot,
+  RemoteDataTrackSnapshot,
+  TrackKind as PublicationKind,
+  TrackSource as PublicationSource,
+} from "./generated/adapter-contracts";
 import type {
   LocalParticipant,
   Participant,
@@ -15,93 +27,6 @@ import type {
 } from "livekit-client";
 
 type RoomId = number;
-export type ConnectionQuality = "excellent" | "good" | "poor" | "lost" | "unknown";
-export type PublicationKind = "audio" | "video" | "data" | "unknown";
-export type PublicationSource =
-  | "camera"
-  | "microphone"
-  | "screenShare"
-  | "screenShareAudio"
-  | "unknown";
-
-export interface PendingConnectionQualityChangedEvent extends PendingRoomEvent {
-  type: "participantConnectionQualityChanged";
-  participant_identity: string;
-  source_participant: Participant;
-}
-
-export interface NormalizedConnectionQualityChangedEvent extends NormalizedRoomEvent {
-  type: "participantConnectionQualityChanged";
-  participant_identity: string;
-  quality: ConnectionQuality;
-}
-
-export interface PublicationSnapshot {
-  sid: string;
-  name: string;
-  source: PublicationSource;
-  kind: PublicationKind;
-  muted: boolean;
-}
-
-export interface RemotePublicationSnapshot extends PublicationSnapshot {
-  generation: number;
-  subscribed: boolean;
-  media_available: boolean;
-  media_generation: number | null;
-}
-
-export interface ParticipantGrantsSnapshot {
-  can_subscribe: boolean;
-  can_publish: boolean;
-  can_publish_data: boolean;
-  can_publish_sources: PublicationSource[];
-  can_update_metadata: boolean;
-  hidden: boolean;
-  recorder: boolean;
-  agent: boolean;
-  can_subscribe_metrics: boolean;
-  can_manage_agent_session: boolean;
-}
-
-export interface LocalParticipantSnapshot {
-  identity: string;
-  sid: string;
-  connection_quality: ConnectionQuality;
-  metadata: string | null;
-  attributes: Record<string, string>;
-  grants: ParticipantGrantsSnapshot;
-  track_publications: Record<string, PublicationSnapshot>;
-}
-
-export interface RemoteDataTrackSnapshot {
-  sid: string;
-  name: string;
-  uses_e2ee: boolean;
-}
-
-export interface RemoteParticipantSnapshot {
-  identity: string;
-  sid: string;
-  generation: number;
-  connection_quality: ConnectionQuality;
-  metadata: string | null;
-  attributes: Record<string, string>;
-  track_publications: Record<string, RemotePublicationSnapshot>;
-  data_tracks: Record<string, RemoteDataTrackSnapshot>;
-}
-
-export interface RoomSnapshot {
-  revision: number;
-  connection: Room["state"];
-  audio_playback: "blocked" | "allowed";
-  active_speakers: string[];
-  room_sid: string;
-  room_name: string;
-  room_metadata: string | null;
-  local_participant: LocalParticipantSnapshot;
-  remote_participants: Record<string, RemoteParticipantSnapshot>;
-}
 
 export interface SnapshotRoomRecord {
   readonly id: RoomId;
@@ -150,7 +75,6 @@ const publicationKind = (kind: unknown): PublicationKind => {
   switch (kind) {
     case "audio":
     case "video":
-    case "data":
       return kind;
     default:
       return "unknown";
@@ -318,8 +242,10 @@ export function createSnapshotNormalizer(dependencies: SnapshotNormalizerDepende
     if (event.type !== "participantConnectionQualityChanged") return event;
     const { source_participant: participant, ...normalized } = event;
     if (participant === record.room.localParticipant) {
-      normalized.quality = snapshot.local_participant.connection_quality;
-      return normalized;
+      return {
+        ...normalized,
+        quality: snapshot.local_participant.connection_quality,
+      } satisfies NormalizedRoomEvent;
     }
     const participantIdentity = event.participant_identity;
     if (
@@ -330,8 +256,10 @@ export function createSnapshotNormalizer(dependencies: SnapshotNormalizerDepende
     }
     const participantSnapshot = snapshot.remote_participants[participantIdentity];
     if (!participantSnapshot) return null;
-    normalized.quality = participantSnapshot.connection_quality;
-    return normalized;
+    return {
+      ...normalized,
+      quality: participantSnapshot.connection_quality,
+    } satisfies NormalizedRoomEvent;
   }
 
   return { normalizeSnapshot, normalizeQueuedEvent };

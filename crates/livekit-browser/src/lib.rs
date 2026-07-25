@@ -387,6 +387,7 @@ impl fmt::Display for BrowserCapability {
 
 /// Browser support detected without requesting device or playback permissions.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq)]
+#[cfg_attr(test, derive(ts_rs::TS))]
 #[non_exhaustive]
 pub struct BrowserCapabilities {
     web_rtc: bool,
@@ -5019,14 +5020,18 @@ enum LocalAudioTrackPublicationLifecycle {
     Unpublished,
 }
 
-#[cfg(target_arch = "wasm32")]
+#[cfg(any(target_arch = "wasm32", test))]
 #[derive(Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, allow(dead_code))]
 struct AdapterJoin {
     snapshot: AdapterRoomSnapshot,
 }
 
-#[cfg(target_arch = "wasm32")]
+#[cfg(any(target_arch = "wasm32", test))]
 #[derive(Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, allow(dead_code))]
 struct AdapterUpdate {
     snapshot: AdapterRoomSnapshot,
     events: Vec<RoomEventKind>,
@@ -5196,6 +5201,7 @@ async fn join_room_session(
 
 /// The observable connection state of a Room Session.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq)]
+#[cfg_attr(test, derive(ts_rs::TS))]
 #[serde(rename_all = "camelCase")]
 #[non_exhaustive]
 pub enum RoomConnectionState {
@@ -5209,6 +5215,7 @@ pub enum RoomConnectionState {
 
 /// LiveKit's normalized estimate of a participant's connection quality.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq)]
+#[cfg_attr(test, derive(ts_rs::TS))]
 #[serde(rename_all = "camelCase")]
 #[non_exhaustive]
 pub enum ConnectionQuality {
@@ -5510,6 +5517,7 @@ impl VideoReceiverStatistics {
 
 /// Whether browser autoplay policy currently permits remote audio playback.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq)]
+#[cfg_attr(test, derive(ts_rs::TS))]
 #[serde(rename_all = "camelCase")]
 #[non_exhaustive]
 pub enum AudioPlaybackState {
@@ -5583,6 +5591,7 @@ impl RoomSnapshot {
 
 /// The immutable Local Participant state in a Room Snapshot.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
+#[cfg_attr(test, derive(ts_rs::TS))]
 #[non_exhaustive]
 pub struct LocalParticipantSnapshot {
     identity: String,
@@ -5717,6 +5726,7 @@ impl Eq for RemoteParticipantSnapshot {}
 
 /// LiveKit source grants for the Local Participant.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
+#[cfg_attr(test, derive(ts_rs::TS))]
 #[non_exhaustive]
 pub struct ParticipantGrants {
     can_subscribe: bool,
@@ -5787,6 +5797,7 @@ impl ParticipantGrants {
 
 /// A LiveKit media source authorized or represented in a Track Publication.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
 #[serde(rename_all = "camelCase")]
 #[non_exhaustive]
 pub enum TrackSource {
@@ -5799,6 +5810,7 @@ pub enum TrackSource {
 
 /// The media kind announced by a Track Publication.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq)]
+#[cfg_attr(test, derive(ts_rs::TS))]
 #[serde(rename_all = "camelCase")]
 #[non_exhaustive]
 pub enum TrackKind {
@@ -5809,6 +5821,7 @@ pub enum TrackKind {
 
 /// Immutable state for a separately published Remote Data Track.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
+#[cfg_attr(test, derive(ts_rs::TS))]
 #[non_exhaustive]
 pub struct RemoteDataTrackSnapshot {
     sid: String,
@@ -5894,6 +5907,7 @@ impl Default for PublicationSubscriptionPermissions {
 
 /// Immutable state for a Local Participant Track Publication.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
+#[cfg_attr(test, derive(ts_rs::TS))]
 #[non_exhaustive]
 pub struct LocalTrackPublicationSnapshot {
     sid: String,
@@ -6024,7 +6038,9 @@ impl Eq for RemoteTrackPublicationSnapshot {}
 
 #[cfg(any(target_arch = "wasm32", test))]
 #[derive(Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
 struct AdapterRoomSnapshot {
+    #[cfg_attr(test, ts(type = "number"))]
     revision: u64,
     connection: RoomConnectionState,
     audio_playback: AudioPlaybackState,
@@ -6038,6 +6054,7 @@ struct AdapterRoomSnapshot {
 
 #[cfg(any(target_arch = "wasm32", test))]
 #[derive(Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
 struct AdapterRemoteParticipantSnapshot {
     identity: String,
     sid: String,
@@ -6051,6 +6068,7 @@ struct AdapterRemoteParticipantSnapshot {
 
 #[cfg(any(target_arch = "wasm32", test))]
 #[derive(Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
 struct AdapterRemoteTrackPublicationSnapshot {
     sid: String,
     generation: u32,
@@ -9033,6 +9051,7 @@ impl AdapterTranscriptionSegment {
 
 /// The state change represented by a Room Event.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
+#[cfg_attr(test, derive(ts_rs::TS))]
 #[serde(tag = "type", rename_all = "camelCase")]
 #[non_exhaustive]
 pub enum RoomEventKind {
@@ -10806,6 +10825,7 @@ pub mod local_clip_recording_support {
 
 #[cfg(any(target_arch = "wasm32", test))]
 #[derive(Debug, Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
 #[serde(tag = "status")]
 enum RuntimeInspection {
     #[serde(rename = "ready")]
@@ -11383,6 +11403,80 @@ mod tests {
     use super::*;
     use futures_executor::block_on;
     use futures_util::{FutureExt, StreamExt};
+    use std::path::PathBuf;
+    use ts_rs::{Config, TS};
+
+    const ADAPTER_CONTRACTS_HEADER: &str =
+        "// Generated from Rust DTOs by npm run contracts:generate. Do not edit.\n\n";
+
+    fn adapter_contracts_path() -> PathBuf {
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("js/src/generated/adapter-contracts.ts")
+    }
+
+    fn append_contract<T: TS>(output: &mut String, config: &Config) {
+        output.push_str("export ");
+        output.push_str(&T::decl(config));
+        output.push_str("\n\n");
+    }
+
+    fn render_adapter_contracts() -> String {
+        let mut output = String::from(ADAPTER_CONTRACTS_HEADER);
+        let config = Config::default();
+
+        // Keep this registry explicit and ordered so contract additions are intentional and diffs
+        // are stable across filesystems.
+        append_contract::<BrowserCapabilities>(&mut output, &config);
+        append_contract::<RoomConnectionState>(&mut output, &config);
+        append_contract::<ConnectionQuality>(&mut output, &config);
+        append_contract::<AudioPlaybackState>(&mut output, &config);
+        append_contract::<TrackSource>(&mut output, &config);
+        append_contract::<TrackKind>(&mut output, &config);
+        append_contract::<ParticipantGrants>(&mut output, &config);
+        append_contract::<LocalTrackPublicationSnapshot>(&mut output, &config);
+        append_contract::<LocalParticipantSnapshot>(&mut output, &config);
+        append_contract::<RemoteDataTrackSnapshot>(&mut output, &config);
+        append_contract::<AdapterRemoteTrackPublicationSnapshot>(&mut output, &config);
+        append_contract::<AdapterRemoteParticipantSnapshot>(&mut output, &config);
+        append_contract::<AdapterRoomSnapshot>(&mut output, &config);
+        append_contract::<RoomEventKind>(&mut output, &config);
+        append_contract::<AdapterJoin>(&mut output, &config);
+        append_contract::<AdapterUpdate>(&mut output, &config);
+        append_contract::<RuntimeInspection>(&mut output, &config);
+        assert_eq!(output.pop(), Some('\n'));
+
+        assert!(output.is_ascii(), "adapter contracts must remain ASCII");
+        assert!(
+            !output.contains('\r'),
+            "adapter contracts must use LF endings"
+        );
+        output
+    }
+
+    #[test]
+    #[ignore = "writes the committed TypeScript adapter contracts"]
+    fn generate_adapter_contracts() {
+        let path = adapter_contracts_path();
+        std::fs::create_dir_all(path.parent().expect("generated contracts parent"))
+            .expect("create generated contracts directory");
+        std::fs::write(path, render_adapter_contracts())
+            .expect("write generated adapter contracts");
+    }
+
+    #[test]
+    fn adapter_contracts_are_fresh() {
+        let path = adapter_contracts_path();
+        let committed = std::fs::read_to_string(&path).unwrap_or_else(|error| {
+            panic!(
+                "read generated adapter contracts at {}: {error}",
+                path.display()
+            )
+        });
+        assert_eq!(
+            committed,
+            render_adapter_contracts(),
+            "adapter contracts are stale; run npm run contracts:generate --prefix crates/livekit-browser/js"
+        );
+    }
 
     #[test]
     fn sdk_log_levels_map_to_typed_records_and_silent_is_ignored() {

@@ -8,24 +8,25 @@ import type {
   RoomEventCallbacks,
   TrackPublication,
 } from "livekit-client";
+import type { RoomEventKind } from "./generated/adapter-contracts";
 
 export interface RemoteDataTrackLike {
   info: { sid?: string; name?: string; usesE2ee?: boolean };
   publisherIdentity: string;
 }
 
-export interface PendingRoomEvent {
-  type: string;
-  participant_identity?: string;
-  source_participant?: Participant;
-  [key: string]: unknown;
-}
+type ConnectionQualityChangedEvent = Extract<
+  RoomEventKind,
+  { type: "participantConnectionQualityChanged" }
+>;
+type PendingConnectionQualityChangedEvent = Omit<ConnectionQualityChangedEvent, "quality"> & {
+  source_participant: Participant;
+};
 
-export interface NormalizedRoomEvent {
-  type: string;
-  participant_identity?: string;
-  [key: string]: unknown;
-}
+export type PendingRoomEvent =
+  | Exclude<RoomEventKind, ConnectionQualityChangedEvent>
+  | PendingConnectionQualityChangedEvent;
+export type NormalizedRoomEvent = RoomEventKind;
 
 export interface RoomEventSnapshotState {
   readonly revision: number;
@@ -37,7 +38,7 @@ export interface RoomEventSnapshotState {
 
 type RoomListener = (...args: any[]) => void;
 type RoomUpdateCallback<TSnapshot> = (
-  update: { snapshot: TSnapshot; events: NormalizedRoomEvent[] },
+  update: { snapshot: TSnapshot; events: RoomEventKind[] },
 ) => void;
 type DataPacketCallback = (
   payload: Uint8Array,
@@ -174,7 +175,10 @@ export function createRoomEventOrchestrator<TSnapshot>(
       const normalized = queued
         .map((event) => dependencies.snapshots.normalizeEvent(state, event, snapshot))
         .filter((event): event is NormalizedRoomEvent => event != null);
-      activation.update({ snapshot, events: normalized });
+      activation.update({ snapshot, events: normalized } satisfies {
+        snapshot: TSnapshot;
+        events: RoomEventKind[];
+      });
     }, 0);
   }
 
@@ -184,7 +188,10 @@ export function createRoomEventOrchestrator<TSnapshot>(
     scheduleUpdate();
   }
 
-  function queueRemoteParticipantEvent(type: string, participant: RemoteParticipant) {
+  function queueRemoteParticipantEvent(
+    type: "remoteParticipantJoined" | "remoteParticipantChanged" | "remoteParticipantLeft",
+    participant: RemoteParticipant,
+  ) {
     const identity = participant?.identity;
     if (typeof identity !== "string" || identity.length === 0) return;
     const current = room.remoteParticipants.get(identity);
@@ -229,9 +236,12 @@ export function createRoomEventOrchestrator<TSnapshot>(
   }
 
   try {
-    listen(events.ConnectionStateChanged, (connectionState: unknown) => {
-      queueEvent({ type: "connectionStateChanged", state: connectionState });
-    });
+    listen(
+      events.ConnectionStateChanged,
+      ((connectionState) => {
+        queueEvent({ type: "connectionStateChanged", state: connectionState });
+      }) satisfies RoomEventCallbacks["connectionStateChanged"],
+    );
     listen(events.ParticipantMetadataChanged, (_previous: unknown, participant: Participant) => {
       if (participant === room.localParticipant) queueEvent({ type: "localParticipantChanged" });
       else queueRemoteParticipantEvent("remoteParticipantChanged", participant as RemoteParticipant);

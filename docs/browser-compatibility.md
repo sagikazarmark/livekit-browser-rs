@@ -151,6 +151,23 @@ If any engine exceeds the target on a reproducible runner, profile the full snap
 introducing an incremental reducer. Do not weaken snapshot-first revision coherence to meet the
 budget.
 
+## Rust/TypeScript DTO Contracts
+
+The room-state and runtime-inspection DTOs crossing `serde-wasm-bindgen` are declared in Rust and
+generated into `crates/livekit-browser/js/src/generated/adapter-contracts.ts`. After changing one
+of those Rust DTOs or its Serde representation, regenerate and verify the committed TypeScript
+contract:
+
+```sh
+npm run contracts:generate --prefix crates/livekit-browser/js
+npm run contracts:check --prefix crates/livekit-browser/js
+npm run check --prefix crates/livekit-browser/js
+```
+
+`contracts:generate` runs the ignored Rust writer test. `contracts:check` runs the normal Rust
+freshness test. The regular npm `check` remains Node-only so adapter consumers do not need Cargo;
+the Rust freshness check runs explicitly in the Rust stage of `Dockerfile.web`.
+
 ## Atomic SDK Upgrade
 
 Upgrade `livekit-client` as one commit; never merge an intermediate mixed-version state.
@@ -163,9 +180,13 @@ Upgrade `livekit-client` as one commit; never merge an intermediate mixed-versio
    file.
 3. Change `LIVEKIT_CLIENT_VERSION` in `crates/livekit-browser/src/lib.rs` to the same exact version.
 4. Update the TypeScript sources under `crates/livekit-browser/js/src` and normalized Rust types
-   together for every changed SDK contract. Run `npm run build --prefix crates/livekit-browser/js`
-   and commit the generated `crates/livekit-browser/js/livekit-browser.js`. Update browser capability
-   and unsupported-feature documentation.
+   together for every changed SDK contract. Run
+   `npm run contracts:generate --prefix crates/livekit-browser/js`, then
+   `npm run contracts:check --prefix crates/livekit-browser/js`, and commit the updated
+   `crates/livekit-browser/js/src/generated/adapter-contracts.ts`. Run
+   `npm run build --prefix crates/livekit-browser/js` and commit the generated
+   `crates/livekit-browser/js/livekit-browser.js`. Update browser capability and unsupported-feature
+   documentation.
 5. Update adapter, runtime-failure, browser workflow, mobile capability, cleanup, and snapshot profile
    contracts for the new behavior.
 6. Run `./test-prototype.sh`. The required gate forces the pinned local LiveKit service even when

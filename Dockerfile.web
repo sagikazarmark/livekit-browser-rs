@@ -36,7 +36,8 @@ COPY Cargo.toml Cargo.lock ./
 COPY crates ./crates
 COPY examples/dioxus-room ./examples/dioxus-room
 COPY --from=adapter-contracts /adapter-contracts-passed /tmp/adapter-contracts-passed
-RUN cargo test -p livekit-browser --doc \
+RUN cargo test -p livekit-browser tests::adapter_contracts_are_fresh -- --exact \
+    && cargo test -p livekit-browser --doc \
     && cargo test --workspace --all-features \
     && cargo check --workspace --all-features \
     && cargo check --workspace --all-features --target wasm32-unknown-unknown

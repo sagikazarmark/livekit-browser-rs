@@ -533,6 +533,15 @@ test("raw room, participant, publication, media, and statistics handles preserve
     isSubscribed: true,
     track: remoteTrack,
   };
+  const unsupportedDataPublication = {
+    trackSid: "TR_unsupported_data",
+    trackName: "legacy-data-publication",
+    source: "unknown",
+    kind: "data",
+    isMuted: false,
+    isSubscribed: false,
+    track: null,
+  };
   const remoteDataTrack = {
     info: { sid: "DT_remote", name: "reactions", usesE2ee: true },
     publisherIdentity: "student",
@@ -543,7 +552,10 @@ test("raw room, participant, publication, media, and statistics handles preserve
     connectionQuality: "good",
     metadata: undefined,
     attributes: {},
-    trackPublications: new Map([[remotePublication.trackSid, remotePublication]]),
+    trackPublications: new Map([
+      [remotePublication.trackSid, remotePublication],
+      [unsupportedDataPublication.trackSid, unsupportedDataPublication],
+    ]),
     dataTracks: new Map([[remoteDataTrack.info.name, remoteDataTrack]]),
   };
   const localParticipant = {
@@ -686,6 +698,7 @@ test("raw room, participant, publication, media, and statistics handles preserve
   assert.deepEqual(participantSnapshot.data_tracks, {
     DT_remote: { sid: "DT_remote", name: "reactions", uses_e2ee: true },
   });
+  assert.equal(participantSnapshot.track_publications.TR_unsupported_data.kind, "unknown");
   assert.equal(participantSnapshot.track_publications.DT_remote, undefined);
   assert.throws(() =>
     adapter.rawRemotePublication(roomId, {

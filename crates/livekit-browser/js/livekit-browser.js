@@ -2898,7 +2898,6 @@ var publicationKind2 = (kind) => {
   switch (kind) {
     case "audio":
     case "video":
-    case "data":
       return kind;
     default:
       return "unknown";
@@ -3045,8 +3044,10 @@ function createSnapshotNormalizer(dependencies) {
     if (event.type !== "participantConnectionQualityChanged") return event;
     const { source_participant: participant, ...normalized } = event;
     if (participant === record.room.localParticipant) {
-      normalized.quality = snapshot.local_participant.connection_quality;
-      return normalized;
+      return {
+        ...normalized,
+        quality: snapshot.local_participant.connection_quality
+      };
     }
     const participantIdentity = event.participant_identity;
     if (participantIdentity == null || record.room.remoteParticipants.get(participantIdentity) !== participant) {
@@ -3054,8 +3055,10 @@ function createSnapshotNormalizer(dependencies) {
     }
     const participantSnapshot = snapshot.remote_participants[participantIdentity];
     if (!participantSnapshot) return null;
-    normalized.quality = participantSnapshot.connection_quality;
-    return normalized;
+    return {
+      ...normalized,
+      quality: participantSnapshot.connection_quality
+    };
   }
   return { normalizeSnapshot, normalizeQueuedEvent };
 }
@@ -3128,9 +3131,12 @@ function createRoomEventOrchestrator(dependencies) {
     listeners.push([event, listener]);
   }
   try {
-    listen(events.ConnectionStateChanged, (connectionState) => {
-      queueEvent({ type: "connectionStateChanged", state: connectionState });
-    });
+    listen(
+      events.ConnectionStateChanged,
+      (connectionState) => {
+        queueEvent({ type: "connectionStateChanged", state: connectionState });
+      }
+    );
     listen(events.ParticipantMetadataChanged, (_previous, participant) => {
       if (participant === room.localParticipant) queueEvent({ type: "localParticipantChanged" });
       else queueRemoteParticipantEvent("remoteParticipantChanged", participant);

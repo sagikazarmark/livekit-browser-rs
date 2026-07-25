@@ -7,9 +7,12 @@ import { createParticipantRpcSubsystem } from "./participant-rpc";
 import { createLocalMediaSubsystem } from "./local-media";
 import { createRemoteMediaSubsystem } from "./remote-media";
 import { createSnapshotNormalizer } from "./snapshots";
-import type { RoomSnapshot } from "./snapshots";
 import { createRoomEventOrchestrator, normalizeChatMessage } from "./room-events";
-import type { NormalizedRoomEvent } from "./room-events";
+import type {
+  AdapterJoin,
+  AdapterRoomSnapshot as RoomSnapshot,
+  AdapterUpdate,
+} from "./generated/adapter-contracts";
 import {
   createAudioAnalyser,
   createAudioAnalyserOwner,
@@ -31,7 +34,7 @@ type RoomId = number;
 type AttachmentId = number;
 
 type RoomUpdateCallback = (
-  update: { snapshot: RoomSnapshot; events: NormalizedRoomEvent[] },
+  update: AdapterUpdate,
 ) => void;
 type DataPacketCallback = (
   payload: Uint8Array,
@@ -547,7 +550,7 @@ export async function connectRoom(
   participantToken: string,
   autoSubscribe: boolean,
   raw: unknown,
-) {
+): Promise<AdapterJoin> {
   const record = roomSessions.get(roomId);
   if (!record || record.released) throw new Error("Room Session is no longer available");
 
@@ -562,7 +565,7 @@ export async function connectRoom(
     }
     record.roomSid = roomSid;
     record.events!.discardInitialEvents();
-    return { snapshot: record.events!.snapshot() };
+    return { snapshot: record.events!.snapshot() } satisfies AdapterJoin;
   } catch (error: unknown) {
     try {
       await releaseRoom(record);
