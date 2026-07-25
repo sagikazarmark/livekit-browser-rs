@@ -87,3 +87,25 @@ export type VideoReceiverStatistics = { frames_decoded: number | null, frames_dr
 export type AdapterChatMessage = { id: string, message: string, sender_identity: string | null, timestamp_millis: number, edit_timestamp_millis: number | null, };
 
 export type AdapterTranscriptionSegment = { id: string, participant_identity: string | null, track_publication_sid: string | null, text: string, start_time: number, end_time: number, language: string, is_final: boolean, first_received_at_millis: number, last_received_at_millis: number, };
+
+export type ExactDeviceId = { exact: string, };
+
+export type FacingMode = "user" | "environment" | "left" | "right";
+
+export type CameraResolution = { width: number, height: number, };
+
+export type CameraCaptureOptions = { deviceId?: ExactDeviceId, facingMode?: FacingMode, resolution?: CameraResolution, frameRate?: number, };
+
+export type MicrophoneCaptureOptions = { deviceId?: ExactDeviceId, autoGainControl?: boolean, channelCount?: number, echoCancellation?: boolean, latency?: number, noiseSuppression?: boolean, sampleRate?: number, sampleSize?: number, };
+
+export type ScreenCaptureOptions = { audio: boolean, };
+
+export type VideoCodec = "vp8" | "vp9" | "h264" | "av1";
+
+export type VideoEncoding = { maxBitrate: number, maxFramerate: number, };
+
+export type AdapterVideoPublishOptions = { name?: string, videoCodec?: VideoCodec, simulcast?: boolean, videoEncoding?: VideoEncoding, };
+
+export type AudioCodec = "opus";
+
+export type AdapterAudioPublishOptions = { name?: string, audioCodec: AudioCodec, dtx?: boolean, red?: boolean, };

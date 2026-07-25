@@ -1,3 +1,9 @@
+import type {
+  CameraCaptureOptions,
+  MicrophoneCaptureOptions,
+  ScreenCaptureOptions,
+} from "./generated/adapter-contracts";
+
 export type RawOptions = Record<string, any>;
 
 export function cloneCaptureOptions<T>(options: T): T {
@@ -13,7 +19,10 @@ export function rawOptions(raw: unknown, fallback: RawOptions = {}): RawOptions 
   return { ...value };
 }
 
-export function cameraCaptureOptions(options: RawOptions, raw: unknown): RawOptions {
+export function cameraCaptureOptions(
+  options: CameraCaptureOptions | RawOptions,
+  raw: unknown,
+): RawOptions {
   const normalized = rawOptions(raw, options);
   if (options.deviceId != null) normalized.deviceId = cloneCaptureOptions(options.deviceId);
   if (options.facingMode != null) normalized.facingMode = options.facingMode;
@@ -22,7 +31,10 @@ export function cameraCaptureOptions(options: RawOptions, raw: unknown): RawOpti
   return normalized;
 }
 
-export function microphoneCaptureOptions(options: RawOptions, raw: unknown): RawOptions {
+export function microphoneCaptureOptions(
+  options: MicrophoneCaptureOptions | RawOptions,
+  raw: unknown,
+): RawOptions {
   const normalized = rawOptions(raw, options);
   for (const key of [
     "deviceId",
@@ -33,13 +45,16 @@ export function microphoneCaptureOptions(options: RawOptions, raw: unknown): Raw
     "noiseSuppression",
     "sampleRate",
     "sampleSize",
-  ]) {
+  ] as const) {
     if (options[key] != null) normalized[key] = cloneCaptureOptions(options[key]);
   }
   return normalized;
 }
 
-export function screenCaptureOptions(options: RawOptions | null | undefined, raw: unknown): RawOptions {
+export function screenCaptureOptions(
+  options: ScreenCaptureOptions | null | undefined,
+  raw: unknown,
+): RawOptions {
   const audio = options?.audio === true;
   return {
     ...rawOptions(raw, options ?? {}),

@@ -495,6 +495,7 @@ test("normalizes LiveKit log levels and structured context for one extension", (
 test("raw camera options are additive while typed values retain precedence", async () => {
   let receivedOptions;
   let receivedAudioOptions;
+  let receivedScreenOptions;
   const track = {
     attach() {},
     detach() {},
@@ -537,7 +538,10 @@ test("raw camera options are additive while typed values retain precedence", asy
       receivedOptions = options;
       return track;
     },
-    createLocalScreenTracks: async () => [screenTrack],
+    createLocalScreenTracks: async (options) => {
+      receivedScreenOptions = options;
+      return [screenTrack];
+    },
   };
 
   const trackId = await new Promise((resolve, reject) => {
@@ -573,9 +577,14 @@ test("raw camera options are additive while typed values retain precedence", asy
   const screenCapture = await new Promise((resolve, reject) => {
     adapter.createScreenCapture(
       { audio: false },
-      {},
+      { audio: true, systemAudio: "include", contentHint: "detail" },
       (success, value) => (success ? resolve(value) : reject(value)),
     );
+  });
+  assert.deepEqual(receivedScreenOptions, {
+    audio: false,
+    systemAudio: "exclude",
+    contentHint: "detail",
   });
   assert.deepEqual(screenCapture, {
     video_track_id: 2,
@@ -587,6 +596,7 @@ test("raw room, participant, publication, media, and statistics handles preserve
   let roomConstructorOptions;
   let connectOptions;
   let publishOptions;
+  let audioPublishOptions;
   let rpcHandler;
   const replacements = [];
 
@@ -649,12 +659,13 @@ test("raw room, participant, publication, media, and statistics handles preserve
     },
     trackPublications: new Map(),
     publishTrack: async (_track, options) => {
-      publishOptions = options;
+      if (_track.kind === "audio") audioPublishOptions = options;
+      else publishOptions = options;
       const publication = {
         trackSid: "TR_local",
         trackName: options.name,
         source: options.source,
-        kind: "video",
+        kind: _track.kind,
         track: _track,
       };
       localParticipant.trackPublications.set(publication.trackSid, publication);
@@ -729,6 +740,11 @@ test("raw room, participant, publication, media, and statistics handles preserve
     unmute: async () => {},
     stop() {},
   };
+  const localAudioTrack = {
+    ...localTrack,
+    kind: "audio",
+    getDeviceId: async () => "microphone",
+  };
   globalThis.LivekitClient = {
     Room,
     RoomEvent: {
@@ -738,6 +754,7 @@ test("raw room, participant, publication, media, and statistics handles preserve
     },
     TrackEvent: { Ended: "ended" },
     DataPacket_Kind: { RELIABLE: 0, LOSSY: 1 },
+    createLocalAudioTrack: async () => localAudioTrack,
     createLocalVideoTrack: async () => localTrack,
   };
 
@@ -841,7 +858,7 @@ test("raw room, participant, publication, media, and statistics handles preserve
     roomId,
     localTrackId,
     1,
-    { source: "camera", name: "typed-camera", videoCodec: "vp8" },
+    { name: "typed-camera", videoCodec: "vp8" },
     { source: "screen_share", degradationPreference: "maintain-framerate" },
     (previousId, sid, muted) => {
       replacements.push({ previousId, sid, muted });
@@ -911,6 +928,27 @@ test("raw room, participant, publication, media, and statistics handles preserve
   ]);
   assert.throws(() => adapter.rawLocalPublication(localTrackId, 2, "video"));
   assert.equal(adapter.rawLocalPublication(localTrackId, 3, "video"), directReplacement);
+
+  const localAudioTrackId = await new Promise((resolve, reject) => {
+    adapter.createMicrophoneAudioTrack({}, {}, (success, value) =>
+      success ? resolve(value) : reject(value),
+    );
+  });
+  await adapter.publishLocalAudioTrack(
+    roomId,
+    localAudioTrackId,
+    1,
+    { audioCodec: "opus", name: "typed-microphone", dtx: true, red: false },
+    { source: "screen_share_audio", name: "raw-microphone", dtx: false, red: true },
+    (previousId) => previousId + 1,
+    () => {},
+  );
+  assert.deepEqual(audioPublishOptions, {
+    source: "microphone",
+    name: "typed-microphone",
+    dtx: true,
+    red: false,
+  });
 
   const rpcCause = Object.assign(new Error("transport exploded"), { name: "NetworkSdkError" });
   localParticipant.performRpc = async () => {

@@ -1083,12 +1083,14 @@ impl MediaDeviceInfo {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
 struct ExactDeviceId {
     exact: String,
 }
 
 /// A camera's requested facing direction.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
 #[serde(rename_all = "camelCase")]
 #[non_exhaustive]
 pub enum FacingMode {
@@ -1100,6 +1102,7 @@ pub enum FacingMode {
 
 /// A requested camera capture resolution.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
 #[serde(rename_all = "camelCase")]
 pub struct CameraResolution {
     width: u32,
@@ -1125,16 +1128,21 @@ impl CameraResolution {
 
 /// Typed common constraints for camera capture and restart.
 #[derive(Clone, Debug, Default, PartialEq, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
 #[serde(rename_all = "camelCase")]
 #[non_exhaustive]
 pub struct CameraCaptureOptions {
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(test, ts(optional))]
     device_id: Option<ExactDeviceId>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(test, ts(optional))]
     facing_mode: Option<FacingMode>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(test, ts(optional))]
     resolution: Option<CameraResolution>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(test, ts(optional))]
     frame_rate: Option<f64>,
     #[cfg(feature = "raw-js")]
     #[serde(skip)]
@@ -1180,24 +1188,33 @@ impl CameraCaptureOptions {
 
 /// Typed common constraints for microphone capture and restart.
 #[derive(Clone, Debug, Default, PartialEq, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
 #[serde(rename_all = "camelCase")]
 #[non_exhaustive]
 pub struct MicrophoneCaptureOptions {
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(test, ts(optional))]
     device_id: Option<ExactDeviceId>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(test, ts(optional))]
     auto_gain_control: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(test, ts(optional))]
     channel_count: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(test, ts(optional))]
     echo_cancellation: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(test, ts(optional))]
     latency: Option<f64>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(test, ts(optional))]
     noise_suppression: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(test, ts(optional))]
     sample_rate: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(test, ts(optional))]
     sample_size: Option<u32>,
     #[cfg(feature = "raw-js")]
     #[serde(skip)]
@@ -1267,6 +1284,7 @@ impl MicrophoneCaptureOptions {
 
 /// Typed options for one browser display-capture request.
 #[derive(Clone, Debug, Default, PartialEq, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
 #[cfg_attr(not(feature = "raw-js"), derive(Eq))]
 #[serde(rename_all = "camelCase")]
 #[non_exhaustive]
@@ -1569,6 +1587,7 @@ fn start_local_media_device_change(
 
 /// A preferred codec for publishing a Local Video Track.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
 #[serde(rename_all = "lowercase")]
 #[non_exhaustive]
 pub enum VideoCodec {
@@ -1580,6 +1599,7 @@ pub enum VideoCodec {
 
 /// A standard sender encoding for a published Local Video Track.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
 #[serde(rename_all = "camelCase")]
 pub struct VideoEncoding {
     max_bitrate: u32,
@@ -1680,11 +1700,44 @@ impl VideoPublishOptions {
     }
 }
 
+#[cfg(any(target_arch = "wasm32", test))]
+#[derive(Clone, Debug, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, allow(dead_code))]
+#[serde(rename_all = "camelCase")]
+struct AdapterVideoPublishOptions {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(test, ts(optional))]
+    name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(test, ts(optional))]
+    video_codec: Option<VideoCodec>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(test, ts(optional))]
+    simulcast: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(test, ts(optional))]
+    video_encoding: Option<VideoEncoding>,
+}
+
+#[cfg(any(target_arch = "wasm32", test))]
+impl From<&VideoPublishOptions> for AdapterVideoPublishOptions {
+    fn from(options: &VideoPublishOptions) -> Self {
+        Self {
+            name: options.name.clone(),
+            video_codec: options.video_codec,
+            simulcast: options.simulcast,
+            video_encoding: options.video_encoding,
+        }
+    }
+}
+
 /// The codec policy for publishing a Local Audio Track.
 ///
 /// LiveKit 2.20.1 does not expose an audio codec selector: browser audio is Opus, with RED
 /// configured separately. This type makes that fixed policy explicit at the Rust boundary.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
 #[serde(rename_all = "lowercase")]
 #[non_exhaustive]
 pub enum AudioCodec {
@@ -1770,6 +1823,36 @@ impl AudioPublishOptions {
     pub fn with_raw_js_options(mut self, options: wasm_bindgen::JsValue) -> Self {
         self.raw_js_options = Some(options);
         self
+    }
+}
+
+#[cfg(any(target_arch = "wasm32", test))]
+#[derive(Clone, Debug, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, allow(dead_code))]
+#[serde(rename_all = "camelCase")]
+struct AdapterAudioPublishOptions {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(test, ts(optional))]
+    name: Option<String>,
+    audio_codec: AudioCodec,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(test, ts(optional))]
+    dtx: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(test, ts(optional))]
+    red: Option<bool>,
+}
+
+#[cfg(any(target_arch = "wasm32", test))]
+impl From<&AudioPublishOptions> for AdapterAudioPublishOptions {
+    fn from(options: &AudioPublishOptions) -> Self {
+        Self {
+            name: options.name.clone(),
+            audio_codec: options.audio_codec,
+            dtx: options.dtx,
+            red: options.red,
+        }
     }
 }
 
@@ -2336,16 +2419,17 @@ impl LocalVideoTrack {
         use wasm_bindgen::JsCast;
 
         let raw_options = raw_js_options!(options, raw_js_options);
-        let options = match serde_wasm_bindgen::to_value(&options) {
-            Ok(options) => options,
-            Err(error) => {
-                return Box::pin(async move {
-                    Err(Error::AdapterFailure(AdapterError::contract(
-                        error.to_string(),
-                    )))
-                });
-            }
-        };
+        let options =
+            match serde_wasm_bindgen::to_value(&AdapterVideoPublishOptions::from(&options)) {
+                Ok(options) => options,
+                Err(error) => {
+                    return Box::pin(async move {
+                        Err(Error::AdapterFailure(AdapterError::contract(
+                            error.to_string(),
+                        )))
+                    });
+                }
+            };
         let publication = Rc::new(LocalVideoTrackPublicationInner {
             lifecycle: Cell::new(LocalVideoTrackPublicationLifecycle::Publishing),
             muted: Cell::new(self.inner.muted.get()),
@@ -4003,16 +4087,17 @@ impl LocalAudioTrack {
         use wasm_bindgen::JsCast;
 
         let raw_options = raw_js_options!(options, raw_js_options);
-        let options = match serde_wasm_bindgen::to_value(&options) {
-            Ok(options) => options,
-            Err(error) => {
-                return Box::pin(async move {
-                    Err(Error::AdapterFailure(AdapterError::contract(
-                        error.to_string(),
-                    )))
-                });
-            }
-        };
+        let options =
+            match serde_wasm_bindgen::to_value(&AdapterAudioPublishOptions::from(&options)) {
+                Ok(options) => options,
+                Err(error) => {
+                    return Box::pin(async move {
+                        Err(Error::AdapterFailure(AdapterError::contract(
+                            error.to_string(),
+                        )))
+                    });
+                }
+            };
         let publication = Rc::new(LocalAudioTrackPublicationInner {
             lifecycle: Cell::new(LocalAudioTrackPublicationLifecycle::Publishing),
             muted: Cell::new(self.inner.muted.get()),
@@ -11543,6 +11628,17 @@ mod tests {
         append_contract::<VideoReceiverStatistics>(&mut output, &config);
         append_contract::<AdapterChatMessage>(&mut output, &config);
         append_contract::<AdapterTranscriptionSegment>(&mut output, &config);
+        append_contract::<ExactDeviceId>(&mut output, &config);
+        append_contract::<FacingMode>(&mut output, &config);
+        append_contract::<CameraResolution>(&mut output, &config);
+        append_contract::<CameraCaptureOptions>(&mut output, &config);
+        append_contract::<MicrophoneCaptureOptions>(&mut output, &config);
+        append_contract::<ScreenCaptureOptions>(&mut output, &config);
+        append_contract::<VideoCodec>(&mut output, &config);
+        append_contract::<VideoEncoding>(&mut output, &config);
+        append_contract::<AdapterVideoPublishOptions>(&mut output, &config);
+        append_contract::<AudioCodec>(&mut output, &config);
+        append_contract::<AdapterAudioPublishOptions>(&mut output, &config);
         assert_eq!(output.pop(), Some('\n'));
 
         assert!(output.is_ascii(), "adapter contracts must remain ASCII");

@@ -23,7 +23,14 @@ import type {
   VideoSenderStats,
 } from "livekit-client";
 import type { RawOptions } from "./options";
-import type { AdapterScreenCapture } from "./generated/adapter-contracts";
+import type {
+  AdapterScreenCapture,
+  AdapterAudioPublishOptions,
+  AdapterVideoPublishOptions,
+  CameraCaptureOptions,
+  MicrophoneCaptureOptions,
+  ScreenCaptureOptions,
+} from "./generated/adapter-contracts";
 
 type RoomId = number;
 type LocalTrackId = number;
@@ -106,19 +113,8 @@ type LocalAudioTrackRecord = LocalTrackRecord<LocalAudioTrack, "audio">;
 type AnyLocalTrackRecord = LocalVideoTrackRecord | LocalAudioTrackRecord;
 type LocalTrackRegistry = Map<LocalTrackId, AnyLocalTrackRecord>;
 
-interface AudioPublicationInput {
-  audioCodec?: unknown;
-  name?: string | null;
-  dtx?: boolean | null;
-  red?: boolean | null;
-}
-
-interface VideoPublicationInput {
-  name?: string | null;
-  videoCodec?: string | null;
-  simulcast?: boolean | null;
-  videoEncoding?: { maxBitrate?: number; maxFramerate?: number } | null;
-}
+type AudioPublicationInput = AdapterAudioPublishOptions;
+type VideoPublicationInput = AdapterVideoPublishOptions;
 
 export function createLocalMediaSubsystem(dependencies: LocalMediaDependencies) {
   const { getRoom, allocateAttachmentId, audioAnalysers } = dependencies;
@@ -592,7 +588,11 @@ export function createLocalMediaSubsystem(dependencies: LocalMediaDependencies) 
     ]);
   }
 
-  function createCameraVideoTrack(options: RawOptions, raw: unknown, onComplete: Completion) {
+  function createCameraVideoTrack(
+    options: CameraCaptureOptions,
+    raw: unknown,
+    onComplete: Completion,
+  ) {
     const captureOptions = cameraCaptureOptions(options, raw);
     void globalThis.LivekitClient.createLocalVideoTrack(cloneCaptureOptions(captureOptions)).then(
       (track) => {
@@ -630,7 +630,7 @@ export function createLocalMediaSubsystem(dependencies: LocalMediaDependencies) 
 
   function restartLocalVideoTrackWithOptions(
     trackId: LocalTrackId,
-    options: RawOptions,
+    options: CameraCaptureOptions,
     raw: unknown,
     onComplete: (terminal: boolean) => void,
   ) {
@@ -710,7 +710,11 @@ export function createLocalMediaSubsystem(dependencies: LocalMediaDependencies) 
     finishDroppedLocalTrack(record, trackId);
   }
 
-  function createMicrophoneAudioTrack(options: RawOptions, raw: unknown, onComplete: Completion) {
+  function createMicrophoneAudioTrack(
+    options: MicrophoneCaptureOptions,
+    raw: unknown,
+    onComplete: Completion,
+  ) {
     const captureOptions = microphoneCaptureOptions(options, raw);
     void globalThis.LivekitClient.createLocalAudioTrack(cloneCaptureOptions(captureOptions)).then(
       (track) => {
@@ -726,7 +730,11 @@ export function createLocalMediaSubsystem(dependencies: LocalMediaDependencies) 
     );
   }
 
-  function createScreenCapture(options: RawOptions, raw: unknown, onComplete: Completion) {
+  function createScreenCapture(
+    options: ScreenCaptureOptions,
+    raw: unknown,
+    onComplete: Completion,
+  ) {
     const captureOptions = screenCaptureOptions(options, raw);
     void globalThis.LivekitClient.createLocalScreenTracks(cloneCaptureOptions(captureOptions)).then(
       (tracks) => {
@@ -813,7 +821,7 @@ export function createLocalMediaSubsystem(dependencies: LocalMediaDependencies) 
 
   function restartLocalAudioTrackWithOptions(
     trackId: LocalTrackId,
-    options: RawOptions,
+    options: MicrophoneCaptureOptions,
     raw: unknown,
     onComplete: (terminal: boolean) => void,
   ) {
