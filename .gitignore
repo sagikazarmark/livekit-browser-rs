@@ -1,0 +1,28 @@
+# Devenv
+.devenv*
+devenv.local.nix
+devenv.local.yaml
+
+# direnv
+.direnv
+
+# pre-commit
+.pre-commit-config.yaml
+
+# Rust
+target/
+
+.env
+
+
+/target/
+/dist/
+/.dioxus/
+/.env
+/.prototype-runtime/
+/examples/dioxus-room/assets/livekit-client.umd.min.js
+/examples/dioxus-room/node_modules/
+/tests/node_modules/
+/tests/test-results/
+/token-server/target/
+token-server/Cargo.lock

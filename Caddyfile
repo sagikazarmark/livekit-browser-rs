@@ -1,0 +1,27 @@
+(prototype_app) {
+	encode zstd gzip
+	header Permissions-Policy "camera=(self), microphone=(self), display-capture=(self)"
+
+	handle /api/* {
+		reverse_proxy token-server:3000
+	}
+
+	handle /rtc* {
+		reverse_proxy livekit:7880
+	}
+
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		file_server
+	}
+}
+
+http://:8080 {
+	import prototype_app
+}
+
+https://{$LAN_HOST}:8443 {
+	tls internal
+	import prototype_app
+}

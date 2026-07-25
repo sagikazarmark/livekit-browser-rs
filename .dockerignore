@@ -1,0 +1,8 @@
+.git
+.dioxus
+.prototype-runtime
+dist
+target
+token-server/target
+examples/dioxus-room/assets/livekit-client.umd.min.js
+examples/dioxus-room/node_modules

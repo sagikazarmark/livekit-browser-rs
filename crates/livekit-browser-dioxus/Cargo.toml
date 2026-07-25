@@ -1,0 +1,15 @@
+[package]
+name = "livekit-browser-dioxus"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+dioxus = { workspace = true }
+futures-util = { workspace = true }
+livekit-browser = { path = "../livekit-browser" }
+wasm-bindgen = { workspace = true }
+web-sys = { workspace = true, features = ["HtmlAudioElement", "HtmlVideoElement"] }
+
+[lib]
+path = "src/lib.rs"

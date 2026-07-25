@@ -1,0 +1,10 @@
+FROM mcr.microsoft.com/playwright:v1.61.1-noble
+
+USER root
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends pulseaudio \
+    && rm -rf /var/lib/apt/lists/* \
+    && install -d -o pwuser -g pwuser /work
+
+ENV HOME=/home/pwuser
+USER pwuser

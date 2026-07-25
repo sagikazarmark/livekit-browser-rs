@@ -1,0 +1,7 @@
+{
+  "name": "livekit-dioxus-room-example",
+  "private": true,
+  "dependencies": {
+    "livekit-client": "2.20.1"
+  }
+}

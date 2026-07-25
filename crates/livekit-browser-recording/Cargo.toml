@@ -1,0 +1,12 @@
+[package]
+name = "livekit-browser-recording"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+livekit-browser = { path = "../livekit-browser" }
+web-sys = { workspace = true, features = ["Blob"] }
+
+[lib]
+path = "src/lib.rs"

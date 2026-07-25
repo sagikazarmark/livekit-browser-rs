@@ -1,0 +1,25 @@
+[workspace]
+members = [
+    "crates/livekit-browser",
+    "crates/livekit-browser-dioxus",
+    "crates/livekit-browser-recording",
+    "examples/dioxus-room",
+]
+exclude = ["token-server"]
+resolver = "2"
+
+[workspace.dependencies]
+base64 = "0.22"
+dioxus = { version = "0.7", features = ["web"] }
+futures-core = "0.3"
+futures-executor = "0.3"
+futures-util = "0.3"
+gloo-timers = { version = "0.3", features = ["futures"] }
+js-sys = "0.3"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde-wasm-bindgen = "0.6"
+tracing = "0.1"
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"
+web-sys = "0.3"

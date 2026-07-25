@@ -1,0 +1,8 @@
+{
+  "name": "livekit-dioxus-prototype-smoke",
+  "private": true,
+  "devDependencies": {
+    "@livekit/protocol": "1.46.6",
+    "@playwright/test": "1.61.1"
+  }
+}

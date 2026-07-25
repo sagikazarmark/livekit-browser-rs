@@ -1,0 +1,45 @@
+FROM node:24-alpine AS livekit-sdk
+WORKDIR /app/examples/dioxus-room
+COPY examples/dioxus-room/package.json examples/dioxus-room/package-lock.json ./
+RUN npm ci --omit=dev --ignore-scripts --no-audit --no-fund
+
+FROM node:24-alpine AS adapter-contracts
+WORKDIR /app
+COPY crates/livekit-browser/js ./crates/livekit-browser/js
+COPY --from=livekit-sdk /app/examples/dioxus-room/node_modules/livekit-client/dist/livekit-client.umd.js /app/livekit-client.umd.js
+RUN LIVEKIT_CLIENT_UMD=/app/livekit-client.umd.js node --test crates/livekit-browser/js/livekit-browser.test.mjs \
+    && touch /adapter-contracts-passed
+
+FROM rust:trixie AS frontend
+ARG TARGETARCH
+ARG DIOXUS_VERSION=0.7.9
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && rustup target add wasm32-unknown-unknown
+RUN case "$TARGETARCH" in \
+      amd64) DX_ARCH="x86_64-unknown-linux-gnu" ;; \
+      arm64) DX_ARCH="aarch64-unknown-linux-gnu" ;; \
+      *) echo "Unsupported build architecture: $TARGETARCH" >&2; exit 1 ;; \
+    esac \
+    && curl -fsSL "https://github.com/DioxusLabs/dioxus/releases/download/v${DIOXUS_VERSION}/dx-${DX_ARCH}.tar.gz" -o /tmp/dx.tar.gz \
+    && tar -xzf /tmp/dx.tar.gz -C /usr/local/bin \
+    && rm /tmp/dx.tar.gz \
+    && dx --version
+WORKDIR /app
+COPY Cargo.toml Cargo.lock ./
+COPY crates ./crates
+COPY examples/dioxus-room ./examples/dioxus-room
+COPY --from=adapter-contracts /adapter-contracts-passed /tmp/adapter-contracts-passed
+RUN cargo test -p livekit-browser --doc \
+    && cargo test --workspace --all-features \
+    && cargo check --workspace --all-features \
+    && cargo check --workspace --all-features --target wasm32-unknown-unknown
+WORKDIR /app/examples/dioxus-room
+COPY --from=livekit-sdk /app/examples/dioxus-room/node_modules/livekit-client/dist/livekit-client.umd.js ./assets/livekit-client.umd.min.js
+RUN dx build --web --release --debug-symbols=false --features raw-js-contract
+
+FROM caddy:2.10.0-alpine
+COPY --from=frontend /app/target/dx/livekit-dioxus-prototype/release/web/public /srv
+COPY --from=frontend /app/examples/dioxus-room/assets /srv
+COPY Caddyfile /etc/caddy/Caddyfile
