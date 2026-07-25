@@ -69,3 +69,21 @@ export type AdapterIncomingTextStream = { id: number, info: TextStreamInfo, };
 export type AdapterIncomingByteStream = { id: number, info: ByteStreamInfo, };
 
 export type AdapterByteStreamRead = { done: boolean, value: Array<number> | null, };
+
+export type MediaDeviceKind = "camera" | "microphone";
+
+export type MediaDeviceInfo = { device_id: string, group_id: string, label: string, kind: MediaDeviceKind, };
+
+export type SenderStatistics = { timestamp: number, packets_sent: number | null, bytes_sent: number | null, jitter: number | null, packets_lost: number | null, round_trip_time: number | null, stream_id: string | null, };
+
+export type VideoSenderStatistics = { fir_count: number | null, pli_count: number | null, nack_count: number | null, rid: string | null, frame_width: number | null, frame_height: number | null, frames_per_second: number | null, frames_sent: number | null, quality_limitation_reason: string | null, quality_limitation_durations: { [key in string]: number } | null, quality_limitation_resolution_changes: number | null, retransmitted_packets_sent: number | null, target_bitrate: number | null, timestamp: number, packets_sent: number | null, bytes_sent: number | null, jitter: number | null, packets_lost: number | null, round_trip_time: number | null, stream_id: string | null, };
+
+export type ReceiverStatistics = { timestamp: number, jitter_buffer_delay: number | null, packets_lost: number | null, packets_received: number | null, bytes_received: number | null, stream_id: string | null, jitter: number | null, };
+
+export type AudioReceiverStatistics = { concealed_samples: number | null, concealment_events: number | null, silent_concealed_samples: number | null, silent_concealment_events: number | null, total_audio_energy: number | null, total_samples_duration: number | null, timestamp: number, jitter_buffer_delay: number | null, packets_lost: number | null, packets_received: number | null, bytes_received: number | null, stream_id: string | null, jitter: number | null, };
+
+export type VideoReceiverStatistics = { frames_decoded: number | null, frames_dropped: number | null, frames_received: number | null, frame_width: number | null, frame_height: number | null, fir_count: number | null, pli_count: number | null, nack_count: number | null, decoder_implementation: string | null, mime_type: string | null, timestamp: number, jitter_buffer_delay: number | null, packets_lost: number | null, packets_received: number | null, bytes_received: number | null, stream_id: string | null, jitter: number | null, };
+
+export type AdapterChatMessage = { id: string, message: string, sender_identity: string | null, timestamp_millis: number, edit_timestamp_millis: number | null, };
+
+export type AdapterTranscriptionSegment = { id: string, participant_identity: string | null, track_publication_sid: string | null, text: string, start_time: number, end_time: number, language: string, is_final: boolean, first_received_at_millis: number, last_received_at_millis: number, };

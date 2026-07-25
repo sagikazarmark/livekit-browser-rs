@@ -153,8 +153,8 @@ budget.
 
 ## Rust/TypeScript DTO Contracts
 
-The room-state, runtime-inspection, media-locator, participant-RPC, and data-stream DTOs crossing
-`serde-wasm-bindgen` are declared in Rust and generated into
+The room-state, runtime-inspection, media, device, statistics, messaging, participant-RPC, and
+data-stream DTOs crossing `serde-wasm-bindgen` are declared in Rust and generated into
 `crates/livekit-browser/js/src/generated/adapter-contracts.ts`. After changing one of those Rust
 DTOs or its Serde representation, regenerate and verify the committed TypeScript contract:
 

@@ -8,7 +8,11 @@ import type {
   RoomEventCallbacks,
   TrackPublication,
 } from "livekit-client";
-import type { RoomEventKind } from "./generated/adapter-contracts";
+import type {
+  AdapterChatMessage,
+  AdapterTranscriptionSegment,
+  RoomEventKind,
+} from "./generated/adapter-contracts";
 
 export interface RemoteDataTrackLike {
   info: { sid?: string; name?: string; usesE2ee?: boolean };
@@ -46,7 +50,8 @@ type DataPacketCallback = (
   participantIdentity: string | null,
   reliable: boolean,
 ) => void;
-type MessageCallback = (message: unknown) => void;
+type ChatMessageCallback = (message: AdapterChatMessage) => void;
+type TranscriptionSegmentCallback = (segment: AdapterTranscriptionSegment) => void;
 
 interface ChatMessageLike {
   id?: unknown;
@@ -146,8 +151,8 @@ export interface RoomEventDependencies<TSnapshot> {
 export interface RoomActivation<TSnapshot> {
   update: RoomUpdateCallback<TSnapshot>;
   dataPacket: DataPacketCallback;
-  chatMessage: MessageCallback;
-  transcriptionSegment: MessageCallback;
+  chatMessage: ChatMessageCallback;
+  transcriptionSegment: TranscriptionSegmentCallback;
 }
 
 export function createRoomEventOrchestrator<TSnapshot>(
@@ -471,7 +476,10 @@ function normalizedChatTimestamp(timestamp: unknown) {
   return value;
 }
 
-export function normalizeChatMessage(message: ChatMessageLike, senderIdentity: unknown) {
+export function normalizeChatMessage(
+  message: ChatMessageLike,
+  senderIdentity: unknown,
+): AdapterChatMessage {
   if (typeof message?.id !== "string" || message.id.length === 0) {
     throw new TypeError("LiveKit chat message ID is missing");
   }
@@ -522,7 +530,7 @@ function normalizeTranscriptionSegment(
   segment: TranscriptionSegmentLike,
   participant: Participant | undefined,
   publication: TrackPublication | undefined,
-) {
+): AdapterTranscriptionSegment {
   if (typeof segment?.id !== "string" || segment.id.length === 0) {
     throw new TypeError("LiveKit transcription segment ID is missing");
   }

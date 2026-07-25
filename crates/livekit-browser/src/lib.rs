@@ -1026,6 +1026,7 @@ fn is_permission_error(error: &AdapterError) -> bool {
 
 /// A browser media input kind exposed by this crate.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq)]
+#[cfg_attr(test, derive(ts_rs::TS))]
 #[serde(rename_all = "camelCase")]
 #[non_exhaustive]
 pub enum MediaDeviceKind {
@@ -1050,6 +1051,7 @@ impl MediaDeviceKind {
 /// Device IDs are browser-scoped opaque values and may change. Labels can be empty until browser
 /// permission policy allows them to be exposed.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
+#[cfg_attr(test, derive(ts_rs::TS))]
 #[non_exhaustive]
 pub struct MediaDeviceInfo {
     device_id: String,
@@ -5230,11 +5232,15 @@ pub enum ConnectionQuality {
 
 /// Statistics shared by normalized audio and video sender samples.
 #[derive(Clone, Debug, Deserialize, PartialEq)]
+#[cfg_attr(test, derive(ts_rs::TS))]
 pub struct SenderStatistics {
     timestamp: f64,
+    #[cfg_attr(test, ts(type = "number | null"))]
     packets_sent: Option<u64>,
+    #[cfg_attr(test, ts(type = "number | null"))]
     bytes_sent: Option<u64>,
     jitter: Option<f64>,
+    #[cfg_attr(test, ts(type = "number | null"))]
     packets_lost: Option<i64>,
     round_trip_time: Option<f64>,
     stream_id: Option<String>,
@@ -5285,20 +5291,27 @@ pub type AudioSenderStatistics = SenderStatistics;
 /// Browser-dependent values remain optional even where the SDK's TypeScript declarations mark
 /// them required, because Firefox and WebKit omit some of them at runtime.
 #[derive(Clone, Debug, Deserialize, PartialEq)]
+#[cfg_attr(test, derive(ts_rs::TS))]
 pub struct VideoSenderStatistics {
     #[serde(flatten)]
     sender: SenderStatistics,
+    #[cfg_attr(test, ts(type = "number | null"))]
     fir_count: Option<u64>,
+    #[cfg_attr(test, ts(type = "number | null"))]
     pli_count: Option<u64>,
+    #[cfg_attr(test, ts(type = "number | null"))]
     nack_count: Option<u64>,
     rid: Option<String>,
     frame_width: Option<u32>,
     frame_height: Option<u32>,
     frames_per_second: Option<f64>,
+    #[cfg_attr(test, ts(type = "number | null"))]
     frames_sent: Option<u64>,
     quality_limitation_reason: Option<String>,
     quality_limitation_durations: Option<BTreeMap<String, f64>>,
+    #[cfg_attr(test, ts(type = "number | null"))]
     quality_limitation_resolution_changes: Option<u64>,
+    #[cfg_attr(test, ts(type = "number | null"))]
     retransmitted_packets_sent: Option<u64>,
     target_bitrate: Option<f64>,
 }
@@ -5365,11 +5378,15 @@ impl VideoSenderStatistics {
 
 /// Statistics shared by normalized audio and video receiver samples.
 #[derive(Clone, Debug, Deserialize, PartialEq)]
+#[cfg_attr(test, derive(ts_rs::TS))]
 pub struct ReceiverStatistics {
     timestamp: f64,
     jitter_buffer_delay: Option<f64>,
+    #[cfg_attr(test, ts(type = "number | null"))]
     packets_lost: Option<i64>,
+    #[cfg_attr(test, ts(type = "number | null"))]
     packets_received: Option<u64>,
+    #[cfg_attr(test, ts(type = "number | null"))]
     bytes_received: Option<u64>,
     stream_id: Option<String>,
     jitter: Option<f64>,
@@ -5408,12 +5425,17 @@ impl ReceiverStatistics {
 
 /// Normalized receiver statistics for one subscribed Remote Audio Track.
 #[derive(Clone, Debug, Deserialize, PartialEq)]
+#[cfg_attr(test, derive(ts_rs::TS))]
 pub struct AudioReceiverStatistics {
     #[serde(flatten)]
     receiver: ReceiverStatistics,
+    #[cfg_attr(test, ts(type = "number | null"))]
     concealed_samples: Option<u64>,
+    #[cfg_attr(test, ts(type = "number | null"))]
     concealment_events: Option<u64>,
+    #[cfg_attr(test, ts(type = "number | null"))]
     silent_concealed_samples: Option<u64>,
+    #[cfg_attr(test, ts(type = "number | null"))]
     silent_concealment_events: Option<u64>,
     total_audio_energy: Option<f64>,
     total_samples_duration: Option<f64>,
@@ -5455,16 +5477,23 @@ impl AudioReceiverStatistics {
 /// Browser-dependent values remain optional even where the SDK's TypeScript declarations mark
 /// them required, because Firefox and WebKit omit some of them at runtime.
 #[derive(Clone, Debug, Deserialize, PartialEq)]
+#[cfg_attr(test, derive(ts_rs::TS))]
 pub struct VideoReceiverStatistics {
     #[serde(flatten)]
     receiver: ReceiverStatistics,
+    #[cfg_attr(test, ts(type = "number | null"))]
     frames_decoded: Option<u64>,
+    #[cfg_attr(test, ts(type = "number | null"))]
     frames_dropped: Option<u64>,
+    #[cfg_attr(test, ts(type = "number | null"))]
     frames_received: Option<u64>,
     frame_width: Option<u32>,
     frame_height: Option<u32>,
+    #[cfg_attr(test, ts(type = "number | null"))]
     fir_count: Option<u64>,
+    #[cfg_attr(test, ts(type = "number | null"))]
     pli_count: Option<u64>,
+    #[cfg_attr(test, ts(type = "number | null"))]
     nack_count: Option<u64>,
     decoder_implementation: Option<String>,
     mime_type: Option<String>,
@@ -8853,13 +8882,17 @@ pub struct ChatMessage {
     edit_timestamp: Option<SystemTime>,
 }
 
-#[cfg(target_arch = "wasm32")]
+#[cfg(any(target_arch = "wasm32", test))]
 #[derive(Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, allow(dead_code))]
 struct AdapterChatMessage {
     id: String,
     message: String,
     sender_identity: Option<String>,
+    #[cfg_attr(test, ts(type = "number"))]
     timestamp_millis: u64,
+    #[cfg_attr(test, ts(type = "number | null"))]
     edit_timestamp_millis: Option<u64>,
 }
 
@@ -9051,16 +9084,22 @@ struct TranscriptionSegmentSubscription {
 
 #[cfg(any(target_arch = "wasm32", test))]
 #[derive(Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, allow(dead_code))]
 struct AdapterTranscriptionSegment {
     id: String,
     participant_identity: Option<String>,
     track_publication_sid: Option<String>,
     text: String,
+    #[cfg_attr(test, ts(type = "number"))]
     start_time: u64,
+    #[cfg_attr(test, ts(type = "number"))]
     end_time: u64,
     language: String,
     is_final: bool,
+    #[cfg_attr(test, ts(type = "number"))]
     first_received_at_millis: u64,
+    #[cfg_attr(test, ts(type = "number"))]
     last_received_at_millis: u64,
 }
 
@@ -11495,6 +11534,15 @@ mod tests {
         append_contract::<AdapterIncomingTextStream>(&mut output, &config);
         append_contract::<AdapterIncomingByteStream>(&mut output, &config);
         append_contract::<AdapterByteStreamRead>(&mut output, &config);
+        append_contract::<MediaDeviceKind>(&mut output, &config);
+        append_contract::<MediaDeviceInfo>(&mut output, &config);
+        append_contract::<SenderStatistics>(&mut output, &config);
+        append_contract::<VideoSenderStatistics>(&mut output, &config);
+        append_contract::<ReceiverStatistics>(&mut output, &config);
+        append_contract::<AudioReceiverStatistics>(&mut output, &config);
+        append_contract::<VideoReceiverStatistics>(&mut output, &config);
+        append_contract::<AdapterChatMessage>(&mut output, &config);
+        append_contract::<AdapterTranscriptionSegment>(&mut output, &config);
         assert_eq!(output.pop(), Some('\n'));
 
         assert!(output.is_ascii(), "adapter contracts must remain ASCII");

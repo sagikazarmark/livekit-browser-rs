@@ -292,6 +292,7 @@ test("preflights every inspectable LiveKit SDK contract before mutation", () => 
 
 test("room events discard the initial burst, batch updates, and cancel delivery on disposal", async () => {
   const roomEvents = Object.fromEntries(REQUIRED_ROOM_EVENTS.map((event) => [event, event]));
+  roomEvents.TranscriptionReceived = "TranscriptionReceived";
   const localParticipant = {
     identity: "local",
     sid: "PA_local",
@@ -370,12 +371,14 @@ test("room events discard the initial burst, batch updates, and cancel delivery 
   assert.equal(joined.snapshot.revision, 1);
 
   const updates = [];
+  const chatMessages = [];
+  const transcriptionSegments = [];
   adapter.activateRoom(
     roomId,
     (update) => updates.push(update),
     (...packet) => directPackets.push(packet),
-    () => {},
-    () => {},
+    (message) => chatMessages.push(message),
+    (segment) => transcriptionSegments.push(segment),
   );
   await new Promise((resolve) => setTimeout(resolve, 5));
   assert.deepEqual(updates, []);
@@ -391,12 +394,68 @@ test("room events discard the initial burst, batch updates, and cancel delivery 
     { type: "roomMetadataChanged" },
   ]);
 
+  Room.instance.emit(
+    roomEvents.ChatMessage,
+    { id: "chat-1", message: "hello", timestamp: 1_000, editTimestamp: 1_500 },
+    localParticipant,
+  );
+  Room.instance.emit(
+    roomEvents.TranscriptionReceived,
+    [{
+      id: "segment-1",
+      text: "hello",
+      language: "en",
+      final: true,
+      startTime: 10,
+      endTime: 20,
+      firstReceivedTime: 1_000,
+      lastReceivedTime: 1_100,
+    }],
+    localParticipant,
+    undefined,
+  );
+  assert.deepEqual(chatMessages, [{
+    id: "chat-1",
+    message: "hello",
+    sender_identity: "local",
+    timestamp_millis: 1_000,
+    edit_timestamp_millis: 1_500,
+  }]);
+  assert.deepEqual(transcriptionSegments, [{
+    id: "segment-1",
+    participant_identity: "local",
+    track_publication_sid: null,
+    text: "hello",
+    start_time: 10,
+    end_time: 20,
+    language: "en",
+    is_final: true,
+    first_received_at_millis: 1_000,
+    last_received_at_millis: 1_100,
+  }]);
+
   Room.instance.emit(roomEvents.AudioPlaybackStatusChanged);
   adapter.dropRoom(roomId);
   await new Promise((resolve) => setTimeout(resolve, 5));
   assert.equal(updates.length, 1);
   assert.equal([...Room.instance.listeners.values()].flat().length, 0);
   adapter.dropRoom(roomId);
+});
+
+test("normalizes media device DTOs", async () => {
+  globalThis.LivekitClient = {
+    Room: {
+      getLocalDevices: async () => [
+        { deviceId: "camera-1", groupId: "group-1", label: "Front", kind: "videoinput" },
+        { deviceId: "microphone-1", groupId: "", label: "", kind: "audioinput" },
+      ],
+    },
+  };
+
+  assert.deepEqual(await adapter.enumerateMediaDevices("videoinput", false), [
+    { device_id: "camera-1", group_id: "group-1", label: "Front", kind: "camera" },
+    { device_id: "microphone-1", group_id: "", label: "", kind: "microphone" },
+  ]);
 });
 
 test("normalizes LiveKit log levels and structured context for one extension", () => {
@@ -532,10 +591,12 @@ test("raw room, participant, publication, media, and statistics handles preserve
   const replacements = [];
 
   const remoteStats = new Map([["remote", { packetsReceived: 7 }]]);
+  const remoteReceiverStats = { timestamp: 100, packetsReceived: 7, framesDecoded: 6 };
   const remoteTrack = {
     kind: "video",
     mediaStreamTrack: {},
     getRTCStatsReport: async () => remoteStats,
+    getReceiverStats: async () => remoteReceiverStats,
     on() {},
     off() {},
   };
@@ -658,7 +719,7 @@ test("raw room, participant, publication, media, and statistics handles preserve
     attach() {},
     detach() {},
     getDeviceId: async () => "camera",
-    getSenderStats: async () => [],
+    getSenderStats: async () => [{ timestamp: 200, packetsSent: 8, framesSent: 5 }],
     kind: "video",
     getRTCStatsReport: async () => localStats,
     on() {},
@@ -751,6 +812,25 @@ test("raw room, participant, publication, media, and statistics handles preserve
   });
   assert.equal(adapter.rawRemoteMediaTrack(remoteDescriptor.id), remoteTrack);
   assert.equal(await adapter.rawRemoteRtcStatsReport(remoteDescriptor.id), remoteStats);
+  assert.deepEqual(await adapter.remoteVideoReceiverStatistics(remoteDescriptor.id), {
+    timestamp: 100,
+    jitter_buffer_delay: null,
+    packets_lost: null,
+    packets_received: 7,
+    bytes_received: null,
+    stream_id: null,
+    jitter: null,
+    frames_decoded: 6,
+    frames_dropped: null,
+    frames_received: null,
+    frame_width: null,
+    frame_height: null,
+    fir_count: null,
+    pli_count: null,
+    nack_count: null,
+    decoder_implementation: null,
+    mime_type: null,
+  });
 
   const localTrackId = await new Promise((resolve, reject) => {
     adapter.createCameraVideoTrack({}, {}, (success, value) =>
@@ -777,6 +857,28 @@ test("raw room, participant, publication, media, and statistics handles preserve
   });
   assert.equal(adapter.rawLocalPublication(localTrackId, 1, "video").trackSid, "TR_local");
   assert.equal(await adapter.rawLocalRtcStatsReport(localTrackId, 1, "video"), localStats);
+  assert.deepEqual(await adapter.localVideoSenderStatistics(localTrackId, 1), [{
+    timestamp: 200,
+    packets_sent: 8,
+    bytes_sent: null,
+    jitter: null,
+    packets_lost: null,
+    round_trip_time: null,
+    stream_id: null,
+    fir_count: null,
+    pli_count: null,
+    nack_count: null,
+    rid: null,
+    frame_width: null,
+    frame_height: null,
+    frames_per_second: null,
+    frames_sent: 5,
+    quality_limitation_reason: null,
+    quality_limitation_durations: null,
+    quality_limitation_resolution_changes: null,
+    retransmitted_packets_sent: null,
+    target_bitrate: null,
+  }]);
 
   const previousPublication = localParticipant.trackPublications.get("TR_local");
   sdkRoom.emit(globalThis.LivekitClient.RoomEvent.LocalTrackUnpublished, previousPublication);

@@ -16,9 +16,11 @@ import type {
   VideoReceiverStats,
 } from "livekit-client";
 import type {
+  AudioReceiverStatistics,
   AdapterRemoteMediaTrack,
   RemoteParticipantLocator,
   RemotePublicationLocator,
+  VideoReceiverStatistics,
 } from "./generated/adapter-contracts";
 
 type RoomId = number;
@@ -377,7 +379,9 @@ export function createRemoteMediaSubsystem(dependencies: RemoteMediaDependencies
     return statistics;
   }
 
-  async function audioReceiverStatistics(trackId: RemoteMediaTrackId) {
+  async function audioReceiverStatistics(
+    trackId: RemoteMediaTrackId,
+  ): Promise<AudioReceiverStatistics | null> {
     const statistics = (await remoteTrackReceiverStatistics(trackId, "audio")) as
       | AudioReceiverStats
       | undefined;
@@ -390,10 +394,12 @@ export function createRemoteMediaSubsystem(dependencies: RemoteMediaDependencies
       silent_concealment_events: optionalUnsignedInteger(statistics.silentConcealmentEvents),
       total_audio_energy: optionalFiniteNumber(statistics.totalAudioEnergy),
       total_samples_duration: optionalFiniteNumber(statistics.totalSamplesDuration),
-    };
+    } satisfies AudioReceiverStatistics;
   }
 
-  async function videoReceiverStatistics(trackId: RemoteMediaTrackId) {
+  async function videoReceiverStatistics(
+    trackId: RemoteMediaTrackId,
+  ): Promise<VideoReceiverStatistics | null> {
     const statistics = (await remoteTrackReceiverStatistics(trackId, "video")) as
       | VideoReceiverStats
       | undefined;
@@ -410,7 +416,7 @@ export function createRemoteMediaSubsystem(dependencies: RemoteMediaDependencies
       nack_count: optionalUnsignedInteger(statistics.nackCount),
       decoder_implementation: optionalString(statistics.decoderImplementation),
       mime_type: optionalString(statistics.mimeType),
-    };
+    } satisfies VideoReceiverStatistics;
   }
 
   async function rawRtcStatsReport(trackId: RemoteMediaTrackId) {

@@ -1,3 +1,9 @@
+import type {
+  ReceiverStatistics,
+  SenderStatistics,
+  VideoSenderStatistics,
+} from "./generated/adapter-contracts";
+
 type Statistics = Record<string, unknown>;
 
 export const optionalFiniteNumber = (value: unknown): number | null =>
@@ -17,15 +23,18 @@ function requiredFiniteNumber(value: unknown, field: string): number {
   throw new TypeError(`LiveKit returned invalid ${field}`);
 }
 
-function requireStatistics(value: unknown, direction: "sender" | "receiver"): Statistics {
+function requireStatistics(
+  value: unknown,
+  direction: "sender" | "receiver",
+): Statistics & { timestamp: number } {
   const statistics = value as Statistics | null | undefined;
   if (!statistics || !Number.isFinite(statistics.timestamp)) {
     throw new TypeError(`LiveKit returned invalid ${direction} statistics`);
   }
-  return statistics;
+  return statistics as Statistics & { timestamp: number };
 }
 
-export function normalizeReceiverStatistics(value: unknown) {
+export function normalizeReceiverStatistics(value: unknown): ReceiverStatistics {
   const statistics = requireStatistics(value, "receiver");
   return {
     timestamp: statistics.timestamp,
@@ -38,7 +47,7 @@ export function normalizeReceiverStatistics(value: unknown) {
   };
 }
 
-export function normalizeSenderStatistics(value: unknown) {
+export function normalizeSenderStatistics(value: unknown): SenderStatistics {
   const statistics = requireStatistics(value, "sender");
   return {
     timestamp: statistics.timestamp,
@@ -63,7 +72,7 @@ function normalizeQualityLimitationDurations(value: unknown): Record<string, num
   return normalized;
 }
 
-export function normalizeVideoSenderStatistics(value: unknown) {
+export function normalizeVideoSenderStatistics(value: unknown): VideoSenderStatistics {
   const statistics = requireStatistics(value, "sender");
   return {
     ...normalizeSenderStatistics(statistics),
