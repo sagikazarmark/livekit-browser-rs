@@ -456,6 +456,7 @@ test("raw camera options are additive while typed values retain precedence", asy
       track.processor = undefined;
     },
   };
+  const screenTrack = { ...track, kind: "video" };
   globalThis.LivekitClient = {
     TrackEvent: { Ended: "ended" },
     createLocalAudioTrack: async (options) => {
@@ -477,6 +478,7 @@ test("raw camera options are additive while typed values retain precedence", asy
       receivedOptions = options;
       return track;
     },
+    createLocalScreenTracks: async () => [screenTrack],
   };
 
   const trackId = await new Promise((resolve, reject) => {
@@ -508,12 +510,25 @@ test("raw camera options are additive while typed values retain precedence", asy
     noiseSuppression: true,
     sampleRate: 48_000,
   });
+
+  const screenCapture = await new Promise((resolve, reject) => {
+    adapter.createScreenCapture(
+      { audio: false },
+      {},
+      (success, value) => (success ? resolve(value) : reject(value)),
+    );
+  });
+  assert.deepEqual(screenCapture, {
+    video_track_id: 2,
+    audio_track_id: null,
+  });
 });
 
 test("raw room, participant, publication, media, and statistics handles preserve identity", async () => {
   let roomConstructorOptions;
   let connectOptions;
   let publishOptions;
+  let rpcHandler;
   const replacements = [];
 
   const remoteStats = new Map([["remote", { packetsReceived: 7 }]]);
@@ -629,7 +644,9 @@ test("raw room, participant, publication, media, and statistics handles preserve
     unregisterTextStreamHandler() {}
     registerByteStreamHandler() {}
     unregisterByteStreamHandler() {}
-    registerRpcMethod() {}
+    registerRpcMethod(_method, handler) {
+      rpcHandler = handler;
+    }
     unregisterRpcMethod() {}
     removeAllListeners() {
       this.listeners.clear();
@@ -727,6 +744,11 @@ test("raw room, participant, publication, media, and statistics handles preserve
     publicationSnapshot.media_generation,
     () => {},
   );
+  assert.deepEqual(remoteDescriptor, {
+    id: 1,
+    kind: "video",
+    generation: publicationSnapshot.media_generation,
+  });
   assert.equal(adapter.rawRemoteMediaTrack(remoteDescriptor.id), remoteTrack);
   assert.equal(await adapter.rawRemoteRtcStatsReport(remoteDescriptor.id), remoteStats);
 
@@ -806,6 +828,40 @@ test("raw room, participant, publication, media, and statistics handles preserve
   });
   assert.equal(rpcFailure.message, "transport exploded");
   assert.equal(rpcFailure.cause, rpcCause);
+  const { cause: _rpcCause, ...rpcFailureContract } = rpcFailure;
+  assert.deepEqual(rpcFailureContract, {
+    terminal: false,
+    permission_denied: false,
+    code: null,
+    message: "transport exploded",
+    data: null,
+  });
+
+  let rpcInvocation;
+  adapter.registerParticipantRpcMethod(roomId, "echo", (invocation) => {
+    rpcInvocation = invocation;
+  });
+  const rpcResponse = rpcHandler({
+    requestId: "request-1",
+    callerIdentity: "student",
+    payload: "hello",
+    responseTimeout: 2_500,
+  });
+  assert.deepEqual(rpcInvocation, {
+    id: 1,
+    request_id: "request-1",
+    caller_identity: "student",
+    payload: "hello",
+    response_timeout_ms: 2_500,
+  });
+  adapter.completeParticipantRpcInvocation(rpcInvocation.id, {
+    success: true,
+    payload: "world",
+    code: null,
+    message: null,
+    data: null,
+  });
+  assert.equal(await rpcResponse, "world");
 
   localTrack.restartTrack = () => new Promise(() => {});
   adapter.restartLocalVideoTrack(localTrackId, () => {});

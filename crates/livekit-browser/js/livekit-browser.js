@@ -590,9 +590,7 @@ function createDataStreamSubsystem(dependencies) {
       };
       outgoingStreams.set(id, record);
       roomState.outgoingIds.add(id);
-      const info = kind === "text" ? normalizeTextInfo(writer.info) : normalizeByteInfo(writer.info);
-      info.topic = applicationTopic;
-      const descriptor = { id, info };
+      const descriptor = kind === "text" ? { id, info: { ...normalizeTextInfo(writer.info), topic: applicationTopic } } : { id, info: { ...normalizeByteInfo(writer.info), topic: applicationTopic } };
       return new Promise((resolve, reject) => {
         record.openResolve = () => resolve(descriptor);
         record.openReject = reject;
@@ -855,9 +853,14 @@ function createDataStreamSubsystem(dependencies) {
     };
     incomingStreams.set(id, record);
     roomState.incomingIds.add(id);
-    const info = kind === "text" ? normalizeTextInfo(reader.info, senderIdentity) : normalizeByteInfo(reader.info, senderIdentity);
-    info.topic = applicationTopic;
-    registration.callback({ id, info });
+    const descriptor = kind === "text" ? {
+      id,
+      info: { ...normalizeTextInfo(reader.info, senderIdentity), topic: registration.topic }
+    } : {
+      id,
+      info: { ...normalizeByteInfo(reader.info, senderIdentity), topic: registration.topic }
+    };
+    registration.callback(descriptor);
     void sendFlowControl(room, senderIdentity, {
       type: "ack",
       streamId: wireId,
@@ -924,13 +927,17 @@ function createDataStreamSubsystem(dependencies) {
     record.readTail = operation.catch(() => {
     });
     return operation.then(async (result) => {
-      if (record.terminal) return { done: true, value: null };
+      if (record.terminal) {
+        return expectedKind === "text" ? { done: true, value: null } : { done: true, value: null };
+      }
       if (result.done) finishIncoming(streamId);
-      let value = null;
+      let value;
       if (!result.done && expectedKind === "text") {
         value = typeof result.value === "string" ? result.value : "";
-      } else if (!result.done) {
+      } else if (!result.done && expectedKind === "bytes") {
         value = Array.from(result.value);
+      } else {
+        value = null;
       }
       if (!result.done) {
         record.consumed += 1;
@@ -941,7 +948,7 @@ function createDataStreamSubsystem(dependencies) {
           consumed: record.consumed
         });
       }
-      return { done: result.done === true, value };
+      return expectedKind === "text" ? { done: result.done === true, value } : { done: result.done === true, value };
     });
   }
   function finishIncoming(streamId) {
@@ -1889,7 +1896,10 @@ function createLocalMediaSubsystem(dependencies) {
             installLocalTrackEndedListener(audioRecord, null);
             videoRecord.browserEndedPeer = audioRecord;
           }
-          onComplete(true, { video_track_id: videoTrackId, audio_track_id: audioTrackId });
+          onComplete(true, {
+            video_track_id: videoTrackId,
+            audio_track_id: audioTrackId
+          });
         } catch (error) {
           if (videoTrackId != null) {
             const record = localVideoTracks.get(videoTrackId);
@@ -3131,12 +3141,9 @@ function createRoomEventOrchestrator(dependencies) {
     listeners.push([event, listener]);
   }
   try {
-    listen(
-      events.ConnectionStateChanged,
-      (connectionState) => {
-        queueEvent({ type: "connectionStateChanged", state: connectionState });
-      }
-    );
+    listen(events.ConnectionStateChanged, (connectionState) => {
+      queueEvent({ type: "connectionStateChanged", state: connectionState });
+    });
     listen(events.ParticipantMetadataChanged, (_previous, participant) => {
       if (participant === room.localParticipant) queueEvent({ type: "localParticipantChanged" });
       else queueRemoteParticipantEvent("remoteParticipantChanged", participant);

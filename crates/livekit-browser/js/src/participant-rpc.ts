@@ -1,4 +1,10 @@
 import type { LocalParticipant, Room, RpcInvocationData } from "livekit-client";
+import type {
+  AdapterRpcFailure,
+  AdapterRpcHandlerCompletion,
+  AdapterRpcInvocation,
+  AdapterRpcOptions,
+} from "./generated/adapter-contracts";
 
 type RpcSettlement = (success: boolean, value: unknown) => void;
 
@@ -11,13 +17,6 @@ export interface ParticipantRpcRoomRecord {
 interface Dependencies {
   getRoom(roomId: number): ParticipantRpcRoomRecord | undefined;
   requireDataPublishing(participant: LocalParticipant): void;
-}
-
-interface RpcOptions {
-  destinationIdentity: string;
-  method: string;
-  payload: string;
-  responseTimeoutMs: number;
 }
 
 interface RpcFailureSource {
@@ -69,7 +68,7 @@ export function createParticipantRpcSubsystem(dependencies: Dependencies) {
     return room;
   }
 
-  function normalizeFailure(error: unknown) {
+  function normalizeFailure(error: unknown): AdapterRpcFailure & { cause: unknown } {
     const source =
       error && (typeof error === "object" || typeof error === "function")
         ? (error as RpcFailureSource)
@@ -96,7 +95,7 @@ export function createParticipantRpcSubsystem(dependencies: Dependencies) {
     };
   }
 
-  function invoke(roomId: number, options: RpcOptions, onComplete: RpcSettlement) {
+  function invoke(roomId: number, options: AdapterRpcOptions, onComplete: RpcSettlement) {
     let room: ParticipantRpcRoomRecord | undefined;
     let callback: RpcSettlement | null = onComplete;
     const settle: RpcSettlement = (success, value) => {
@@ -129,13 +128,7 @@ export function createParticipantRpcSubsystem(dependencies: Dependencies) {
   function registerMethod(
     roomId: number,
     method: string,
-    callback: (invocation: {
-      id: number;
-      request_id: string;
-      caller_identity: string;
-      payload: string;
-      response_timeout_ms: number;
-    }) => void,
+    callback: (invocation: AdapterRpcInvocation) => void,
   ) {
     const room = availableRoom(roomId);
     const id = nextMethodId++;
@@ -160,7 +153,7 @@ export function createParticipantRpcSubsystem(dependencies: Dependencies) {
             caller_identity: invocation.callerIdentity,
             payload: invocation.payload,
             response_timeout_ms: invocation.responseTimeout,
-          });
+          } satisfies AdapterRpcInvocation);
         } catch {
           invocations.delete(invocationId);
           stateFor(room).invocationIds.delete(invocationId);
@@ -186,10 +179,7 @@ export function createParticipantRpcSubsystem(dependencies: Dependencies) {
 
   function completeInvocation(
     invocationId: number,
-    completion:
-      | { success?: unknown; payload?: unknown; code?: unknown; message?: unknown; data?: unknown }
-      | null
-      | undefined,
+    completion: AdapterRpcHandlerCompletion,
   ) {
     const invocation = invocations.get(invocationId);
     if (!invocation) return;
@@ -239,7 +229,7 @@ export function createParticipantRpcSubsystem(dependencies: Dependencies) {
         code: null,
         message: "Room Session is terminal",
         data: null,
-      }));
+      } satisfies AdapterRpcFailure));
     }
     for (const id of [...state.methodIds]) release(() => dropMethod(id));
     for (const id of [...state.invocationIds]) release(() => dropInvocation(id));

@@ -33,3 +33,39 @@ export type AdapterJoin = { snapshot: AdapterRoomSnapshot, };
 export type AdapterUpdate = { snapshot: AdapterRoomSnapshot, events: Array<RoomEventKind>, };
 
 export type RuntimeInspection = { "status": "ready", capabilities: BrowserCapabilities, } | { "status": "sdkMissing" } | { "status": "sdkVersionMismatch", actual_version: string | null, } | { "status": "unsupportedBrowser" };
+
+export type AdapterScreenCapture = { video_track_id: number, audio_track_id: number | null, };
+
+export type RemoteParticipantLocator = { identity: string, sid: string, generation: number, };
+
+export type RemotePublicationLocator = { participant: RemoteParticipantLocator, sid: string, generation: number, };
+
+export type AdapterRemoteMediaTrack = { id: number, kind: TrackKind, generation: number, };
+
+export type AdapterRpcOptions = { destinationIdentity: string, method: string, payload: string, responseTimeoutMs: number, };
+
+export type AdapterRpcFailure = { terminal: boolean, permission_denied: boolean, code: number | null, message: string, data: string | null, };
+
+export type AdapterRpcInvocation = { id: number, request_id: string, caller_identity: string, payload: string, response_timeout_ms: number, };
+
+export type AdapterRpcHandlerCompletion = { success: boolean, payload: string | null, code: number | null, message: string | null, data: string | null, };
+
+export type TextStreamOptions = { destinationIdentity: string, topic: string, totalSize?: number, };
+
+export type ByteStreamOptions = { destinationIdentity: string, topic: string, totalSize?: number, };
+
+export type TextStreamInfo = { id: string, topic: string, size: number | null, sender_identity: string | null, };
+
+export type ByteStreamInfo = { id: string, topic: string, size: number | null, sender_identity: string | null, };
+
+export type AdapterOutgoingTextStream = { id: number, info: TextStreamInfo, };
+
+export type AdapterOutgoingByteStream = { id: number, info: ByteStreamInfo, };
+
+export type AdapterTextStreamRead = { done: boolean, value: string | null, };
+
+export type AdapterIncomingTextStream = { id: number, info: TextStreamInfo, };
+
+export type AdapterIncomingByteStream = { id: number, info: ByteStreamInfo, };
+
+export type AdapterByteStreamRead = { done: boolean, value: Array<number> | null, };

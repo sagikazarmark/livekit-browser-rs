@@ -15,6 +15,11 @@ import type {
   Room,
   VideoReceiverStats,
 } from "livekit-client";
+import type {
+  AdapterRemoteMediaTrack,
+  RemoteParticipantLocator,
+  RemotePublicationLocator,
+} from "./generated/adapter-contracts";
 
 type RoomId = number;
 type RemoteMediaTrackId = number;
@@ -24,18 +29,6 @@ type MediaKind = "audio" | "video";
 type TerminalCallback = () => void;
 type RemoteMediaTrack = RemoteAudioTrack | RemoteVideoTrack;
 type MediaElement = HTMLAudioElement | HTMLVideoElement;
-
-export interface RemoteParticipantLocator {
-  identity: string;
-  sid: string;
-  generation: RemoteObjectGeneration;
-}
-
-export interface RemotePublicationLocator {
-  participant: RemoteParticipantLocator;
-  sid: string;
-  generation: RemoteObjectGeneration;
-}
 
 interface RemoteMediaRoom {
   readonly room: Room;
@@ -358,7 +351,7 @@ export function createRemoteMediaSubsystem(dependencies: RemoteMediaDependencies
       remoteMediaTrackIdsByRoom.set(roomId, roomTrackIds);
     }
     roomTrackIds.add(id);
-    return { id, kind, generation: currentMediaGeneration };
+    return { id, kind, generation: currentMediaGeneration } satisfies AdapterRemoteMediaTrack;
   }
 
   async function remoteTrackReceiverStatistics(

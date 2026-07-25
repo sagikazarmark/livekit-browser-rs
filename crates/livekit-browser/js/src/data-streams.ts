@@ -1,6 +1,18 @@
 import type { LocalParticipant, RemoteParticipant, Room } from "livekit-client";
 
 import { requireMethods } from "./runtime";
+import type {
+  AdapterByteStreamRead,
+  AdapterIncomingByteStream,
+  AdapterIncomingTextStream,
+  AdapterOutgoingByteStream,
+  AdapterOutgoingTextStream,
+  AdapterTextStreamRead,
+  ByteStreamInfo,
+  ByteStreamOptions,
+  TextStreamInfo,
+  TextStreamOptions,
+} from "./generated/adapter-contracts";
 
 type StreamKind = "text" | "bytes";
 type Completion = (success: boolean, value?: unknown) => void;
@@ -22,11 +34,7 @@ interface Dependencies {
   ): Promise<T>;
 }
 
-interface DataStreamOptions {
-  destinationIdentity?: unknown;
-  topic?: unknown;
-  totalSize?: number;
-}
+type DataStreamOptions = TextStreamOptions | ByteStreamOptions;
 
 interface NativeStreamInfo {
   id?: unknown;
@@ -64,10 +72,8 @@ interface NormalizedStreamInfo {
   name?: string;
 }
 
-interface StreamDescriptor {
-  id: number;
-  info: NormalizedStreamInfo;
-}
+type OutgoingStreamDescriptor = AdapterOutgoingTextStream | AdapterOutgoingByteStream;
+type IncomingStreamDescriptor = AdapterIncomingTextStream | AdapterIncomingByteStream;
 
 type OperationSettlement = (success: boolean, error?: unknown) => void;
 
@@ -117,7 +123,7 @@ interface HandlerRegistration {
   roomId: number;
   topic: string;
   kind: StreamKind;
-  callback(descriptor: StreamDescriptor): void;
+  callback(descriptor: IncomingStreamDescriptor): void;
 }
 
 interface RoomState {
@@ -277,14 +283,20 @@ export function createDataStreamSubsystem(dependencies: Dependencies) {
     };
   }
 
-  function normalizeTextInfo(info: NativeStreamInfo, senderIdentity: unknown = null) {
+  function normalizeTextInfo(
+    info: NativeStreamInfo,
+    senderIdentity: unknown = null,
+  ): TextStreamInfo & NormalizedStreamInfo {
     return {
       ...normalizeInfo(info, senderIdentity),
       attached_stream_ids: Array.isArray(info.attachedStreamIds) ? [...info.attachedStreamIds] : [],
     };
   }
 
-  function normalizeByteInfo(info: NativeStreamInfo, senderIdentity: unknown = null) {
+  function normalizeByteInfo(
+    info: NativeStreamInfo,
+    senderIdentity: unknown = null,
+  ): ByteStreamInfo & NormalizedStreamInfo {
     return {
       ...normalizeInfo(info, senderIdentity),
       name: typeof info.name === "string" ? info.name : "",
@@ -387,10 +399,10 @@ export function createDataStreamSubsystem(dependencies: Dependencies) {
       };
       outgoingStreams.set(id, record);
       roomState.outgoingIds.add(id);
-      const info = kind === "text" ? normalizeTextInfo(writer.info) : normalizeByteInfo(writer.info);
-      info.topic = applicationTopic;
-      const descriptor: StreamDescriptor = { id, info };
-      return new Promise<StreamDescriptor>((resolve, reject) => {
+      const descriptor: OutgoingStreamDescriptor = kind === "text"
+        ? { id, info: { ...normalizeTextInfo(writer.info), topic: applicationTopic } }
+        : { id, info: { ...normalizeByteInfo(writer.info), topic: applicationTopic } };
+      return new Promise<OutgoingStreamDescriptor>((resolve, reject) => {
         record.openResolve = () => resolve(descriptor);
         record.openReject = reject;
         record.openTimer = setTimeout(() => {
@@ -687,12 +699,16 @@ export function createDataStreamSubsystem(dependencies: Dependencies) {
     };
     incomingStreams.set(id, record);
     roomState.incomingIds.add(id);
-    const info =
-      kind === "text"
-        ? normalizeTextInfo(reader.info, senderIdentity)
-        : normalizeByteInfo(reader.info, senderIdentity);
-    info.topic = applicationTopic as string;
-    registration.callback({ id, info });
+    const descriptor: IncomingStreamDescriptor = kind === "text"
+      ? {
+          id,
+          info: { ...normalizeTextInfo(reader.info, senderIdentity), topic: registration.topic },
+        }
+      : {
+          id,
+          info: { ...normalizeByteInfo(reader.info, senderIdentity), topic: registration.topic },
+        };
+    registration.callback(descriptor);
     void sendFlowControl(room, senderIdentity, {
       type: "ack",
       streamId: wireId,
@@ -760,18 +776,29 @@ export function createDataStreamSubsystem(dependencies: Dependencies) {
     return record;
   }
 
-  function readIncoming(streamId: number, expectedKind: StreamKind) {
+  function readIncoming(streamId: number, expectedKind: "text"): Promise<AdapterTextStreamRead>;
+  function readIncoming(streamId: number, expectedKind: "bytes"): Promise<AdapterByteStreamRead>;
+  function readIncoming(
+    streamId: number,
+    expectedKind: StreamKind,
+  ): Promise<AdapterTextStreamRead | AdapterByteStreamRead> {
     const record = incomingRecord(streamId, expectedKind);
     const operation = record.readTail.then(() => record.iterator.next());
     record.readTail = operation.catch(() => {});
     return operation.then(async (result) => {
-      if (record.terminal) return { done: true, value: null };
+      if (record.terminal) {
+        return expectedKind === "text"
+          ? ({ done: true, value: null } satisfies AdapterTextStreamRead)
+          : ({ done: true, value: null } satisfies AdapterByteStreamRead);
+      }
       if (result.done) finishIncoming(streamId);
-      let value: string | number[] | null = null;
+      let value: string | number[] | null;
       if (!result.done && expectedKind === "text") {
         value = typeof result.value === "string" ? result.value : "";
-      } else if (!result.done) {
+      } else if (!result.done && expectedKind === "bytes") {
         value = Array.from(result.value as ArrayLike<number>);
+      } else {
+        value = null;
       }
       if (!result.done) {
         record.consumed += 1;
@@ -782,7 +809,9 @@ export function createDataStreamSubsystem(dependencies: Dependencies) {
           consumed: record.consumed,
         });
       }
-      return { done: result.done === true, value };
+      return expectedKind === "text"
+        ? ({ done: result.done === true, value: value as string | null } satisfies AdapterTextStreamRead)
+        : ({ done: result.done === true, value: value as number[] | null } satisfies AdapterByteStreamRead);
     });
   }
 

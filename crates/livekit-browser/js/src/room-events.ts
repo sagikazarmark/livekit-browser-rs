@@ -36,7 +36,8 @@ export interface RoomEventSnapshotState {
   >;
 }
 
-type RoomListener = (...args: any[]) => void;
+type RoomEventName = keyof RoomEventCallbacks;
+type RoomListener = RoomEventCallbacks[RoomEventName];
 type RoomUpdateCallback<TSnapshot> = (
   update: { snapshot: TSnapshot; events: RoomEventKind[] },
 ) => void;
@@ -66,31 +67,31 @@ interface TranscriptionSegmentLike {
 }
 
 interface RoomEvents {
-  ConnectionStateChanged: keyof RoomEventCallbacks;
-  ParticipantMetadataChanged: keyof RoomEventCallbacks;
-  ParticipantAttributesChanged: keyof RoomEventCallbacks;
-  ParticipantPermissionsChanged: keyof RoomEventCallbacks;
-  ConnectionQualityChanged: keyof RoomEventCallbacks;
-  ActiveSpeakersChanged: keyof RoomEventCallbacks;
-  LocalTrackPublished: keyof RoomEventCallbacks;
-  LocalTrackUnpublished: keyof RoomEventCallbacks;
-  TrackMuted: keyof RoomEventCallbacks;
-  TrackUnmuted: keyof RoomEventCallbacks;
-  ParticipantConnected: keyof RoomEventCallbacks;
-  ParticipantDisconnected: keyof RoomEventCallbacks;
-  TrackPublished: keyof RoomEventCallbacks;
-  TrackUnpublished: keyof RoomEventCallbacks;
-  TrackSubscribed: keyof RoomEventCallbacks;
-  TrackUnsubscribed: keyof RoomEventCallbacks;
-  TrackSubscriptionFailed: keyof RoomEventCallbacks;
-  TrackSubscriptionStatusChanged: keyof RoomEventCallbacks;
-  DataTrackPublished: keyof RoomEventCallbacks;
-  DataTrackUnpublished: keyof RoomEventCallbacks;
-  DataReceived: keyof RoomEventCallbacks;
-  ChatMessage: keyof RoomEventCallbacks;
-  TranscriptionReceived?: keyof RoomEventCallbacks;
-  RoomMetadataChanged: keyof RoomEventCallbacks;
-  AudioPlaybackStatusChanged: keyof RoomEventCallbacks;
+  ConnectionStateChanged: "connectionStateChanged";
+  ParticipantMetadataChanged: "participantMetadataChanged";
+  ParticipantAttributesChanged: "participantAttributesChanged";
+  ParticipantPermissionsChanged: "participantPermissionsChanged";
+  ConnectionQualityChanged: "connectionQualityChanged";
+  ActiveSpeakersChanged: "activeSpeakersChanged";
+  LocalTrackPublished: "localTrackPublished";
+  LocalTrackUnpublished: "localTrackUnpublished";
+  TrackMuted: "trackMuted";
+  TrackUnmuted: "trackUnmuted";
+  ParticipantConnected: "participantConnected";
+  ParticipantDisconnected: "participantDisconnected";
+  TrackPublished: "trackPublished";
+  TrackUnpublished: "trackUnpublished";
+  TrackSubscribed: "trackSubscribed";
+  TrackUnsubscribed: "trackUnsubscribed";
+  TrackSubscriptionFailed: "trackSubscriptionFailed";
+  TrackSubscriptionStatusChanged: "trackSubscriptionStatusChanged";
+  DataTrackPublished: "dataTrackPublished";
+  DataTrackUnpublished: "dataTrackUnpublished";
+  DataReceived: "dataReceived";
+  ChatMessage: "chatMessage";
+  TranscriptionReceived?: "transcriptionReceived";
+  RoomMetadataChanged: "roomMetadataChanged";
+  AudioPlaybackStatusChanged: "audioPlaybackChanged";
 }
 
 export interface RoomEventDependencies<TSnapshot> {
@@ -136,7 +137,7 @@ export interface RoomEventDependencies<TSnapshot> {
       payload: Uint8Array,
       participant: RemoteParticipant | undefined,
       reliable: boolean,
-      topic: string,
+      topic: string | undefined,
     ): boolean;
     participantDisconnected(participant: RemoteParticipant): void;
   };
@@ -153,7 +154,7 @@ export function createRoomEventOrchestrator<TSnapshot>(
   dependencies: RoomEventDependencies<TSnapshot>,
 ) {
   const { room, roomEvents: events } = dependencies;
-  const listeners: Array<[keyof RoomEventCallbacks, RoomListener]> = [];
+  const listeners: Array<[RoomEventName, RoomListener]> = [];
   const pendingEvents: PendingRoomEvent[] = [];
   const state: { revision: number; remoteDataTracksBySid: RoomEventSnapshotState["remoteDataTracksBySid"] } = {
     revision: 1,
@@ -230,18 +231,15 @@ export function createRoomEventOrchestrator<TSnapshot>(
     return null;
   }
 
-  function listen(event: keyof RoomEventCallbacks, listener: RoomListener) {
-    room.on(event, listener as RoomEventCallbacks[typeof event]);
+  function listen<E extends RoomEventName>(event: E, listener: RoomEventCallbacks[E]) {
+    room.on(event, listener);
     listeners.push([event, listener]);
   }
 
   try {
-    listen(
-      events.ConnectionStateChanged,
-      ((connectionState) => {
-        queueEvent({ type: "connectionStateChanged", state: connectionState });
-      }) satisfies RoomEventCallbacks["connectionStateChanged"],
-    );
+    listen(events.ConnectionStateChanged, (connectionState) => {
+      queueEvent({ type: "connectionStateChanged", state: connectionState });
+    });
     listen(events.ParticipantMetadataChanged, (_previous: unknown, participant: Participant) => {
       if (participant === room.localParticipant) queueEvent({ type: "localParticipantChanged" });
       else queueRemoteParticipantEvent("remoteParticipantChanged", participant as RemoteParticipant);
@@ -378,7 +376,7 @@ export function createRoomEventOrchestrator<TSnapshot>(
       payload: Uint8Array,
       participant: RemoteParticipant | undefined,
       kind: unknown,
-      topic: string,
+      topic: string | undefined,
     ) => {
       const reliable = kind === dependencies.dataPacketKinds.RELIABLE;
       if (!reliable && kind !== dependencies.dataPacketKinds.LOSSY) return;
@@ -391,7 +389,7 @@ export function createRoomEventOrchestrator<TSnapshot>(
     });
     listen(events.ChatMessage, (
       message: ChatMessageLike,
-      participant: RemoteParticipant | undefined,
+      participant: Participant | undefined,
     ) => {
       try {
         activation?.chatMessage(normalizeChatMessage(message, participant?.identity));
@@ -432,7 +430,7 @@ export function createRoomEventOrchestrator<TSnapshot>(
     });
   } catch (error: unknown) {
     for (const [event, listener] of listeners.splice(0)) {
-      try { room.off(event, listener as RoomEventCallbacks[typeof event]); } catch {}
+      try { room.off(event, listener); } catch {}
     }
     disposed = true;
     throw error;
@@ -459,7 +457,7 @@ export function createRoomEventOrchestrator<TSnapshot>(
       pendingEvents.length = 0;
       state.remoteDataTracksBySid.clear();
       for (const [event, listener] of listeners.splice(0)) {
-        try { room.off(event, listener as RoomEventCallbacks[typeof event]); } catch {}
+        try { room.off(event, listener); } catch {}
       }
     },
   };

@@ -4602,8 +4602,10 @@ fn capture_microphone_audio_track(
     Box::pin(async { Err(Error::UnsupportedTarget) })
 }
 
-#[cfg(target_arch = "wasm32")]
+#[cfg(any(target_arch = "wasm32", test))]
 #[derive(Clone, Copy, Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, allow(dead_code))]
 struct AdapterScreenCapture {
     video_track_id: u32,
     audio_track_id: Option<u32>,
@@ -6140,6 +6142,7 @@ impl From<AdapterRemoteTrackPublicationSnapshot> for RemoteTrackPublicationSnaps
 }
 
 #[derive(Clone, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
 #[serde(rename_all = "camelCase")]
 struct RemoteParticipantLocator {
     identity: String,
@@ -6148,6 +6151,7 @@ struct RemoteParticipantLocator {
 }
 
 #[derive(Clone, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
 #[serde(rename_all = "camelCase")]
 struct RemotePublicationLocator {
     participant: RemoteParticipantLocator,
@@ -7080,8 +7084,10 @@ impl Drop for RemoteVideoTrackAttachmentInner {
     }
 }
 
-#[cfg(target_arch = "wasm32")]
+#[cfg(any(target_arch = "wasm32", test))]
 #[derive(Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, allow(dead_code))]
 struct AdapterRemoteMediaTrack {
     id: u32,
     kind: TrackKind,
@@ -7455,8 +7461,10 @@ impl fmt::Display for RpcFailure {
 
 impl std::error::Error for RpcFailure {}
 
-#[cfg(target_arch = "wasm32")]
+#[cfg(any(target_arch = "wasm32", test))]
 #[derive(Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, allow(dead_code))]
 #[serde(rename_all = "camelCase")]
 struct AdapterRpcOptions {
     destination_identity: String,
@@ -7465,8 +7473,10 @@ struct AdapterRpcOptions {
     response_timeout_ms: u32,
 }
 
-#[cfg(target_arch = "wasm32")]
+#[cfg(any(target_arch = "wasm32", test))]
 #[derive(Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, allow(dead_code))]
 struct AdapterRpcFailure {
     #[serde(default)]
     terminal: bool,
@@ -7477,18 +7487,23 @@ struct AdapterRpcFailure {
     data: Option<String>,
 }
 
-#[cfg(target_arch = "wasm32")]
+#[cfg(any(target_arch = "wasm32", test))]
 #[derive(Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, allow(dead_code))]
 struct AdapterRpcInvocation {
     id: u32,
     request_id: String,
     caller_identity: String,
     payload: String,
+    #[cfg_attr(test, ts(type = "number"))]
     response_timeout_ms: u64,
 }
 
-#[cfg(target_arch = "wasm32")]
+#[cfg(any(target_arch = "wasm32", test))]
 #[derive(Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, allow(dead_code))]
 #[serde(rename_all = "camelCase")]
 struct AdapterRpcHandlerCompletion {
     success: bool,
@@ -7782,11 +7797,13 @@ pub enum DataStreamErrorReason {
 
 /// Topic and optional finite size for an outgoing text stream.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
 #[serde(rename_all = "camelCase")]
 pub struct TextStreamOptions {
     destination_identity: String,
     topic: String,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(test, ts(optional, type = "number"))]
     total_size: Option<u64>,
 }
 
@@ -7819,11 +7836,13 @@ impl TextStreamOptions {
 
 /// Topic and optional finite size for an outgoing byte stream.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
 #[serde(rename_all = "camelCase")]
 pub struct ByteStreamOptions {
     destination_identity: String,
     topic: String,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(test, ts(optional, type = "number"))]
     total_size: Option<u64>,
 }
 
@@ -7856,9 +7875,11 @@ impl ByteStreamOptions {
 
 /// Stable metadata for one text stream.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
+#[cfg_attr(test, derive(ts_rs::TS))]
 pub struct TextStreamInfo {
     id: String,
     topic: String,
+    #[cfg_attr(test, ts(type = "number | null"))]
     size: Option<u64>,
     sender_identity: Option<String>,
 }
@@ -7883,9 +7904,11 @@ impl TextStreamInfo {
 
 /// Stable metadata for one byte stream.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
+#[cfg_attr(test, derive(ts_rs::TS))]
 pub struct ByteStreamInfo {
     id: String,
     topic: String,
+    #[cfg_attr(test, ts(type = "number | null"))]
     size: Option<u64>,
     sender_identity: Option<String>,
 }
@@ -7908,15 +7931,19 @@ impl ByteStreamInfo {
     }
 }
 
-#[cfg(target_arch = "wasm32")]
+#[cfg(any(target_arch = "wasm32", test))]
 #[derive(Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, allow(dead_code))]
 struct AdapterOutgoingTextStream {
     id: u32,
     info: TextStreamInfo,
 }
 
-#[cfg(target_arch = "wasm32")]
+#[cfg(any(target_arch = "wasm32", test))]
 #[derive(Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, allow(dead_code))]
 struct AdapterOutgoingByteStream {
     id: u32,
     info: ByteStreamInfo,
@@ -8253,29 +8280,37 @@ impl OutgoingByteStream {
     }
 }
 
-#[cfg(target_arch = "wasm32")]
+#[cfg(any(target_arch = "wasm32", test))]
 #[derive(Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, allow(dead_code))]
 struct AdapterTextStreamRead {
     done: bool,
     value: Option<String>,
 }
 
-#[cfg(target_arch = "wasm32")]
+#[cfg(any(target_arch = "wasm32", test))]
 #[derive(Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, allow(dead_code))]
 struct AdapterIncomingTextStream {
     id: u32,
     info: TextStreamInfo,
 }
 
-#[cfg(target_arch = "wasm32")]
+#[cfg(any(target_arch = "wasm32", test))]
 #[derive(Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, allow(dead_code))]
 struct AdapterIncomingByteStream {
     id: u32,
     info: ByteStreamInfo,
 }
 
-#[cfg(target_arch = "wasm32")]
+#[cfg(any(target_arch = "wasm32", test))]
 #[derive(Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, allow(dead_code))]
 struct AdapterByteStreamRead {
     done: bool,
     value: Option<Vec<u8>>,
@@ -11442,6 +11477,24 @@ mod tests {
         append_contract::<AdapterJoin>(&mut output, &config);
         append_contract::<AdapterUpdate>(&mut output, &config);
         append_contract::<RuntimeInspection>(&mut output, &config);
+        append_contract::<AdapterScreenCapture>(&mut output, &config);
+        append_contract::<RemoteParticipantLocator>(&mut output, &config);
+        append_contract::<RemotePublicationLocator>(&mut output, &config);
+        append_contract::<AdapterRemoteMediaTrack>(&mut output, &config);
+        append_contract::<AdapterRpcOptions>(&mut output, &config);
+        append_contract::<AdapterRpcFailure>(&mut output, &config);
+        append_contract::<AdapterRpcInvocation>(&mut output, &config);
+        append_contract::<AdapterRpcHandlerCompletion>(&mut output, &config);
+        append_contract::<TextStreamOptions>(&mut output, &config);
+        append_contract::<ByteStreamOptions>(&mut output, &config);
+        append_contract::<TextStreamInfo>(&mut output, &config);
+        append_contract::<ByteStreamInfo>(&mut output, &config);
+        append_contract::<AdapterOutgoingTextStream>(&mut output, &config);
+        append_contract::<AdapterOutgoingByteStream>(&mut output, &config);
+        append_contract::<AdapterTextStreamRead>(&mut output, &config);
+        append_contract::<AdapterIncomingTextStream>(&mut output, &config);
+        append_contract::<AdapterIncomingByteStream>(&mut output, &config);
+        append_contract::<AdapterByteStreamRead>(&mut output, &config);
         assert_eq!(output.pop(), Some('\n'));
 
         assert!(output.is_ascii(), "adapter contracts must remain ASCII");

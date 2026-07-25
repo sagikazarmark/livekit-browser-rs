@@ -23,6 +23,7 @@ import type {
   VideoSenderStats,
 } from "livekit-client";
 import type { RawOptions } from "./options";
+import type { AdapterScreenCapture } from "./generated/adapter-contracts";
 
 type RoomId = number;
 type LocalTrackId = number;
@@ -759,7 +760,10 @@ export function createLocalMediaSubsystem(dependencies: LocalMediaDependencies) 
             installLocalTrackEndedListener(audioRecord, null);
             videoRecord.browserEndedPeer = audioRecord;
           }
-          onComplete(true, { video_track_id: videoTrackId, audio_track_id: audioTrackId });
+          onComplete(true, {
+            video_track_id: videoTrackId,
+            audio_track_id: audioTrackId,
+          } satisfies AdapterScreenCapture);
         } catch (error: unknown) {
           if (videoTrackId != null) {
             const record = localVideoTracks.get(videoTrackId);
