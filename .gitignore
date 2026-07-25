@@ -22,6 +22,7 @@ target/
 /.prototype-runtime/
 /examples/dioxus-room/assets/livekit-client.umd.min.js
 /examples/dioxus-room/node_modules/
+/crates/livekit-browser/js/node_modules/
 /tests/node_modules/
 /tests/test-results/
 /token-server/target/

@@ -158,10 +158,14 @@ Upgrade `livekit-client` as one commit; never merge an intermediate mixed-versio
 1. Read the upstream release notes and compare TypeScript declarations for Room Events, options,
    errors, statistics, worker assets, media behavior, and browser support.
 2. Run `npm install --save-exact livekit-client@<version>` in `examples/dioxus-room` to update the
-   application dependency and lockfile. Confirm `Dockerfile.web` still copies the intended UMD file.
+   application dependency and lockfile. Run the same command in `crates/livekit-browser/js` to update
+   the adapter's type dependency and lockfile. Confirm `Dockerfile.web` still copies the intended UMD
+   file.
 3. Change `LIVEKIT_CLIENT_VERSION` in `crates/livekit-browser/src/lib.rs` to the same exact version.
-4. Update `crates/livekit-browser/js/livekit-browser.js` and normalized Rust types together for every
-   changed SDK contract. Update browser capability and unsupported-feature documentation.
+4. Update the TypeScript sources under `crates/livekit-browser/js/src` and normalized Rust types
+   together for every changed SDK contract. Run `npm run build --prefix crates/livekit-browser/js`
+   and commit the generated `crates/livekit-browser/js/livekit-browser.js`. Update browser capability
+   and unsupported-feature documentation.
 5. Update adapter, runtime-failure, browser workflow, mobile capability, cleanup, and snapshot profile
    contracts for the new behavior.
 6. Run `./test-prototype.sh`. This runs lower-level adapter/Rust checks and the Chromium, Firefox,

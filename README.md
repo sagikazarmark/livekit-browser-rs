@@ -154,8 +154,9 @@ and run the browser workflow with one command:
 ./test-prototype.sh
 ```
 
-This is the complete compatibility gate. The image build runs the adapter contracts, workspace
-tests, and host and WASM all-feature typechecks. Playwright then runs the supported desktop
+This is the complete compatibility gate. The image build typechecks the TypeScript adapter, verifies
+its committed JavaScript bundle, runs the adapter contracts and workspace tests, and runs host and
+WASM all-feature typechecks. Playwright then runs the supported desktop
 browsers, mobile-sized Chromium and WebKit consumers, lifecycle cleanup contracts, and the
 near-100-participant snapshot profile against freshly recreated local stack containers. Named
 volumes are retained so the trusted mobile CA remains stable.

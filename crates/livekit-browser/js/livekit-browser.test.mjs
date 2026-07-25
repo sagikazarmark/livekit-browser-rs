@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import test from "node:test";
 
 const adapterSource = await readFile(
@@ -15,9 +16,50 @@ const require = createRequire(import.meta.url);
 const pinnedSdk = require(
   resolve(
     process.env.LIVEKIT_CLIENT_UMD ||
-      "examples/dioxus-room/node_modules/livekit-client/dist/livekit-client.umd.js",
+      fileURLToPath(
+        new URL("./node_modules/livekit-client/dist/livekit-client.umd.js", import.meta.url),
+      ),
   ),
 );
+
+const EXPECTED_EXPORTS = [
+  "activateRoom", "attachLocalAudioTrack", "attachLocalVideoTrack", "attachRemoteAudioTrack",
+  "attachRemoteVideoTrack", "closeAudioAnalyser", "completeOutgoingDataStream",
+  "completeParticipantRpcInvocation", "connectRoom", "createCameraVideoTrack",
+  "createLocalAudioAnalyser", "createLocalClipMediaStream", "createLocalClipObjectUrl",
+  "createMicrophoneAudioTrack", "createRemoteAudioAnalyser", "createRoom", "createScreenCapture",
+  "detachLocalAudioTrack", "detachLocalVideoTrack", "detachRemoteAudioTrack",
+  "detachRemoteVideoTrack", "dropAudioAnalyser", "dropDataStreamHandler", "dropIncomingDataStream",
+  "dropIncomingDataStreamDescriptor", "dropLocalAudioTrack", "dropLocalAudioTrackAttachment",
+  "dropLocalClipRecording", "dropLocalVideoTrack", "dropLocalVideoTrackAttachment",
+  "dropOutgoingDataStream", "dropOutgoingDataStreamDescriptor", "dropParticipantRpcInvocation",
+  "dropParticipantRpcInvocationDescriptor", "dropParticipantRpcMethod",
+  "dropRemoteAudioTrackAttachment", "dropRemoteMediaTrack", "dropRemoteMediaTrackDescriptor",
+  "dropRemoteVideoTrackAttachment", "dropRoom", "enumerateMediaDevices", "finishIncomingDataStream",
+  "inspectBrowserRuntime", "installLogExtension", "invokeParticipantRpc", "leaveRoom",
+  "localAudioSenderStatistics", "localAudioTrackDeviceId", "localClipRecordingSupported",
+  "localVideoSenderStatistics", "localVideoTrackDeviceId", "observeLocalAudioTrackEnded",
+  "observeLocalVideoTrackEnded", "openByteStream", "openTextStream", "pauseLocalClipRecording",
+  "publishLocalAudioTrack", "publishLocalVideoTrack", "rawLocalMediaTrack",
+  "rawLocalMediaTrackProcessor", "rawLocalParticipant", "rawLocalPublication",
+  "rawLocalRtcStatsReport", "rawRemoteMediaTrack", "rawRemoteParticipant", "rawRemotePublication",
+  "rawRemoteRtcStatsReport", "rawRoom", "readAudioAnalyser", "readByteStream", "readTextStream",
+  "registerByteStreamHandler", "registerParticipantRpcMethod", "registerTextStreamHandler",
+  "remoteAudioReceiverStatistics", "remoteVideoReceiverStatistics", "resolveRemoteMediaTrack",
+  "restartLocalAudioTrack", "restartLocalAudioTrackWithOptions", "restartLocalVideoTrack",
+  "restartLocalVideoTrackWithOptions", "resumeLocalClipRecording", "revokeLocalClipObjectUrl",
+  "selectLocalClipMimeType", "sendChatMessage", "sendDataPacket", "setLocalAudioTrackMuted",
+  "setLocalMediaTrackProcessor", "setLocalParticipantMetadata", "setLocalVideoTrackMuted",
+  "setRemoteTrackSubscription", "setTrackSubscriptionPermissions", "startLocalClipRecording",
+  "startRoomAudio", "stopLocalAudioTrack", "stopLocalClipRecording", "stopLocalMediaTrackProcessor",
+  "stopLocalVideoTrack", "switchLocalAudioTrackDevice", "switchLocalVideoTrackDevice",
+  "unpublishLocalAudioTrack", "unpublishLocalVideoTrack", "updateLocalParticipantAttributes",
+  "writeByteStream", "writeTextStream",
+];
+
+test("generated adapter preserves the Rust-facing export contract", () => {
+  assert.deepEqual(Object.keys(adapter).sort(), EXPECTED_EXPORTS.sort());
+});
 
 const REQUIRED_ROOM_EVENTS = [
   "ConnectionStateChanged",
