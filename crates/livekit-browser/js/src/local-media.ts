@@ -992,7 +992,10 @@ export function createLocalMediaSubsystem(dependencies: LocalMediaDependencies) 
           if (publication) {
             try { await room.room.localParticipant.unpublishTrack(record.track, false); } catch {}
           }
-          if (record.pendingPublicationId === publicationId) {
+          if (
+            record.pendingPublishRoomId === roomId &&
+            record.pendingPublicationId === publicationId
+          ) {
             record.pendingPublishRoomId = null;
             record.pendingPublicationId = null;
           }
@@ -1266,9 +1269,17 @@ export function createLocalMediaSubsystem(dependencies: LocalMediaDependencies) 
           publication?.track === record.track
         ) {
           const publicationId = record.publicationId;
-          record.publicationReplacementCallback(publicationId, null, false);
+          const previousPublication = record.publication;
+          const callback = record.publicationReplacementCallback;
+          callback(publicationId, null, false);
+          if (
+            getRoom(roomId) !== roomRecord || roomRecord.released ||
+            record.publication !== previousPublication ||
+            record.publicationId !== publicationId ||
+            record.publicationReplacementCallback !== callback
+          ) continue;
           awaiting = { roomId: roomRecord.id, publicationId,
-            callback: record.publicationReplacementCallback };
+            callback };
           record.awaitingPublicationReplacement = awaiting;
           record.publication = null;
         }
@@ -1278,6 +1289,10 @@ export function createLocalMediaSubsystem(dependencies: LocalMediaDependencies) 
         ) continue;
         const sid = requirePublicationSid(publication);
         const nextId = awaiting.callback(awaiting.publicationId, sid, publication.isMuted === true);
+        if (
+          getRoom(roomId) !== roomRecord || roomRecord.released ||
+          record.awaitingPublicationReplacement !== awaiting
+        ) continue;
         if (!Number.isInteger(nextId) || nextId <= 0) {
           throw new TypeError("Rust rejected the replacement Local Track Publication");
         }
@@ -1306,6 +1321,12 @@ export function createLocalMediaSubsystem(dependencies: LocalMediaDependencies) 
         if (record.publishedRoomId === roomRecord.id && callback) {
           const publicationId = record.publicationId;
           callback(publicationId, null, false);
+          if (
+            getRoom(roomId) !== roomRecord || roomRecord.released ||
+            record.publication !== publication ||
+            record.publicationId !== publicationId ||
+            record.publicationReplacementCallback !== callback
+          ) continue;
           record.awaitingPublicationReplacement = {
             roomId: roomRecord.id, publicationId, callback,
           };
@@ -1341,24 +1362,32 @@ export function createLocalMediaSubsystem(dependencies: LocalMediaDependencies) 
   function releaseRoom(roomId: RoomId) {
     const release = <TRecord extends AnyLocalTrackRecord>(records: Map<LocalTrackId, TRecord>) => {
       for (const [trackId, record] of records) {
-        if (
-          record.publishedRoomId !== roomId && record.pendingPublishRoomId !== roomId &&
-          record.awaitingPublicationReplacement?.roomId !== roomId
-        ) continue;
-        record.publication = null;
-        record.publicationReplacementCallback = null;
-        record.awaitingPublicationReplacement = null;
-        record.explicitUnpublishId = null;
-        record.explicitUnpublishObservedId = null;
-        if (record.publishedRoomId === roomId) {
+        const published = record.publishedRoomId === roomId;
+        const pending = record.pendingPublishRoomId === roomId;
+        const awaitingReplacement = record.awaitingPublicationReplacement?.roomId === roomId;
+        if (!published && !pending && !awaitingReplacement) continue;
+        if (published) {
+          record.publication = null;
           record.publishedRoomId = null;
           record.publicationId = null;
+          record.publicationReplacementCallback = null;
+          record.explicitUnpublishId = null;
+          record.explicitUnpublishObservedId = null;
         }
-        if (record.pendingPublishRoomId === roomId) {
+        if (pending) {
           record.pendingPublishRoomId = null;
           record.pendingPublicationId = null;
         }
-        if (record.ownerDropped) finishDroppedLocalTrack(record, trackId);
+        if (awaitingReplacement) {
+          record.awaitingPublicationReplacement = null;
+          if (record.publishedRoomId == null) record.publicationReplacementCallback = null;
+        }
+        if (
+          record.ownerDropped && record.publishedRoomId == null &&
+          record.pendingPublishRoomId == null && !record.awaitingPublicationReplacement
+        ) {
+          finishDroppedLocalTrack(record, trackId);
+        }
       }
     };
     release(localVideoTracks);

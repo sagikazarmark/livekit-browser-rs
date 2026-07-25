@@ -893,14 +893,27 @@ export function createDataStreamSubsystem(dependencies: Dependencies) {
 
   function releaseRoom(room: DataStreamRoomRecord) {
     const roomState = stateFor(room);
-    for (const settle of [...roomState.pendingOpens]) settle(false, terminalError());
-    for (const id of [...roomState.handlerIds]) dropHandler(id);
-    for (const id of [...roomState.outgoingIds]) dropOutgoing(id);
+    let failure: unknown;
+    let failed = false;
+    const release = (callback: () => void) => {
+      try {
+        callback();
+      } catch (error: unknown) {
+        if (!failed) failure = error;
+        failed = true;
+      }
+    };
+    for (const settle of [...roomState.pendingOpens]) {
+      release(() => settle(false, terminalError()));
+    }
+    for (const id of [...roomState.handlerIds]) release(() => dropHandler(id));
+    for (const id of [...roomState.outgoingIds]) release(() => dropOutgoing(id));
     for (const id of [...roomState.incomingIds]) {
       const stream = incomingStreams.get(id);
-      if (stream) cancelIncoming(stream, true, true);
+      if (stream) release(() => cancelIncoming(stream, true, true));
     }
     roomStates.delete(room);
+    if (failed) throw failure;
   }
 
   return {

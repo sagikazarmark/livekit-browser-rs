@@ -1031,14 +1031,27 @@ function createDataStreamSubsystem(dependencies) {
   }
   function releaseRoom2(room) {
     const roomState = stateFor(room);
-    for (const settle of [...roomState.pendingOpens]) settle(false, terminalError());
-    for (const id of [...roomState.handlerIds]) dropHandler(id);
-    for (const id of [...roomState.outgoingIds]) dropOutgoing(id);
+    let failure;
+    let failed = false;
+    const release = (callback) => {
+      try {
+        callback();
+      } catch (error) {
+        if (!failed) failure = error;
+        failed = true;
+      }
+    };
+    for (const settle of [...roomState.pendingOpens]) {
+      release(() => settle(false, terminalError()));
+    }
+    for (const id of [...roomState.handlerIds]) release(() => dropHandler(id));
+    for (const id of [...roomState.outgoingIds]) release(() => dropOutgoing(id));
     for (const id of [...roomState.incomingIds]) {
       const stream = incomingStreams.get(id);
-      if (stream) cancelIncoming(stream, true, true);
+      if (stream) release(() => cancelIncoming(stream, true, true));
     }
     roomStates.delete(room);
+    if (failed) throw failure;
   }
   return {
     openTextStream: (roomId, options, onComplete) => beginOutgoing(roomId, options, "text", onComplete),
@@ -1206,18 +1219,29 @@ function createParticipantRpcSubsystem(dependencies) {
   }
   function releaseRoom2(room) {
     const state = stateFor(room);
+    let failure;
+    let failed = false;
+    const release = (callback) => {
+      try {
+        callback();
+      } catch (error) {
+        if (!failed) failure = error;
+        failed = true;
+      }
+    };
     for (const settle of [...state.pendingCalls]) {
-      settle(false, {
+      release(() => settle(false, {
         terminal: true,
         permission_denied: false,
         code: null,
         message: "Room Session is terminal",
         data: null
-      });
+      }));
     }
-    for (const id of [...state.methodIds]) dropMethod(id);
-    for (const id of [...state.invocationIds]) dropInvocation(id);
+    for (const id of [...state.methodIds]) release(() => dropMethod(id));
+    for (const id of [...state.invocationIds]) release(() => dropInvocation(id));
     roomStates.delete(room);
+    if (failed) throw failure;
   }
   return {
     invokeParticipantRpc: invoke,
@@ -2069,7 +2093,7 @@ function createLocalMediaSubsystem(dependencies) {
             } catch {
             }
           }
-          if (record.pendingPublicationId === publicationId) {
+          if (record.pendingPublishRoomId === roomId && record.pendingPublicationId === publicationId) {
             record.pendingPublishRoomId = null;
             record.pendingPublicationId = null;
           }
@@ -2314,11 +2338,14 @@ function createLocalMediaSubsystem(dependencies) {
         let awaiting = record.awaitingPublicationReplacement;
         if (!awaiting && record.publishedRoomId === roomRecord.id && record.publication && record.publication !== publication && record.publicationReplacementCallback && publication?.track === record.track) {
           const publicationId = record.publicationId;
-          record.publicationReplacementCallback(publicationId, null, false);
+          const previousPublication = record.publication;
+          const callback = record.publicationReplacementCallback;
+          callback(publicationId, null, false);
+          if (getRoom(roomId) !== roomRecord || roomRecord.released || record.publication !== previousPublication || record.publicationId !== publicationId || record.publicationReplacementCallback !== callback) continue;
           awaiting = {
             roomId: roomRecord.id,
             publicationId,
-            callback: record.publicationReplacementCallback
+            callback
           };
           record.awaitingPublicationReplacement = awaiting;
           record.publication = null;
@@ -2326,6 +2353,7 @@ function createLocalMediaSubsystem(dependencies) {
         if (!awaiting || awaiting.roomId !== roomRecord.id || record.pendingPublishRoomId === roomRecord.id || publication?.track !== record.track) continue;
         const sid = requirePublicationSid(publication);
         const nextId = awaiting.callback(awaiting.publicationId, sid, publication.isMuted === true);
+        if (getRoom(roomId) !== roomRecord || roomRecord.released || record.awaitingPublicationReplacement !== awaiting) continue;
         if (!Number.isInteger(nextId) || nextId <= 0) {
           throw new TypeError("Rust rejected the replacement Local Track Publication");
         }
@@ -2353,6 +2381,7 @@ function createLocalMediaSubsystem(dependencies) {
         if (record.publishedRoomId === roomRecord.id && callback) {
           const publicationId = record.publicationId;
           callback(publicationId, null, false);
+          if (getRoom(roomId) !== roomRecord || roomRecord.released || record.publication !== publication || record.publicationId !== publicationId || record.publicationReplacementCallback !== callback) continue;
           record.awaitingPublicationReplacement = {
             roomId: roomRecord.id,
             publicationId,
@@ -2388,21 +2417,29 @@ function createLocalMediaSubsystem(dependencies) {
   function releaseRoom2(roomId) {
     const release = (records) => {
       for (const [trackId, record] of records) {
-        if (record.publishedRoomId !== roomId && record.pendingPublishRoomId !== roomId && record.awaitingPublicationReplacement?.roomId !== roomId) continue;
-        record.publication = null;
-        record.publicationReplacementCallback = null;
-        record.awaitingPublicationReplacement = null;
-        record.explicitUnpublishId = null;
-        record.explicitUnpublishObservedId = null;
-        if (record.publishedRoomId === roomId) {
+        const published = record.publishedRoomId === roomId;
+        const pending = record.pendingPublishRoomId === roomId;
+        const awaitingReplacement = record.awaitingPublicationReplacement?.roomId === roomId;
+        if (!published && !pending && !awaitingReplacement) continue;
+        if (published) {
+          record.publication = null;
           record.publishedRoomId = null;
           record.publicationId = null;
+          record.publicationReplacementCallback = null;
+          record.explicitUnpublishId = null;
+          record.explicitUnpublishObservedId = null;
         }
-        if (record.pendingPublishRoomId === roomId) {
+        if (pending) {
           record.pendingPublishRoomId = null;
           record.pendingPublicationId = null;
         }
-        if (record.ownerDropped) finishDroppedLocalTrack(record, trackId);
+        if (awaitingReplacement) {
+          record.awaitingPublicationReplacement = null;
+          if (record.publishedRoomId == null) record.publicationReplacementCallback = null;
+        }
+        if (record.ownerDropped && record.publishedRoomId == null && record.pendingPublishRoomId == null && !record.awaitingPublicationReplacement) {
+          finishDroppedLocalTrack(record, trackId);
+        }
       }
     };
     release(localVideoTracks);
@@ -2844,6 +2881,525 @@ function publicationKind(kind) {
   }
 }
 
+// src/snapshots.ts
+var publicationSource = (source) => trackSources[source]?.normalized ?? "unknown";
+var participantConnectionQuality = (quality) => {
+  switch (quality) {
+    case "excellent":
+    case "good":
+    case "poor":
+    case "lost":
+      return quality;
+    default:
+      return "unknown";
+  }
+};
+var publicationKind2 = (kind) => {
+  switch (kind) {
+    case "audio":
+    case "video":
+    case "data":
+      return kind;
+    default:
+      return "unknown";
+  }
+};
+var grantSource = (source) => {
+  switch (source) {
+    case 1:
+      return "camera";
+    case 2:
+      return "microphone";
+    case 3:
+      return "screenShare";
+    case 4:
+      return "screenShareAudio";
+    default:
+      return "unknown";
+  }
+};
+function normalizeGrants(permissions) {
+  if (!permissions) {
+    throw new TypeError("connected LocalParticipant has no permissions");
+  }
+  return {
+    can_subscribe: permissions.canSubscribe === true,
+    can_publish: permissions.canPublish === true,
+    can_publish_data: permissions.canPublishData === true,
+    can_publish_sources: (permissions.canPublishSources || []).map(grantSource),
+    can_update_metadata: permissions.canUpdateMetadata === true,
+    hidden: permissions.hidden === true,
+    recorder: permissions.recorder === true,
+    agent: permissions.agent === true,
+    can_subscribe_metrics: permissions.canSubscribeMetrics === true,
+    can_manage_agent_session: permissions.canManageAgentSession === true
+  };
+}
+function publicationState(publication) {
+  const sid = publication.trackSid;
+  if (typeof sid !== "string" || sid.length === 0) return null;
+  return {
+    sid,
+    name: publication.trackName || "",
+    source: publicationSource(publication.source),
+    kind: publicationKind2(publication.kind),
+    muted: publication.isMuted === true
+  };
+}
+function createSnapshotNormalizer(dependencies) {
+  const { localMedia: localMedia2, remoteMedia: remoteMedia2 } = dependencies;
+  function normalizeLocalPublications(participant) {
+    const publications = {};
+    for (const publication of participant.trackPublications.values()) {
+      const state = publicationState(publication);
+      if (state) publications[state.sid] = state;
+    }
+    return publications;
+  }
+  function normalizeRemotePublications(participant) {
+    const publications = {};
+    for (const publication of participant.trackPublications.values()) {
+      const state = publicationState(publication);
+      if (!state) continue;
+      publications[state.sid] = {
+        ...state,
+        generation: remoteMedia2.publicationGeneration(publication),
+        subscribed: publication.isSubscribed === true,
+        media_available: publication.track != null,
+        media_generation: publication.track ? remoteMedia2.mediaGeneration(publication.track) : null
+      };
+    }
+    return publications;
+  }
+  function normalizeRemoteDataTracks(record, participant) {
+    const tracks = {};
+    for (const dataTrack of participant.dataTracks.values()) {
+      const sid = dataTrack.info?.sid;
+      if (typeof sid !== "string" || sid.length === 0) continue;
+      record.remoteDataTracksBySid.set(sid, { participant, track: dataTrack });
+      tracks[sid] = {
+        sid,
+        name: dataTrack.info.name || "",
+        uses_e2ee: dataTrack.info.usesE2ee === true
+      };
+    }
+    return tracks;
+  }
+  function normalizeRemoteParticipants(record) {
+    const participants = /* @__PURE__ */ Object.create(null);
+    record.remoteDataTracksBySid.clear();
+    for (const participant of record.room.remoteParticipants.values()) {
+      const identity = participant.identity;
+      if (typeof identity !== "string" || identity.length === 0) continue;
+      participants[identity] = {
+        identity,
+        sid: participant.sid,
+        generation: remoteMedia2.participantGeneration(participant),
+        connection_quality: participantConnectionQuality(participant.connectionQuality),
+        metadata: participant.metadata ?? null,
+        attributes: { ...participant.attributes },
+        track_publications: normalizeRemotePublications(participant),
+        data_tracks: normalizeRemoteDataTracks(record, participant)
+      };
+    }
+    return participants;
+  }
+  function normalizeActiveSpeakers(record) {
+    const identities = [];
+    const seen = /* @__PURE__ */ new Set();
+    for (const participant of record.room.activeSpeakers || []) {
+      const identity = participant?.identity;
+      if (typeof identity !== "string" || identity.length === 0 || seen.has(identity)) continue;
+      const current = participant === record.room.localParticipant ? record.room.localParticipant : record.room.remoteParticipants.get(identity);
+      if (current !== participant) continue;
+      seen.add(identity);
+      identities.push(identity);
+    }
+    return identities;
+  }
+  function normalizeSnapshot(record) {
+    remoteMedia2.reconcileRoom(record.id);
+    const participant = record.room.localParticipant;
+    localMedia2.reconcileSnapshot(record.id, participant);
+    return {
+      revision: record.revision,
+      connection: record.room.state,
+      audio_playback: record.room.canPlaybackAudio === false ? "blocked" : "allowed",
+      active_speakers: normalizeActiveSpeakers(record),
+      room_sid: record.roomSid,
+      room_name: record.room.name || "",
+      room_metadata: record.room.metadata ?? null,
+      local_participant: {
+        identity: participant.identity,
+        sid: participant.sid,
+        connection_quality: participantConnectionQuality(participant.connectionQuality),
+        metadata: participant.metadata ?? null,
+        attributes: { ...participant.attributes },
+        grants: normalizeGrants(participant.permissions),
+        track_publications: normalizeLocalPublications(participant)
+      },
+      remote_participants: normalizeRemoteParticipants(record)
+    };
+  }
+  function normalizeQueuedEvent(record, event, snapshot) {
+    if (event.type !== "participantConnectionQualityChanged") return event;
+    const { source_participant: participant, ...normalized } = event;
+    if (participant === record.room.localParticipant) {
+      normalized.quality = snapshot.local_participant.connection_quality;
+      return normalized;
+    }
+    const participantIdentity = event.participant_identity;
+    if (participantIdentity == null || record.room.remoteParticipants.get(participantIdentity) !== participant) {
+      return null;
+    }
+    const participantSnapshot = snapshot.remote_participants[participantIdentity];
+    if (!participantSnapshot) return null;
+    normalized.quality = participantSnapshot.connection_quality;
+    return normalized;
+  }
+  return { normalizeSnapshot, normalizeQueuedEvent };
+}
+
+// src/room-events.ts
+function createRoomEventOrchestrator(dependencies) {
+  const { room, roomEvents: events } = dependencies;
+  const listeners = [];
+  const pendingEvents = [];
+  const state = {
+    revision: 1,
+    remoteDataTracksBySid: /* @__PURE__ */ new Map()
+  };
+  let activation = null;
+  let updateTimer = null;
+  let disposed = false;
+  function scheduleUpdate() {
+    if (!activation || updateTimer != null || pendingEvents.length === 0 || disposed) return;
+    updateTimer = setTimeout(() => {
+      updateTimer = null;
+      if (!activation || pendingEvents.length === 0 || disposed) return;
+      const queued = pendingEvents.splice(0);
+      state.revision += 1;
+      const snapshot = dependencies.snapshots.normalize(state);
+      const normalized = queued.map((event) => dependencies.snapshots.normalizeEvent(state, event, snapshot)).filter((event) => event != null);
+      activation.update({ snapshot, events: normalized });
+    }, 0);
+  }
+  function queueEvent(event) {
+    if (disposed) return;
+    pendingEvents.push(event);
+    scheduleUpdate();
+  }
+  function queueRemoteParticipantEvent(type, participant) {
+    const identity = participant?.identity;
+    if (typeof identity !== "string" || identity.length === 0) return;
+    const current = room.remoteParticipants.get(identity);
+    if (type === "remoteParticipantLeft") {
+      if (current && current !== participant) return;
+    } else if (!dependencies.remoteMedia.participantIsCurrent(participant)) return;
+    queueEvent({ type, identity });
+  }
+  function queueRemotePublicationsEventByIdentity(participantIdentity) {
+    if (typeof participantIdentity === "string" && participantIdentity.length > 0) {
+      queueEvent({
+        type: "remoteTrackPublicationsChanged",
+        participant_identity: participantIdentity
+      });
+    }
+  }
+  function queueRemotePublicationsEvent(participant) {
+    if (room.remoteParticipants.get(participant?.identity) !== participant) return;
+    queueRemotePublicationsEventByIdentity(participant?.identity);
+  }
+  function queueRemoteDataTracksEvent(participant) {
+    if (room.remoteParticipants.get(participant?.identity) !== participant) return;
+    queueEvent({
+      type: "remoteDataTracksChanged",
+      participant_identity: participant.identity
+    });
+  }
+  function dataTrackWithSid(participant, sid) {
+    for (const track of participant?.dataTracks.values() ?? []) {
+      if (track.info?.sid === sid) return track;
+    }
+    return null;
+  }
+  function listen(event, listener) {
+    room.on(event, listener);
+    listeners.push([event, listener]);
+  }
+  try {
+    listen(events.ConnectionStateChanged, (connectionState) => {
+      queueEvent({ type: "connectionStateChanged", state: connectionState });
+    });
+    listen(events.ParticipantMetadataChanged, (_previous, participant) => {
+      if (participant === room.localParticipant) queueEvent({ type: "localParticipantChanged" });
+      else queueRemoteParticipantEvent("remoteParticipantChanged", participant);
+    });
+    listen(events.ParticipantAttributesChanged, (_changed, participant) => {
+      if (participant === room.localParticipant) queueEvent({ type: "localParticipantChanged" });
+      else queueRemoteParticipantEvent("remoteParticipantChanged", participant);
+    });
+    listen(events.ParticipantPermissionsChanged, (_previous, participant) => {
+      if (participant === room.localParticipant) queueEvent({ type: "localParticipantChanged" });
+    });
+    listen(events.ConnectionQualityChanged, (_quality, participant) => {
+      const identity = participant?.identity;
+      if (typeof identity !== "string" || identity.length === 0) return;
+      if (participant !== room.localParticipant && room.remoteParticipants.get(identity) !== participant) {
+        return;
+      }
+      queueEvent({
+        type: "participantConnectionQualityChanged",
+        participant_identity: identity,
+        source_participant: participant
+      });
+    });
+    listen(events.ActiveSpeakersChanged, () => queueEvent({ type: "activeSpeakersChanged" }));
+    listen(events.LocalTrackPublished, (publication) => {
+      dependencies.localMedia.published(publication);
+      queueEvent({ type: "localTrackPublicationsChanged" });
+    });
+    listen(events.LocalTrackUnpublished, (publication) => {
+      dependencies.localMedia.unpublished(publication);
+      queueEvent({ type: "localTrackPublicationsChanged" });
+    });
+    listen(events.TrackMuted, (publication, participant) => {
+      if (participant === room.localParticipant) {
+        queueEvent({ type: "localTrackPublicationsChanged" });
+      } else if (dependencies.remoteMedia.publicationIsCurrent(
+        participant,
+        publication
+      )) {
+        queueRemotePublicationsEvent(participant);
+      }
+    });
+    listen(events.TrackUnmuted, (publication, participant) => {
+      if (participant === room.localParticipant) {
+        queueEvent({ type: "localTrackPublicationsChanged" });
+      } else if (dependencies.remoteMedia.publicationIsCurrent(
+        participant,
+        publication
+      )) {
+        queueRemotePublicationsEvent(participant);
+      }
+    });
+    listen(events.ParticipantConnected, (participant) => {
+      queueRemoteParticipantEvent("remoteParticipantJoined", participant);
+    });
+    listen(events.ParticipantDisconnected, (participant) => {
+      dependencies.dataStreams.participantDisconnected(participant);
+      dependencies.remoteMedia.participantDisconnected(participant);
+      queueRemoteParticipantEvent("remoteParticipantLeft", participant);
+    });
+    listen(events.TrackPublished, (publication, participant) => {
+      if (!dependencies.remoteMedia.publicationIsCurrent(participant, publication)) return;
+      queueRemotePublicationsEvent(participant);
+    });
+    listen(events.TrackUnpublished, (publication, participant) => {
+      dependencies.remoteMedia.publicationUnpublished(participant, publication);
+      if (dependencies.remoteMedia.publicationWasReplaced(participant, publication)) return;
+      queueRemotePublicationsEvent(participant);
+    });
+    listen(events.TrackSubscribed, (_track, publication, participant) => {
+      if (!dependencies.remoteMedia.publicationIsCurrent(participant, publication)) return;
+      dependencies.remoteMedia.trackSubscribed();
+      queueRemotePublicationsEvent(participant);
+    });
+    listen(events.TrackUnsubscribed, (track, publication, participant) => {
+      dependencies.remoteMedia.trackUnsubscribed(track, publication, participant);
+      if (dependencies.remoteMedia.publicationWasReplaced(participant, publication)) return;
+      queueRemotePublicationsEvent(participant);
+    });
+    listen(events.TrackSubscriptionFailed, (_trackSid, participant) => {
+      queueRemotePublicationsEvent(participant);
+    });
+    listen(events.TrackSubscriptionStatusChanged, (publication, _status, participant) => {
+      if (!dependencies.remoteMedia.publicationIsCurrent(participant, publication)) return;
+      queueRemotePublicationsEvent(participant);
+    });
+    listen(events.DataTrackPublished, (track) => {
+      const sid = track.info?.sid;
+      if (typeof sid !== "string" || sid.length === 0) return;
+      queueMicrotask(() => {
+        if (disposed) return;
+        const participant = room.remoteParticipants.get(track.publisherIdentity);
+        if (!participant || dataTrackWithSid(participant, sid) !== track) return;
+        state.remoteDataTracksBySid.set(sid, { participant, track });
+        queueRemoteDataTracksEvent(participant);
+      });
+    });
+    listen(events.DataTrackUnpublished, (sid) => {
+      queueMicrotask(() => {
+        if (disposed) return;
+        const dataTrack = state.remoteDataTracksBySid.get(sid);
+        if (!dataTrack) return;
+        const currentParticipant = room.remoteParticipants.get(dataTrack.participant.identity);
+        const currentTrack = dataTrackWithSid(currentParticipant, sid);
+        if (currentTrack && currentParticipant) {
+          state.remoteDataTracksBySid.set(sid, { participant: currentParticipant, track: currentTrack });
+          return;
+        }
+        state.remoteDataTracksBySid.delete(sid);
+        if (currentParticipant === dataTrack.participant) {
+          queueRemoteDataTracksEvent(currentParticipant);
+        }
+      });
+    });
+    listen(events.DataReceived, (payload, participant, kind, topic) => {
+      const reliable = kind === dependencies.dataPacketKinds.RELIABLE;
+      if (!reliable && kind !== dependencies.dataPacketKinds.LOSSY) return;
+      if (dependencies.dataStreams.handleFlowControl(payload, participant, reliable, topic)) return;
+      activation?.dataPacket(
+        payload,
+        typeof participant?.identity === "string" ? participant.identity : null,
+        reliable
+      );
+    });
+    listen(events.ChatMessage, (message, participant) => {
+      try {
+        activation?.chatMessage(normalizeChatMessage(message, participant?.identity));
+      } catch {
+      }
+    });
+    if (typeof events.TranscriptionReceived === "string") {
+      listen(events.TranscriptionReceived, (segments, participant, publication) => {
+        if (!Array.isArray(segments) || !transcriptionSourceIsCurrent(room, participant, publication)) {
+          return;
+        }
+        for (const segment of segments) {
+          try {
+            activation?.transcriptionSegment(
+              normalizeTranscriptionSegment(
+                segment,
+                participant,
+                publication
+              )
+            );
+          } catch {
+          }
+        }
+      });
+    }
+    listen(events.RoomMetadataChanged, () => queueEvent({ type: "roomMetadataChanged" }));
+    listen(events.AudioPlaybackStatusChanged, () => {
+      queueEvent({
+        type: "audioPlaybackChanged",
+        state: room.canPlaybackAudio === false ? "blocked" : "allowed"
+      });
+    });
+  } catch (error) {
+    for (const [event, listener] of listeners.splice(0)) {
+      try {
+        room.off(event, listener);
+      } catch {
+      }
+    }
+    disposed = true;
+    throw error;
+  }
+  return {
+    snapshot() {
+      return dependencies.snapshots.normalize(state);
+    },
+    discardInitialEvents() {
+      pendingEvents.length = 0;
+    },
+    activate(next) {
+      if (disposed) return;
+      activation = next;
+      scheduleUpdate();
+    },
+    dispose() {
+      if (disposed) return;
+      disposed = true;
+      if (updateTimer != null) clearTimeout(updateTimer);
+      updateTimer = null;
+      activation = null;
+      pendingEvents.length = 0;
+      state.remoteDataTracksBySid.clear();
+      for (const [event, listener] of listeners.splice(0)) {
+        try {
+          room.off(event, listener);
+        } catch {
+        }
+      }
+    }
+  };
+}
+function normalizedChatTimestamp(timestamp) {
+  const value = Number(timestamp);
+  if (!Number.isSafeInteger(value) || value < 0) {
+    throw new TypeError("LiveKit chat timestamp is not a non-negative safe integer");
+  }
+  return value;
+}
+function normalizeChatMessage(message, senderIdentity) {
+  if (typeof message?.id !== "string" || message.id.length === 0) {
+    throw new TypeError("LiveKit chat message ID is missing");
+  }
+  if (typeof message.message !== "string") {
+    throw new TypeError("LiveKit chat content is not a string");
+  }
+  return {
+    id: message.id,
+    message: message.message,
+    sender_identity: typeof senderIdentity === "string" ? senderIdentity : null,
+    timestamp_millis: normalizedChatTimestamp(message?.timestamp),
+    edit_timestamp_millis: message?.editTimestamp == null ? null : normalizedChatTimestamp(message.editTimestamp)
+  };
+}
+function normalizedTranscriptionTime(value, name) {
+  const normalized = Number(value);
+  if (!Number.isSafeInteger(normalized) || normalized < 0) {
+    throw new TypeError(`LiveKit transcription ${name} is not a non-negative safe integer`);
+  }
+  return normalized;
+}
+function transcriptionSourceIsCurrent(room, participant, publication) {
+  if (participant) {
+    const currentParticipant = participant === room.localParticipant ? room.localParticipant : room.remoteParticipants.get(participant.identity);
+    if (currentParticipant !== participant) return false;
+  }
+  if (publication) {
+    if (typeof publication.trackSid !== "string") return false;
+    const participants = [room.localParticipant, ...room.remoteParticipants.values()];
+    const owner = participants.find(
+      (candidate) => candidate.trackPublications.get(publication.trackSid) === publication
+    );
+    if (!owner || participant && owner !== participant) return false;
+  }
+  return true;
+}
+function normalizeTranscriptionSegment(segment, participant, publication) {
+  if (typeof segment?.id !== "string" || segment.id.length === 0) {
+    throw new TypeError("LiveKit transcription segment ID is missing");
+  }
+  if (typeof segment.text !== "string" || typeof segment.language !== "string") {
+    throw new TypeError("LiveKit transcription segment text or language is not a string");
+  }
+  if (typeof segment.final !== "boolean") {
+    throw new TypeError("LiveKit transcription segment final state is not a boolean");
+  }
+  return {
+    id: segment.id,
+    participant_identity: typeof participant?.identity === "string" ? participant.identity : null,
+    track_publication_sid: typeof publication?.trackSid === "string" ? publication.trackSid : null,
+    text: segment.text,
+    start_time: normalizedTranscriptionTime(segment.startTime, "start time"),
+    end_time: normalizedTranscriptionTime(segment.endTime, "end time"),
+    language: segment.language,
+    is_final: segment.final,
+    first_received_at_millis: normalizedTranscriptionTime(
+      segment.firstReceivedTime,
+      "first received time"
+    ),
+    last_received_at_millis: normalizedTranscriptionTime(
+      segment.lastReceivedTime,
+      "last received time"
+    )
+  };
+}
+
 // src/audio-analysers.ts
 var nextAudioAnalyserId = 1;
 var audioAnalysers = /* @__PURE__ */ new Map();
@@ -3151,6 +3707,17 @@ var {
   dropMediaTrackDescriptor: dropRemoteMediaTrackDescriptor,
   createRemoteAudioAnalyser
 } = remoteMedia;
+var snapshots = createSnapshotNormalizer({
+  localMedia: {
+    reconcileSnapshot: localMedia.reconcileSnapshot
+  },
+  remoteMedia: {
+    reconcileRoom: reconcileRemoteMediaTracks,
+    participantGeneration: remoteParticipantGeneration,
+    publicationGeneration: remotePublicationGeneration,
+    mediaGeneration: remoteMediaGeneration
+  }
+});
 function rawRoom(roomId) {
   const record = roomSessions.get(roomId);
   if (!record || record.released) throw new Error("Room Session is no longer available");
@@ -3265,82 +3832,6 @@ function sendDataPacket(roomId, payload, reliable) {
     "LiveKit did not send the reliable data packet"
   ) : send();
 }
-function normalizedChatTimestamp(timestamp) {
-  const value = Number(timestamp);
-  if (!Number.isSafeInteger(value) || value < 0) {
-    throw new TypeError("LiveKit chat timestamp is not a non-negative safe integer");
-  }
-  return value;
-}
-function normalizeChatMessage(message, senderIdentity) {
-  if (typeof message?.id !== "string" || message.id.length === 0) {
-    throw new TypeError("LiveKit chat message ID is missing");
-  }
-  if (typeof message.message !== "string") {
-    throw new TypeError("LiveKit chat content is not a string");
-  }
-  return {
-    id: message.id,
-    message: message.message,
-    sender_identity: typeof senderIdentity === "string" ? senderIdentity : null,
-    timestamp_millis: normalizedChatTimestamp(message?.timestamp),
-    edit_timestamp_millis: message?.editTimestamp == null ? null : normalizedChatTimestamp(message.editTimestamp)
-  };
-}
-function normalizedTranscriptionTime(value, name) {
-  const normalized = Number(value);
-  if (!Number.isSafeInteger(normalized) || normalized < 0) {
-    throw new TypeError(`LiveKit transcription ${name} is not a non-negative safe integer`);
-  }
-  return normalized;
-}
-function transcriptionSourceIsCurrent(record, participant, publication) {
-  if (participant) {
-    const currentParticipant = participant === record.room.localParticipant ? record.room.localParticipant : record.room.remoteParticipants.get(participant.identity);
-    if (currentParticipant !== participant) return false;
-  }
-  if (publication) {
-    if (typeof publication.trackSid !== "string") return false;
-    const participants = [
-      record.room.localParticipant,
-      ...record.room.remoteParticipants.values()
-    ];
-    const owner = participants.find(
-      (candidate) => candidate.trackPublications.get(publication.trackSid) === publication
-    );
-    if (!owner || participant && owner !== participant) return false;
-  }
-  return true;
-}
-function normalizeTranscriptionSegment(segment, participant, publication) {
-  if (typeof segment?.id !== "string" || segment.id.length === 0) {
-    throw new TypeError("LiveKit transcription segment ID is missing");
-  }
-  if (typeof segment.text !== "string" || typeof segment.language !== "string") {
-    throw new TypeError("LiveKit transcription segment text or language is not a string");
-  }
-  if (typeof segment.final !== "boolean") {
-    throw new TypeError("LiveKit transcription segment final state is not a boolean");
-  }
-  return {
-    id: segment.id,
-    participant_identity: typeof participant?.identity === "string" ? participant.identity : null,
-    track_publication_sid: typeof publication?.trackSid === "string" ? publication.trackSid : null,
-    text: segment.text,
-    start_time: normalizedTranscriptionTime(segment.startTime, "start time"),
-    end_time: normalizedTranscriptionTime(segment.endTime, "end time"),
-    language: segment.language,
-    is_final: segment.final,
-    first_received_at_millis: normalizedTranscriptionTime(
-      segment.firstReceivedTime,
-      "first received time"
-    ),
-    last_received_at_millis: normalizedTranscriptionTime(
-      segment.lastReceivedTime,
-      "last received time"
-    )
-  };
-}
 function sendChatMessage(roomId, message) {
   const roomRecord = roomSessions.get(roomId);
   if (!roomRecord || roomRecord.released) throw new Error("Room Session is no longer available");
@@ -3389,264 +3880,53 @@ var {
   dropParticipantRpcInvocation,
   dropParticipantRpcInvocationDescriptor
 } = participantRpc;
-var publicationSource = (source) => trackSources[source]?.normalized ?? "unknown";
-var participantConnectionQuality = (quality) => {
-  switch (quality) {
-    case "excellent":
-    case "good":
-    case "poor":
-    case "lost":
-      return quality;
-    default:
-      return "unknown";
-  }
-};
-var publicationKind2 = (kind) => {
-  switch (kind) {
-    case "audio":
-    case "video":
-    case "data":
-      return kind;
-    default:
-      return "unknown";
-  }
-};
-var grantSource = (source) => {
-  switch (source) {
-    case 1:
-      return "camera";
-    case 2:
-      return "microphone";
-    case 3:
-      return "screenShare";
-    case 4:
-      return "screenShareAudio";
-    default:
-      return "unknown";
-  }
-};
-function normalizeGrants(permissions) {
-  if (!permissions) {
-    throw new TypeError("connected LocalParticipant has no permissions");
-  }
-  return {
-    can_subscribe: permissions.canSubscribe === true,
-    can_publish: permissions.canPublish === true,
-    can_publish_data: permissions.canPublishData === true,
-    can_publish_sources: (permissions.canPublishSources || []).map(grantSource),
-    can_update_metadata: permissions.canUpdateMetadata === true,
-    hidden: permissions.hidden === true,
-    recorder: permissions.recorder === true,
-    agent: permissions.agent === true,
-    can_subscribe_metrics: permissions.canSubscribeMetrics === true,
-    can_manage_agent_session: permissions.canManageAgentSession === true
-  };
-}
-function publicationState(publication) {
-  const sid = publication.trackSid;
-  if (typeof sid !== "string" || sid.length === 0) return null;
-  return {
-    sid,
-    name: publication.trackName || "",
-    source: publicationSource(publication.source),
-    kind: publicationKind2(publication.kind),
-    muted: publication.isMuted === true
-  };
-}
-function normalizeLocalPublications(participant) {
-  const publications = {};
-  for (const publication of participant.trackPublications.values()) {
-    const state = publicationState(publication);
-    if (state) publications[state.sid] = state;
-  }
-  return publications;
-}
-function normalizeRemotePublications(_record, participant) {
-  const publications = {};
-  for (const publication of participant.trackPublications.values()) {
-    const state = publicationState(publication);
-    if (!state) continue;
-    publications[state.sid] = {
-      ...state,
-      generation: remotePublicationGeneration(publication),
-      subscribed: publication.isSubscribed === true,
-      media_available: publication.track != null,
-      media_generation: publication.track ? remoteMediaGeneration(publication.track) : null
-    };
-  }
-  return publications;
-}
-function normalizeRemoteDataTracks(record, participant) {
-  const tracks = {};
-  for (const dataTrack of participant.dataTracks.values()) {
-    const sid = dataTrack.info?.sid;
-    if (typeof sid !== "string" || sid.length === 0) continue;
-    record.remoteDataTracksBySid.set(sid, { participant, track: dataTrack });
-    tracks[sid] = {
-      sid,
-      name: dataTrack.info.name || "",
-      uses_e2ee: dataTrack.info.usesE2ee === true
-    };
-  }
-  return tracks;
-}
-function normalizeRemoteParticipants(record) {
-  const participants = /* @__PURE__ */ Object.create(null);
-  record.remoteDataTracksBySid.clear();
-  for (const participant of record.room.remoteParticipants.values()) {
-    const identity = participant.identity;
-    if (typeof identity !== "string" || identity.length === 0) continue;
-    participants[identity] = {
-      identity,
-      sid: participant.sid,
-      generation: remoteParticipantGeneration(participant),
-      connection_quality: participantConnectionQuality(participant.connectionQuality),
-      metadata: participant.metadata ?? null,
-      attributes: { ...participant.attributes },
-      track_publications: normalizeRemotePublications(record, participant),
-      data_tracks: normalizeRemoteDataTracks(record, participant)
-    };
-  }
-  return participants;
-}
-function normalizeActiveSpeakers(record) {
-  const identities = [];
-  const seen = /* @__PURE__ */ new Set();
-  for (const participant of record.room.activeSpeakers || []) {
-    const identity = participant?.identity;
-    if (typeof identity !== "string" || identity.length === 0 || seen.has(identity)) continue;
-    const current = participant === record.room.localParticipant ? record.room.localParticipant : record.room.remoteParticipants.get(identity);
-    if (current !== participant) continue;
-    seen.add(identity);
-    identities.push(identity);
-  }
-  return identities;
-}
-function normalizeSnapshot(record) {
-  reconcileRemoteMediaTracks(record.id);
-  const participant = record.room.localParticipant;
-  localMedia.reconcileSnapshot(record.id, participant);
-  return {
-    revision: record.revision,
-    connection: record.room.state,
-    audio_playback: record.room.canPlaybackAudio === false ? "blocked" : "allowed",
-    active_speakers: normalizeActiveSpeakers(record),
-    room_sid: record.roomSid,
-    room_name: record.room.name || "",
-    room_metadata: record.room.metadata ?? null,
-    local_participant: {
-      identity: participant.identity,
-      sid: participant.sid,
-      connection_quality: participantConnectionQuality(participant.connectionQuality),
-      metadata: participant.metadata ?? null,
-      attributes: { ...participant.attributes },
-      grants: normalizeGrants(participant.permissions),
-      track_publications: normalizeLocalPublications(participant)
-    },
-    remote_participants: normalizeRemoteParticipants(record)
-  };
-}
-function normalizeQueuedEvent(record, event, snapshot) {
-  if (event.type !== "participantConnectionQualityChanged") return event;
-  const { source_participant: participant, ...normalized } = event;
-  if (participant === record.room.localParticipant) {
-    normalized.quality = snapshot.local_participant.connection_quality;
-    return normalized;
-  }
-  const participantIdentity = event.participant_identity;
-  if (participantIdentity == null || record.room.remoteParticipants.get(participantIdentity) !== participant) {
-    return null;
-  }
-  const participantSnapshot = snapshot.remote_participants[participantIdentity];
-  if (!participantSnapshot) return null;
-  normalized.quality = participantSnapshot.connection_quality;
-  return normalized;
-}
-function scheduleUpdate(record) {
-  if (!record.callback || record.updateScheduled || record.pendingEvents.length === 0) return;
-  record.updateScheduled = true;
-  setTimeout(() => {
-    record.updateScheduled = false;
-    if (!record.callback || record.pendingEvents.length === 0 || !roomSessions.has(record.id)) return;
-    const pendingEvents = record.pendingEvents.splice(0);
-    record.revision += 1;
-    const snapshot = normalizeSnapshot(record);
-    const events = pendingEvents.map((event) => normalizeQueuedEvent(record, event, snapshot)).filter((event) => event != null);
-    record.callback({ snapshot, events });
-  }, 0);
-}
-function queueEvent(record, event) {
-  record.pendingEvents.push(event);
-  scheduleUpdate(record);
-}
-function queueRemoteParticipantEvent(record, type, participant) {
-  const identity = participant?.identity;
-  if (typeof identity !== "string" || identity.length === 0) return;
-  const current = record.room.remoteParticipants.get(identity);
-  if (type === "remoteParticipantLeft") {
-    if (current && current !== participant) return;
-  } else if (!remoteParticipantIsCurrent(record.id, participant)) return;
-  queueEvent(record, { type, identity });
-}
-function queueRemotePublicationsEvent(record, participant) {
-  if (record.room.remoteParticipants.get(participant?.identity) !== participant) return;
-  queueRemotePublicationsEventByIdentity(record, participant?.identity);
-}
-function queueRemoteDataTracksEvent(record, participant) {
-  if (record.room.remoteParticipants.get(participant?.identity) !== participant) return;
-  queueEvent(record, {
-    type: "remoteDataTracksChanged",
-    participant_identity: participant.identity
-  });
-}
-function dataTrackWithSid(participant, sid) {
-  for (const track of participant?.dataTracks.values() ?? []) {
-    if (track.info?.sid === sid) return track;
-  }
-  return null;
-}
-function queueRemotePublicationsEventByIdentity(record, participantIdentity) {
-  if (typeof participantIdentity === "string" && participantIdentity.length > 0) {
-    queueEvent(record, {
-      type: "remoteTrackPublicationsChanged",
-      participant_identity: participantIdentity
-    });
-  }
-}
-function listen(record, event, listener) {
-  record.room.on(event, listener);
-  record.listeners.push([event, listener]);
-}
-function removeAdapterListeners(record) {
-  for (const [event, listener] of record.listeners.splice(0)) {
-    record.room.off(event, listener);
-  }
-  record.callback = null;
-  record.dataPacketCallback = null;
-  record.chatMessageCallback = null;
-  record.transcriptionSegmentCallback = null;
-  record.pendingEvents.length = 0;
-}
 function releaseDataStreams(record) {
   dataStreams.releaseRoom(record);
 }
 function releaseParticipantRpc(record) {
   participantRpc.releaseRoom(record);
 }
-async function releaseRoom(record) {
-  if (record.released) return;
-  releaseDataStreams(record);
+function releaseRoom(record) {
+  if (record.releaseOperation) return record.releaseOperation;
   record.released = true;
-  releaseParticipantRpc(record);
-  remoteMedia.releaseRoom(record.id);
-  removeAdapterListeners(record);
-  roomSessions.delete(record.id);
-  try {
-    await record.room.disconnect(false);
-  } finally {
-    localMedia.releaseRoom(record.id);
-    record.room.removeAllListeners();
-  }
+  let resolveRelease;
+  let rejectRelease;
+  const operation = new Promise((resolve, reject) => {
+    resolveRelease = resolve;
+    rejectRelease = reject;
+  });
+  record.releaseOperation = operation;
+  void (async () => {
+    let failure;
+    let failed = false;
+    const recordFailure = (error) => {
+      if (failed) return;
+      failure = error;
+      failed = true;
+    };
+    const cleanup = (callback) => {
+      try {
+        callback();
+      } catch (error) {
+        recordFailure(error);
+      }
+    };
+    cleanup(() => record.events?.dispose());
+    cleanup(() => localMedia.releaseRoom(record.id));
+    cleanup(() => releaseDataStreams(record));
+    cleanup(() => releaseParticipantRpc(record));
+    cleanup(() => remoteMedia.releaseRoom(record.id));
+    try {
+      await record.room.disconnect(false);
+    } catch (error) {
+      recordFailure(error);
+    } finally {
+      roomSessions.delete(record.id);
+      cleanup(() => record.room.removeAllListeners());
+    }
+    if (failed) throw failure;
+  })().then(resolveRelease, rejectRelease);
+  return operation;
 }
 function createRoom(raw) {
   const sdk = globalThis.LivekitClient;
@@ -3692,218 +3972,79 @@ function createRoom(raw) {
     id: nextRoomId++,
     room,
     roomSid: "",
-    revision: 1,
-    callback: null,
-    dataPacketCallback: null,
-    chatMessageCallback: null,
-    transcriptionSegmentCallback: null,
-    listeners: [],
-    pendingEvents: [],
-    updateScheduled: false,
+    events: null,
     localParticipantMutation: Promise.resolve(),
     reliableDataMutation: Promise.resolve(),
     released: false,
-    remoteDataTracksBySid: /* @__PURE__ */ new Map()
+    releaseOperation: null
   };
   roomSessions.set(record.id, record);
-  const events = sdk.RoomEvent;
-  listen(record, events.ConnectionStateChanged, (state) => {
-    queueEvent(record, { type: "connectionStateChanged", state });
-  });
-  listen(record, events.ParticipantMetadataChanged, (_previous, participant) => {
-    if (participant === room.localParticipant) {
-      queueEvent(record, { type: "localParticipantChanged" });
-    } else {
-      queueRemoteParticipantEvent(record, "remoteParticipantChanged", participant);
-    }
-  });
-  listen(record, events.ParticipantAttributesChanged, (_changed, participant) => {
-    if (participant === room.localParticipant) {
-      queueEvent(record, { type: "localParticipantChanged" });
-    } else {
-      queueRemoteParticipantEvent(record, "remoteParticipantChanged", participant);
-    }
-  });
-  listen(record, events.ParticipantPermissionsChanged, (_previous, participant) => {
-    if (participant === room.localParticipant) {
-      queueEvent(record, { type: "localParticipantChanged" });
-    }
-  });
-  listen(record, events.ConnectionQualityChanged, (_quality, participant) => {
-    const identity = participant?.identity;
-    if (typeof identity !== "string" || identity.length === 0) return;
-    if (participant !== room.localParticipant && room.remoteParticipants.get(identity) !== participant) {
-      return;
-    }
-    queueEvent(record, {
-      type: "participantConnectionQualityChanged",
-      participant_identity: identity,
-      source_participant: participant
-    });
-  });
-  listen(record, events.ActiveSpeakersChanged, () => {
-    queueEvent(record, { type: "activeSpeakersChanged" });
-  });
-  listen(record, events.LocalTrackPublished, (publication) => {
-    localMedia.reconcilePublished(record.id, publication);
-    queueEvent(record, { type: "localTrackPublicationsChanged" });
-  });
-  listen(record, events.LocalTrackUnpublished, (publication) => {
-    localMedia.reconcileUnpublished(record.id, publication);
-    queueEvent(record, { type: "localTrackPublicationsChanged" });
-  });
-  listen(record, events.TrackMuted, (publication, participant) => {
-    if (participant === room.localParticipant) {
-      queueEvent(record, { type: "localTrackPublicationsChanged" });
-    } else if (remotePublicationIsCurrent(
-      record.id,
-      participant,
-      publication
-    )) {
-      queueRemotePublicationsEvent(record, participant);
-    }
-  });
-  listen(record, events.TrackUnmuted, (publication, participant) => {
-    if (participant === room.localParticipant) {
-      queueEvent(record, { type: "localTrackPublicationsChanged" });
-    } else if (remotePublicationIsCurrent(
-      record.id,
-      participant,
-      publication
-    )) {
-      queueRemotePublicationsEvent(record, participant);
-    }
-  });
-  listen(record, events.ParticipantConnected, (participant) => {
-    queueRemoteParticipantEvent(record, "remoteParticipantJoined", participant);
-  });
-  listen(record, events.ParticipantDisconnected, (participant) => {
-    dataStreams.participantDisconnected(record, participant);
-    remoteMedia.participantDisconnected(record.id, participant);
-    queueRemoteParticipantEvent(record, "remoteParticipantLeft", participant);
-  });
-  listen(record, events.TrackPublished, (publication, participant) => {
-    if (!remotePublicationIsCurrent(record.id, participant, publication)) return;
-    queueRemotePublicationsEvent(record, participant);
-  });
-  listen(record, events.TrackUnpublished, (publication, participant) => {
-    remoteMedia.publicationUnpublished(record.id, participant, publication);
-    if (remotePublicationWasReplaced(record.id, participant, publication)) return;
-    queueRemotePublicationsEvent(record, participant);
-  });
-  listen(record, events.TrackSubscribed, (_track, publication, participant) => {
-    if (!remotePublicationIsCurrent(record.id, participant, publication)) return;
-    remoteMedia.trackSubscribed(record.id);
-    queueRemotePublicationsEvent(record, participant);
-  });
-  listen(record, events.TrackUnsubscribed, (track, publication, participant) => {
-    remoteMedia.trackUnsubscribed(record.id, track, publication, participant);
-    if (remotePublicationWasReplaced(record.id, participant, publication)) return;
-    queueRemotePublicationsEvent(record, participant);
-  });
-  listen(record, events.TrackSubscriptionFailed, (_trackSid, participant) => {
-    queueRemotePublicationsEvent(record, participant);
-  });
-  listen(record, events.TrackSubscriptionStatusChanged, (publication, _status, participant) => {
-    if (!remotePublicationIsCurrent(record.id, participant, publication)) return;
-    queueRemotePublicationsEvent(record, participant);
-  });
-  listen(record, events.DataTrackPublished, (track) => {
-    const sid = track.info?.sid;
-    if (typeof sid !== "string" || sid.length === 0) return;
-    queueMicrotask(() => {
-      if (record.released) return;
-      const participant = room.remoteParticipants.get(track.publisherIdentity);
-      if (!participant || dataTrackWithSid(participant, sid) !== track) return;
-      record.remoteDataTracksBySid.set(sid, { participant, track });
-      queueRemoteDataTracksEvent(record, participant);
-    });
-  });
-  listen(record, events.DataTrackUnpublished, (sid) => {
-    queueMicrotask(() => {
-      if (record.released) return;
-      const dataTrack = record.remoteDataTracksBySid.get(sid);
-      if (!dataTrack) return;
-      const currentParticipant = room.remoteParticipants.get(dataTrack.participant.identity);
-      const currentTrack = dataTrackWithSid(currentParticipant, sid);
-      if (currentTrack && currentParticipant) {
-        record.remoteDataTracksBySid.set(sid, {
-          participant: currentParticipant,
-          track: currentTrack
-        });
-        return;
-      }
-      record.remoteDataTracksBySid.delete(sid);
-      if (currentParticipant === dataTrack.participant) {
-        queueRemoteDataTracksEvent(record, currentParticipant);
+  try {
+    record.events = createRoomEventOrchestrator({
+      room,
+      roomEvents: sdk.RoomEvent,
+      dataPacketKinds: sdk.DataPacket_Kind,
+      snapshots: {
+        normalize: (state) => snapshots.normalizeSnapshot({
+          id: record.id,
+          room: record.room,
+          roomSid: record.roomSid,
+          revision: state.revision,
+          remoteDataTracksBySid: state.remoteDataTracksBySid
+        }),
+        normalizeEvent: (state, event, snapshot) => snapshots.normalizeQueuedEvent({
+          id: record.id,
+          room: record.room,
+          roomSid: record.roomSid,
+          revision: state.revision,
+          remoteDataTracksBySid: state.remoteDataTracksBySid
+        }, event, snapshot)
+      },
+      localMedia: {
+        published: (publication) => localMedia.reconcilePublished(record.id, publication),
+        unpublished: (publication) => localMedia.reconcileUnpublished(record.id, publication)
+      },
+      remoteMedia: {
+        participantIsCurrent: (participant) => remoteParticipantIsCurrent(record.id, participant),
+        publicationIsCurrent: (participant, publication) => remotePublicationIsCurrent(record.id, participant, publication),
+        publicationWasReplaced: (participant, publication) => remotePublicationWasReplaced(record.id, participant, publication),
+        participantDisconnected: (participant) => remoteMedia.participantDisconnected(record.id, participant),
+        publicationUnpublished: (participant, publication) => remoteMedia.publicationUnpublished(record.id, participant, publication),
+        trackSubscribed: () => remoteMedia.trackSubscribed(record.id),
+        trackUnsubscribed: (track, publication, participant) => remoteMedia.trackUnsubscribed(record.id, track, publication, participant)
+      },
+      dataStreams: {
+        handleFlowControl: (payload, participant, reliable, topic) => dataStreams.handleFlowControl(record, payload, participant, reliable, topic),
+        participantDisconnected: (participant) => dataStreams.participantDisconnected(record, participant)
       }
     });
-  });
-  listen(record, events.DataReceived, (payload, participant, kind, topic) => {
-    if (kind !== sdk.DataPacket_Kind.RELIABLE && kind !== sdk.DataPacket_Kind.LOSSY) return;
-    if (dataStreams.handleFlowControl(
-      record,
-      payload,
-      participant,
-      kind === sdk.DataPacket_Kind.RELIABLE,
-      topic
-    )) {
-      return;
-    }
-    record.dataPacketCallback?.(
-      payload,
-      typeof participant?.identity === "string" ? participant.identity : null,
-      kind === sdk.DataPacket_Kind.RELIABLE
-    );
-  });
-  listen(record, events.ChatMessage, (message, participant) => {
+  } catch (error) {
+    roomSessions.delete(record.id);
     try {
-      const normalized = normalizeChatMessage(
-        message,
-        typeof participant?.identity === "string" ? participant.identity : null
-      );
-      record.chatMessageCallback?.(normalized);
+      room.removeAllListeners();
+      void Promise.resolve(room.disconnect(false)).catch(() => {
+      });
     } catch {
     }
-  });
-  if (typeof events.TranscriptionReceived === "string") {
-    listen(record, events.TranscriptionReceived, (segments, participant, publication) => {
-      if (!Array.isArray(segments) || !transcriptionSourceIsCurrent(record, participant, publication)) {
-        return;
-      }
-      for (const segment of segments) {
-        try {
-          record.transcriptionSegmentCallback?.(
-            normalizeTranscriptionSegment(
-              segment,
-              participant,
-              publication
-            )
-          );
-        } catch {
-        }
-      }
-    });
+    throw error;
   }
-  listen(record, events.RoomMetadataChanged, () => {
-    queueEvent(record, { type: "roomMetadataChanged" });
-  });
-  listen(record, events.AudioPlaybackStatusChanged, () => {
-    queueEvent(record, {
-      type: "audioPlaybackChanged",
-      state: record.room.canPlaybackAudio === false ? "blocked" : "allowed"
-    });
-  });
   return record.id;
 }
 async function connectRoom(roomId, serverUrl, participantToken, autoSubscribe, raw) {
   const record = roomSessions.get(roomId);
-  if (!record) throw new Error("Room Session is no longer available");
+  if (!record || record.released) throw new Error("Room Session is no longer available");
   try {
     await record.room.connect(serverUrl, participantToken, { ...rawOptions(raw), autoSubscribe });
-    record.roomSid = await record.room.getSid();
-    record.pendingEvents.length = 0;
-    return { snapshot: normalizeSnapshot(record) };
+    if (roomSessions.get(roomId) !== record || record.released) {
+      throw new Error("Room Session is no longer available");
+    }
+    const roomSid = await record.room.getSid();
+    if (roomSessions.get(roomId) !== record || record.released) {
+      throw new Error("Room Session is no longer available");
+    }
+    record.roomSid = roomSid;
+    record.events.discardInitialEvents();
+    return { snapshot: record.events.snapshot() };
   } catch (error) {
     try {
       await releaseRoom(record);
@@ -3914,12 +4055,13 @@ async function connectRoom(roomId, serverUrl, participantToken, autoSubscribe, r
 }
 function activateRoom(roomId, callback, dataPacketCallback, chatMessageCallback, transcriptionSegmentCallback) {
   const record = roomSessions.get(roomId);
-  if (!record) throw new Error("Room Session is no longer available");
-  record.callback = callback;
-  record.dataPacketCallback = dataPacketCallback;
-  record.chatMessageCallback = chatMessageCallback;
-  record.transcriptionSegmentCallback = transcriptionSegmentCallback;
-  scheduleUpdate(record);
+  if (!record || record.released) throw new Error("Room Session is no longer available");
+  record.events.activate({
+    update: callback,
+    dataPacket: dataPacketCallback,
+    chatMessage: chatMessageCallback,
+    transcriptionSegment: transcriptionSegmentCallback
+  });
 }
 function leaveRoom(roomId, onComplete) {
   const record = roomSessions.get(roomId);

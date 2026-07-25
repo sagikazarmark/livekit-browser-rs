@@ -222,18 +222,29 @@ export function createParticipantRpcSubsystem(dependencies: Dependencies) {
 
   function releaseRoom(room: ParticipantRpcRoomRecord) {
     const state = stateFor(room);
+    let failure: unknown;
+    let failed = false;
+    const release = (callback: () => void) => {
+      try {
+        callback();
+      } catch (error: unknown) {
+        if (!failed) failure = error;
+        failed = true;
+      }
+    };
     for (const settle of [...state.pendingCalls]) {
-      settle(false, {
+      release(() => settle(false, {
         terminal: true,
         permission_denied: false,
         code: null,
         message: "Room Session is terminal",
         data: null,
-      });
+      }));
     }
-    for (const id of [...state.methodIds]) dropMethod(id);
-    for (const id of [...state.invocationIds]) dropInvocation(id);
+    for (const id of [...state.methodIds]) release(() => dropMethod(id));
+    for (const id of [...state.invocationIds]) release(() => dropInvocation(id));
     roomStates.delete(room);
+    if (failed) throw failure;
   }
 
   return {

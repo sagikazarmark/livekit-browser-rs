@@ -290,6 +290,115 @@ test("preflights every inspectable LiveKit SDK contract before mutation", () => 
   assert.equal(inspected.capabilities.transcription, false);
 });
 
+test("room events discard the initial burst, batch updates, and cancel delivery on disposal", async () => {
+  const roomEvents = Object.fromEntries(REQUIRED_ROOM_EVENTS.map((event) => [event, event]));
+  const localParticipant = {
+    identity: "local",
+    sid: "PA_local",
+    connectionQuality: "excellent",
+    metadata: undefined,
+    attributes: {},
+    permissions: {
+      canSubscribe: true,
+      canPublish: true,
+      canPublishData: true,
+      canPublishSources: [],
+      canUpdateMetadata: true,
+    },
+    trackPublications: new Map(),
+    publishTrack: async () => {},
+    unpublishTrack: async () => {},
+    setTrackSubscriptionPermissions() {},
+    setMetadata: async () => {},
+    setAttributes: async () => {},
+    publishData: async () => {},
+    sendChatMessage: async () => {},
+    streamText: async () => {},
+    streamBytes: async () => {},
+    performRpc: async () => {},
+  };
+
+  class Room {
+    constructor() {
+      this.localParticipant = localParticipant;
+      this.remoteParticipants = new Map();
+      this.activeSpeakers = [];
+      this.state = "disconnected";
+      this.canPlaybackAudio = true;
+      this.listeners = new Map();
+      Room.instance = this;
+    }
+    on(event, listener) {
+      const listeners = this.listeners.get(event) || [];
+      listeners.push(listener);
+      this.listeners.set(event, listeners);
+    }
+    off(event, listener) {
+      const listeners = this.listeners.get(event) || [];
+      this.listeners.set(event, listeners.filter((candidate) => candidate !== listener));
+    }
+    emit(event, ...args) {
+      for (const listener of this.listeners.get(event) || []) listener(...args);
+    }
+    async connect() {
+      this.state = "connected";
+      this.emit(roomEvents.ConnectionStateChanged, "connecting");
+      this.emit(roomEvents.RoomMetadataChanged);
+    }
+    async disconnect() {}
+    async startAudio() {}
+    async getSid() { return "RM_events"; }
+    registerTextStreamHandler() {}
+    unregisterTextStreamHandler() {}
+    registerByteStreamHandler() {}
+    unregisterByteStreamHandler() {}
+    registerRpcMethod() {}
+    unregisterRpcMethod() {}
+    removeAllListeners() { this.listeners.clear(); }
+  }
+
+  globalThis.LivekitClient = {
+    Room,
+    RoomEvent: roomEvents,
+    DataPacket_Kind: { RELIABLE: 0, LOSSY: 1 },
+  };
+
+  const roomId = adapter.createRoom({});
+  const directPackets = [];
+  Room.instance.emit(roomEvents.DataReceived, new Uint8Array([1]), undefined, 1, "topic");
+  const joined = await adapter.connectRoom(roomId, "ws://example.test", "token", true, {});
+  assert.equal(joined.snapshot.revision, 1);
+
+  const updates = [];
+  adapter.activateRoom(
+    roomId,
+    (update) => updates.push(update),
+    (...packet) => directPackets.push(packet),
+    () => {},
+    () => {},
+  );
+  await new Promise((resolve) => setTimeout(resolve, 5));
+  assert.deepEqual(updates, []);
+  assert.deepEqual(directPackets, []);
+
+  Room.instance.emit(roomEvents.ConnectionStateChanged, "connected");
+  Room.instance.emit(roomEvents.RoomMetadataChanged);
+  await new Promise((resolve) => setTimeout(resolve, 5));
+  assert.equal(updates.length, 1);
+  assert.equal(updates[0].snapshot.revision, 2);
+  assert.deepEqual(updates[0].events, [
+    { type: "connectionStateChanged", state: "connected" },
+    { type: "roomMetadataChanged" },
+  ]);
+
+  Room.instance.emit(roomEvents.AudioPlaybackStatusChanged);
+  adapter.dropRoom(roomId);
+  await new Promise((resolve) => setTimeout(resolve, 5));
+  assert.equal(updates.length, 1);
+  assert.equal([...Room.instance.listeners.values()].flat().length, 0);
+  adapter.dropRoom(roomId);
+});
+
 test("normalizes LiveKit log levels and structured context for one extension", () => {
   let extension;
   globalThis.LivekitClient = {
@@ -533,6 +642,7 @@ test("raw room, participant, publication, media, and statistics handles preserve
   globalThis.LivekitClient = {
     Room,
     RoomEvent: {
+      ConnectionQualityChanged: "connectionQualityChanged",
       LocalTrackPublished: "localTrackPublished",
       LocalTrackUnpublished: "localTrackUnpublished",
     },
@@ -552,6 +662,7 @@ test("raw room, participant, publication, media, and statistics handles preserve
   );
   assert.deepEqual(connectOptions, { autoSubscribe: true, websocketTimeout: 123 });
   assert.deepEqual(joined.snapshot.active_speakers, ["student", "teacher"]);
+  assert.equal(Object.getPrototypeOf(joined.snapshot.remote_participants), null);
   assert.equal(adapter.rawRoom(roomId) instanceof Room, true);
   assert.equal(adapter.rawLocalParticipant(roomId), localParticipant);
 
@@ -583,6 +694,20 @@ test("raw room, participant, publication, media, and statistics handles preserve
       generation: publicationSnapshot.generation,
     }),
   );
+
+  const qualityUpdate = new Promise((resolve) => {
+    adapter.activateRoom(roomId, resolve, () => {}, () => {}, () => {});
+  });
+  const sdkRoom = adapter.rawRoom(roomId);
+  sdkRoom.emit(
+    globalThis.LivekitClient.RoomEvent.ConnectionQualityChanged,
+    "poor",
+    remoteParticipant,
+  );
+  sdkRoom.remoteParticipants.set(remoteParticipant.identity, { ...remoteParticipant });
+  assert.deepEqual((await qualityUpdate).events, []);
+  sdkRoom.remoteParticipants.set(remoteParticipant.identity, remoteParticipant);
+
   const remoteDescriptor = adapter.resolveRemoteMediaTrack(
     roomId,
     publicationLocator,
@@ -619,7 +744,6 @@ test("raw room, participant, publication, media, and statistics handles preserve
   assert.equal(await adapter.rawLocalRtcStatsReport(localTrackId, 1, "video"), localStats);
 
   const previousPublication = localParticipant.trackPublications.get("TR_local");
-  const sdkRoom = adapter.rawRoom(roomId);
   sdkRoom.emit(globalThis.LivekitClient.RoomEvent.LocalTrackUnpublished, previousPublication);
   localParticipant.trackPublications.delete("TR_local");
   const replacementPublication = {
@@ -689,4 +813,480 @@ test("validates constructor-installed Room methods before registering Room state
     () => adapter.createRoom({}),
     /LivekitClient\.Room\.startAudio is not a function/,
   );
+});
+
+test("concurrent leave shares completion while local media is reusable", async () => {
+  let releaseDisconnect;
+  const disconnectStalled = new Promise((resolve) => { releaseDisconnect = resolve; });
+  const rooms = [];
+  let nextPublication = 1;
+
+  class Room {
+    constructor() {
+      this.listeners = new Map();
+      this.localParticipant = {
+        identity: "local",
+        permissions: { canPublish: true },
+        trackPublications: new Map(),
+        publishTrack: async (track) => {
+          const publication = { track, trackSid: `TR_${nextPublication++}`, isMuted: false };
+          this.localParticipant.trackPublications.set(publication.trackSid, publication);
+          return publication;
+        },
+        unpublishTrack: async (track) => {
+          for (const [sid, publication] of this.localParticipant.trackPublications) {
+            if (publication.track === track) this.localParticipant.trackPublications.delete(sid);
+          }
+        },
+        setTrackSubscriptionPermissions() {},
+        setMetadata: async () => {},
+        setAttributes: async () => {},
+        publishData: async () => {},
+        sendChatMessage: async () => {},
+        streamText() {},
+        streamBytes() {},
+        performRpc: async () => {},
+      };
+      rooms.push(this);
+    }
+    on(event, listener) {
+      const listeners = this.listeners.get(event) || [];
+      listeners.push(listener);
+      this.listeners.set(event, listeners);
+    }
+    off(event, listener) {
+      const listeners = this.listeners.get(event) || [];
+      this.listeners.set(event, listeners.filter((candidate) => candidate !== listener));
+    }
+    connect = async () => {};
+    disconnect = () => this === rooms[0] ? disconnectStalled : Promise.resolve();
+    startAudio = async () => {};
+    getSid = async () => "RM_cleanup";
+    registerTextStreamHandler() {}
+    unregisterTextStreamHandler() {}
+    registerByteStreamHandler() {}
+    unregisterByteStreamHandler() {}
+    registerRpcMethod() {}
+    unregisterRpcMethod() {}
+    removeAllListeners() { this.listeners.clear(); }
+  }
+
+  const localTrack = {
+    kind: "video",
+    on() {},
+    off() {},
+    attach() {},
+    detach() {},
+    stop() {},
+    getDeviceId: async () => "camera",
+    restartTrack: async () => {},
+    mute: async () => {},
+    unmute: async () => {},
+    getSenderStats: async () => [],
+  };
+  globalThis.LivekitClient = {
+    Room,
+    RoomEvent: Object.fromEntries(REQUIRED_ROOM_EVENTS.map((event) => [event, event])),
+    TrackEvent: { Ended: "ended" },
+    DataPacket_Kind: { RELIABLE: 0, LOSSY: 1 },
+    createLocalVideoTrack: async () => localTrack,
+  };
+
+  const oldRoomId = adapter.createRoom({});
+  const newRoomId = adapter.createRoom({});
+  const trackId = await new Promise((resolve, reject) => {
+    adapter.createCameraVideoTrack({}, {}, (success, value) =>
+      success ? resolve(value) : reject(value),
+    );
+  });
+  await adapter.publishLocalVideoTrack(
+    oldRoomId, trackId, 1, {}, {}, () => 2, () => {},
+  );
+
+  let secondLeaveCompleted = false;
+  const firstLeave = adapter.leaveRoom(oldRoomId, () => {});
+  const secondLeave = adapter.leaveRoom(oldRoomId, () => { secondLeaveCompleted = true; });
+  await Promise.resolve();
+
+  let reuseFailure = null;
+  try {
+    await adapter.publishLocalVideoTrack(
+      newRoomId, trackId, 2, {}, {}, () => 3, () => {},
+    );
+  } catch (error) {
+    reuseFailure = error;
+  }
+
+  const secondLeaveCompletedBeforeDisconnect = secondLeaveCompleted;
+  releaseDisconnect();
+  await Promise.all([firstLeave, secondLeave]);
+  adapter.dropRoom(newRoomId);
+
+  assert.equal(
+    secondLeaveCompletedBeforeDisconnect,
+    false,
+    "a concurrent leave must wait for disconnect",
+  );
+  assert.equal(reuseFailure, null, "local media must be reusable before disconnect completes");
+});
+
+function deferred() {
+  let resolve;
+  let reject;
+  const promise = new Promise((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+  return { promise, resolve, reject };
+}
+
+function installReleaseTestSdk(overrides = {}) {
+  const rooms = [];
+  let nextPublication = 1;
+  const track = {
+    kind: "video",
+    on() {},
+    off() {},
+    attach() {},
+    detach() {},
+    stop() {},
+    getDeviceId: async () => "camera",
+    restartTrack: async () => {},
+    mute: async () => {},
+    unmute: async () => {},
+    getSenderStats: async () => [],
+  };
+
+  class Room {
+    constructor() {
+      this.listeners = new Map();
+      this.remoteParticipants = new Map([["remote", { identity: "remote" }]]);
+      this.localParticipant = {
+        identity: "local",
+        permissions: { canPublish: true, canPublishData: true },
+        trackPublications: new Map(),
+        publishTrack: async (mediaTrack) => {
+          if (overrides.publishTrack) return overrides.publishTrack.call(this, mediaTrack);
+          const publication = {
+            track: mediaTrack,
+            trackSid: `TR_${nextPublication++}`,
+            isMuted: false,
+          };
+          this.localParticipant.trackPublications.set(publication.trackSid, publication);
+          return publication;
+        },
+        unpublishTrack: async (mediaTrack) => {
+          for (const [sid, publication] of this.localParticipant.trackPublications) {
+            if (publication.track === mediaTrack) this.localParticipant.trackPublications.delete(sid);
+          }
+        },
+        setTrackSubscriptionPermissions() {},
+        setMetadata: async () => {},
+        setAttributes: async () => {},
+        publishData: async () => {},
+        sendChatMessage: async () => {},
+        streamText: (...args) => overrides.streamText?.call(this, ...args),
+        streamBytes: (...args) => overrides.streamBytes?.call(this, ...args),
+        performRpc: (...args) => overrides.performRpc?.call(this, ...args),
+      };
+      rooms.push(this);
+    }
+    on(event, listener) {
+      const listeners = this.listeners.get(event) || [];
+      listeners.push(listener);
+      this.listeners.set(event, listeners);
+    }
+    off(event, listener) {
+      const listeners = this.listeners.get(event) || [];
+      this.listeners.set(event, listeners.filter((candidate) => candidate !== listener));
+    }
+    emit(event, ...args) {
+      for (const listener of this.listeners.get(event) || []) listener(...args);
+    }
+    connect(...args) { return overrides.connect?.call(this, ...args) ?? Promise.resolve(); }
+    disconnect(...args) { return overrides.disconnect?.call(this, ...args) ?? Promise.resolve(); }
+    startAudio = async () => {};
+    getSid(...args) { return overrides.getSid?.call(this, ...args) ?? Promise.resolve("RM_release"); }
+    registerTextStreamHandler() {}
+    unregisterTextStreamHandler(...args) { return overrides.unregisterTextStreamHandler?.call(this, ...args); }
+    registerByteStreamHandler() {}
+    unregisterByteStreamHandler(...args) { return overrides.unregisterByteStreamHandler?.call(this, ...args); }
+    registerRpcMethod() {}
+    unregisterRpcMethod(...args) { return overrides.unregisterRpcMethod?.call(this, ...args); }
+    removeAllListeners() { this.listeners.clear(); }
+  }
+
+  globalThis.LivekitClient = {
+    Room,
+    RoomEvent: Object.fromEntries(REQUIRED_ROOM_EVENTS.map((event) => [event, event])),
+    TrackEvent: { Ended: "ended" },
+    DataPacket_Kind: { RELIABLE: 0, LOSSY: 1 },
+    RpcError: class RpcError extends Error {},
+    createLocalVideoTrack: async () => track,
+  };
+  return { rooms, track };
+}
+
+test("local media remains reusable after old room disconnect rejects", async () => {
+  const disconnectCause = new Error("old room disconnect failed");
+  let environment;
+  environment = installReleaseTestSdk({
+    disconnect() {
+      return this === environment.rooms[0]
+        ? Promise.reject(disconnectCause)
+        : Promise.resolve();
+    },
+  });
+  const oldRoomId = adapter.createRoom({});
+  const newRoomId = adapter.createRoom({});
+  const trackId = await new Promise((resolve, reject) => {
+    adapter.createCameraVideoTrack({}, {}, (success, value) =>
+      success ? resolve(value) : reject(value),
+    );
+  });
+
+  await adapter.publishLocalVideoTrack(
+    oldRoomId, trackId, 1, {}, {}, () => 2, () => {},
+  );
+  await assert.rejects(adapter.leaveRoom(oldRoomId, () => {}), (error) => {
+    assert.equal(error, disconnectCause);
+    return true;
+  });
+
+  await assert.doesNotReject(() => adapter.publishLocalVideoTrack(
+    newRoomId, trackId, 2, {}, {}, () => 3, () => {},
+  ));
+  assert.throws(() => adapter.rawLocalPublication(trackId, 1, "video"));
+  assert.equal(
+    adapter.rawLocalPublication(trackId, 2, "video"),
+    environment.rooms[1].localParticipant.trackPublications.values().next().value,
+  );
+
+  adapter.dropRoom(newRoomId);
+});
+
+test("reentrant room drop during local publication replacement leaves the track reusable", async () => {
+  const { rooms, track } = installReleaseTestSdk();
+  const oldRoomId = adapter.createRoom({});
+  const newRoomId = adapter.createRoom({});
+  const trackId = await new Promise((resolve, reject) => {
+    adapter.createCameraVideoTrack({}, {}, (success, value) =>
+      success ? resolve(value) : reject(value),
+    );
+  });
+
+  await adapter.publishLocalVideoTrack(
+    oldRoomId,
+    trackId,
+    1,
+    {},
+    {},
+    (publicationId, sid) => {
+      if (sid === null) adapter.dropRoom(oldRoomId);
+      return publicationId + 1;
+    },
+    () => {},
+  );
+  const replacement = { track, trackSid: "TR_replacement", isMuted: false };
+
+  assert.doesNotThrow(() => rooms[0].emit("LocalTrackPublished", replacement));
+  await assert.doesNotReject(() => adapter.publishLocalVideoTrack(
+    newRoomId, trackId, 2, {}, {}, () => 3, () => {},
+  ));
+
+  adapter.dropRoom(newRoomId);
+});
+
+test("reentrant room leave during local unpublication leaves the track reusable", async () => {
+  const { rooms } = installReleaseTestSdk();
+  const oldRoomId = adapter.createRoom({});
+  const newRoomId = adapter.createRoom({});
+  const trackId = await new Promise((resolve, reject) => {
+    adapter.createCameraVideoTrack({}, {}, (success, value) =>
+      success ? resolve(value) : reject(value),
+    );
+  });
+  let leave;
+
+  await adapter.publishLocalVideoTrack(
+    oldRoomId,
+    trackId,
+    1,
+    {},
+    {},
+    (publicationId, sid) => {
+      if (sid === null) leave = adapter.leaveRoom(oldRoomId, () => {});
+      return publicationId + 1;
+    },
+    () => {},
+  );
+  const publication = rooms[0].localParticipant.trackPublications.values().next().value;
+
+  assert.doesNotThrow(() => rooms[0].emit("LocalTrackUnpublished", publication));
+  await leave;
+  await assert.doesNotReject(() => adapter.publishLocalVideoTrack(
+    newRoomId, trackId, 2, {}, {}, () => 3, () => {},
+  ));
+
+  adapter.dropRoom(newRoomId);
+});
+
+test("connectRoom becomes terminal when room release starts across either join await", async () => {
+  for (const pendingStage of ["connect", "getSid"]) {
+    const pending = deferred();
+    const reachedGetSid = deferred();
+    installReleaseTestSdk({
+      connect: () => pendingStage === "connect" ? pending.promise : Promise.resolve(),
+      getSid: () => {
+        reachedGetSid.resolve();
+        return pendingStage === "getSid" ? pending.promise : Promise.resolve("RM_joined");
+      },
+    });
+    const roomId = adapter.createRoom({});
+    const joining = adapter.connectRoom(roomId, "ws://example.test", "token", true, {});
+    let leaving;
+
+    if (pendingStage === "getSid") await reachedGetSid.promise;
+    if (pendingStage === "connect") adapter.dropRoom(roomId);
+    else leaving = adapter.leaveRoom(roomId, () => {});
+    pending.resolve(pendingStage === "getSid" ? "RM_late" : undefined);
+
+    await assert.rejects(joining, /Room Session is no longer available/, pendingStage);
+    if (leaving) await leaving;
+    assert.throws(() => adapter.rawRoom(roomId), /Room Session is no longer available/);
+  }
+});
+
+test("room release settles every pending data stream open when one callback throws", async () => {
+  const nativeOpen = deferred();
+  installReleaseTestSdk({ streamText: () => nativeOpen.promise });
+  const roomId = adapter.createRoom({});
+  const firstFailure = new Error("first data stream release callback failed");
+  const settled = [];
+
+  adapter.openTextStream(
+    roomId,
+    { destinationIdentity: "remote", topic: "first" },
+    (success) => {
+      settled.push(["first", success]);
+      throw firstFailure;
+    },
+  );
+  adapter.openTextStream(
+    roomId,
+    { destinationIdentity: "remote", topic: "second" },
+    (success) => settled.push(["second", success]),
+  );
+  await Promise.resolve();
+
+  const releaseFailure = await adapter.leaveRoom(roomId, () => {}).then(
+    () => null,
+    (error) => error,
+  );
+  const settledDuringRelease = [...settled];
+  nativeOpen.resolve({ info: { id: "native-late" }, write: async () => {}, close: async () => {} });
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  assert.equal(releaseFailure, firstFailure);
+  assert.deepEqual(settledDuringRelease, [
+    ["first", false],
+    ["second", false],
+  ]);
+});
+
+test("room release settles every pending participant RPC when one callback throws", async () => {
+  const nativeCalls = [deferred(), deferred()];
+  installReleaseTestSdk({ performRpc: () => nativeCalls.shift().promise });
+  const roomId = adapter.createRoom({});
+  const firstFailure = new Error("first participant RPC release callback failed");
+  const settled = [];
+  const options = {
+    destinationIdentity: "remote",
+    method: "pending",
+    payload: "request",
+    responseTimeoutMs: 1_000,
+  };
+
+  adapter.invokeParticipantRpc(roomId, options, (success) => {
+    settled.push(["first", success]);
+    throw firstFailure;
+  });
+  adapter.invokeParticipantRpc(roomId, options, (success) => {
+    settled.push(["second", success]);
+  });
+
+  const releaseFailure = await adapter.leaveRoom(roomId, () => {}).then(
+    () => null,
+    (error) => error,
+  );
+
+  assert.equal(releaseFailure, firstFailure);
+  assert.deepEqual(settled, [
+    ["first", false],
+    ["second", false],
+  ]);
+});
+
+test("late old publication cannot replace a newer pending association or bypass serialization", async () => {
+  const oldNativePublish = deferred();
+  const newNativePublish = deferred();
+  const oldPublishStarted = deferred();
+  const newPublishStarted = deferred();
+  const oldDisconnect = deferred();
+  let environment;
+  environment = installReleaseTestSdk({
+    publishTrack(mediaTrack) {
+      if (this === environment.rooms[0]) {
+        oldPublishStarted.resolve();
+        return oldNativePublish.promise;
+      }
+      newPublishStarted.resolve();
+      return newNativePublish.promise;
+    },
+    disconnect() {
+      return this === environment.rooms[0] ? oldDisconnect.promise : Promise.resolve();
+    },
+  });
+  const oldRoomId = adapter.createRoom({});
+  const newRoomId = adapter.createRoom({});
+  const thirdRoomId = adapter.createRoom({});
+  const trackId = await new Promise((resolve, reject) => {
+    adapter.createCameraVideoTrack({}, {}, (success, value) =>
+      success ? resolve(value) : reject(value),
+    );
+  });
+
+  const oldPublishing = adapter.publishLocalVideoTrack(
+    oldRoomId, trackId, 1, {}, {}, () => 2, () => {},
+  );
+  const oldOutcome = assert.rejects(oldPublishing, /Room Session is no longer available/);
+  await oldPublishStarted.promise;
+  const leaving = adapter.leaveRoom(oldRoomId, () => {});
+  const newPublishing = adapter.publishLocalVideoTrack(
+    newRoomId, trackId, 2, {}, {}, () => 3, () => {},
+  );
+  let newStarted = false;
+  void newPublishStarted.promise.then(() => { newStarted = true; });
+  await Promise.resolve();
+  assert.equal(newStarted, false, "the newer publish must remain serialized behind the old publish");
+
+  const oldPublication = { track: environment.track, trackSid: "TR_old_late", isMuted: false };
+  environment.rooms[0].emit("LocalTrackPublished", oldPublication);
+  oldNativePublish.resolve(oldPublication);
+  await oldOutcome;
+  await newPublishStarted.promise;
+  await assert.rejects(
+    adapter.publishLocalVideoTrack(thirdRoomId, trackId, 3, {}, {}, () => 4, () => {}),
+    /already has a pending publication/,
+  );
+
+  const newPublication = { track: environment.track, trackSid: "TR_new", isMuted: false };
+  newNativePublish.resolve(newPublication);
+  await newPublishing;
+  assert.equal(adapter.rawLocalPublication(trackId, 2, "video"), newPublication);
+
+  oldDisconnect.resolve();
+  await leaving;
+  adapter.dropRoom(newRoomId);
+  adapter.dropRoom(thirdRoomId);
 });
