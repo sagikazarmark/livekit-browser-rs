@@ -564,12 +564,12 @@ impl LocalAudioTrack {
         })
     }
 
-    #[cfg(test)]
+    #[cfg(all(test, not(target_arch = "wasm32")))]
     pub(crate) fn test_track(stop_count: Rc<Cell<usize>>) -> Self {
         Self::test_track_with_source(stop_count, AudioTrackSource::Microphone)
     }
 
-    #[cfg(test)]
+    #[cfg(all(test, not(target_arch = "wasm32")))]
     pub(crate) fn test_track_with_source(
         stop_count: Rc<Cell<usize>>,
         source: AudioTrackSource,
@@ -622,7 +622,7 @@ pub(crate) struct LocalAudioTrackInner {
     stop_operation: RefCell<Option<Result<js_sys::Promise, AdapterError>>>,
     #[cfg(target_arch = "wasm32")]
     ended_callback: RefCell<Option<wasm_bindgen::closure::Closure<dyn Fn()>>>,
-    #[cfg(test)]
+    #[cfg(all(test, not(target_arch = "wasm32")))]
     stop_count: Rc<Cell<usize>>,
 }
 
@@ -832,7 +832,7 @@ impl LocalAudioTrackInner {
                 attachment.active.set(false);
             }
         }
-        #[cfg(test)]
+        #[cfg(all(test, not(target_arch = "wasm32")))]
         self.stop_count.set(self.stop_count.get() + 1);
         true
     }
@@ -913,7 +913,7 @@ impl AudioTrackAttachment {
         Ok(())
     }
 
-    #[cfg(test)]
+    #[cfg(all(test, not(target_arch = "wasm32")))]
     pub(crate) fn test_attachment(track: &LocalAudioTrack) -> Self {
         let inner = Rc::new(AudioTrackAttachmentInner {
             active: Cell::new(true),

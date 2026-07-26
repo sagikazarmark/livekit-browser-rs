@@ -158,5 +158,5 @@ pub use room::{
     MIN_RPC_RESPONSE_TIMEOUT,
 };
 
-#[cfg(test)]
+#[cfg(all(test, not(target_arch = "wasm32")))]
 mod tests;

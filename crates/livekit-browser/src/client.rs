@@ -47,7 +47,7 @@ pub struct LiveKitLogRecord {
 }
 
 impl LiveKitLogRecord {
-    #[cfg(all(test, feature = "tracing"))]
+    #[cfg(all(test, not(target_arch = "wasm32"), feature = "tracing"))]
     pub(crate) fn test_record(
         level: LiveKitLogLevel,
         message: impl Into<String>,

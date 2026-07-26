@@ -17,7 +17,7 @@ mod local_video;
 pub(crate) use analyser::create_audio_analyser;
 pub(crate) use analyser::{terminate_audio_analysers, AudioAnalyserSource, AudioAnalyserState};
 pub use analyser::{AudioAnalyser, AudioAnalysis};
-#[cfg(test)]
+#[cfg(all(test, not(target_arch = "wasm32")))]
 pub(crate) use local_audio::AdapterScreenCapture;
 pub(crate) use local_audio::{capture_microphone_audio_track, capture_screen};
 pub use local_audio::{AudioTrackAttachment, LocalAudioTrack, LocalAudioTrackPublication};

@@ -190,7 +190,7 @@ fn suggested_filename(mime_type: &str) -> String {
     format!("local-clip.{extension}")
 }
 
-#[cfg(test)]
+#[cfg(all(test, not(target_arch = "wasm32")))]
 mod tests {
     use super::*;
 
