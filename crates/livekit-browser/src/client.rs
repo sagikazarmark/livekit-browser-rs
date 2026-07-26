@@ -47,7 +47,7 @@ pub struct LiveKitLogRecord {
 }
 
 impl LiveKitLogRecord {
-    #[cfg(test)]
+    #[cfg(all(test, feature = "tracing"))]
     pub(crate) fn test_record(
         level: LiveKitLogLevel,
         message: impl Into<String>,
@@ -79,6 +79,11 @@ impl LiveKitLogRecord {
 }
 
 type LiveKitLogCallback = Rc<dyn Fn(LiveKitLogRecord)>;
+
+/// The SDK log extension closure kept alive for the lifetime of the runtime.
+#[cfg(target_arch = "wasm32")]
+type LogExtensionClosure =
+    wasm_bindgen::closure::Closure<dyn Fn(u8, String, wasm_bindgen::JsValue)>;
 
 /// Options for initializing the application-wide LiveKit browser runtime.
 #[derive(Clone, Default)]
@@ -793,15 +798,11 @@ impl fmt::Debug for BrowserClient {
 pub(crate) struct ClientInner {
     pub(crate) capabilities: BrowserCapabilities,
     #[cfg(target_arch = "wasm32")]
-    _log_extension:
-        Option<wasm_bindgen::closure::Closure<dyn Fn(u8, String, wasm_bindgen::JsValue)>>,
+    _log_extension: Option<LogExtensionClosure>,
 }
 
 #[cfg(target_arch = "wasm32")]
-fn install_log_extension(
-    options: InitializeOptions,
-) -> Result<Option<wasm_bindgen::closure::Closure<dyn Fn(u8, String, wasm_bindgen::JsValue)>>, Error>
-{
+fn install_log_extension(options: InitializeOptions) -> Result<Option<LogExtensionClosure>, Error> {
     use wasm_bindgen::JsCast;
 
     if !options.receives_logs() {

@@ -61,6 +61,9 @@ impl AudioAnalyser {
     }
 
     /// Reads one owned Rust frame containing level and waveform data.
+    // The body dispatches on `cfg`, so each branch returns explicitly rather than relying on which
+    // branch happens to be compiled last.
+    #[allow(clippy::needless_return)]
     pub fn read(&self) -> Result<AudioAnalysis, Error> {
         if !self.is_active() {
             self.inner.state.active.set(false);

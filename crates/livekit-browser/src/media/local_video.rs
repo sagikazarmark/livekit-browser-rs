@@ -586,8 +586,7 @@ pub(crate) struct LocalVideoTrackInner {
     #[cfg(target_arch = "wasm32")]
     next_publication_id: Cell<u32>,
     #[cfg(target_arch = "wasm32")]
-    publication_replacement_callback:
-        OnceCell<wasm_bindgen::closure::Closure<dyn Fn(u32, Option<String>, bool) -> u32>>,
+    publication_replacement_callback: OnceCell<PublicationReplacementCallback>,
     #[cfg(target_arch = "wasm32")]
     sdk_replacement_source: RefCell<Option<Rc<LocalVideoTrackPublicationInner>>>,
     #[cfg(target_arch = "wasm32")]

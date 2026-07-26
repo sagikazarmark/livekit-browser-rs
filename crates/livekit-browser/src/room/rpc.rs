@@ -210,7 +210,7 @@ pub struct RpcFailure {
     pub(crate) message: String,
     pub(crate) data: Option<String>,
     #[allow(dead_code)]
-    pub(crate) cause: Option<AdapterError>,
+    pub(crate) cause: Option<Box<AdapterError>>,
 }
 
 impl RpcFailure {
@@ -246,7 +246,7 @@ impl RpcFailure {
 
     #[cfg(feature = "raw-js")]
     pub(crate) fn raw_js_cause(&self) -> Option<&wasm_bindgen::JsValue> {
-        self.cause.as_ref().and_then(AdapterError::raw_js_cause)
+        self.cause.as_deref().and_then(AdapterError::raw_js_cause)
     }
 }
 
@@ -429,7 +429,7 @@ pub(super) fn start_rpc_invocation(
                         code: failure.code,
                         message: failure.message,
                         data: failure.data,
-                        cause: raw_cause,
+                        cause: raw_cause.map(Box::new),
                     })),
                     Err(error) => Err(Error::AdapterFailure(AdapterError::contract(
                         error.to_string(),
@@ -465,7 +465,7 @@ pub(super) fn start_rpc_invocation(
                 code: None,
                 message: error.to_string(),
                 data: None,
-                cause: Some(error),
+                cause: Some(Box::new(error)),
             })
         }));
     }

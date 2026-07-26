@@ -28,6 +28,11 @@ pub(crate) use local_video::{
 };
 pub use local_video::{LocalVideoTrack, LocalVideoTrackPublication, VideoTrackAttachment};
 
+/// The SDK callback invoked when a local Track Publication is replaced.
+#[cfg(target_arch = "wasm32")]
+pub(crate) type PublicationReplacementCallback =
+    wasm_bindgen::closure::Closure<dyn Fn(u32, Option<String>, bool) -> u32>;
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
 #[cfg_attr(test, derive(ts_rs::TS))]
 #[serde(rename_all = "lowercase")]

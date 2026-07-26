@@ -83,10 +83,7 @@ pub fn use_room_actions() -> RoomSessionActions {
             result
         }
     });
-    let start_audio_playback = use_action(move || {
-        let operation = playback_room.start_audio_playback();
-        operation
-    });
+    let start_audio_playback = use_action(move || playback_room.start_audio_playback());
     let set_remote_track_publication_subscription =
         use_action(move |request: RemoteTrackPublicationSubscription| {
             let operation = subscription_room
@@ -102,18 +99,14 @@ pub fn use_room_actions() -> RoomSessionActions {
         });
     let set_publication_subscription_permissions = use_action(
         move |permissions: livekit_browser::PublicationSubscriptionPermissions| {
-            let operation = permissions_room.set_publication_subscription_permissions(permissions);
-            operation
+            permissions_room.set_publication_subscription_permissions(permissions)
         },
     );
-    let set_local_participant_metadata = use_action(move |metadata: String| {
-        let operation = metadata_participant.set_metadata(metadata);
-        operation
-    });
+    let set_local_participant_metadata =
+        use_action(move |metadata: String| metadata_participant.set_metadata(metadata));
     let update_local_participant_attributes =
         use_action(move |attributes: BTreeMap<String, String>| {
-            let operation = attributes_participant.update_attributes(attributes);
-            operation
+            attributes_participant.update_attributes(attributes)
         });
 
     RoomSessionActions {
