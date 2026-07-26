@@ -281,7 +281,9 @@ struct RemoteTrackPublicationInner {
 #[derive(Clone)]
 #[non_exhaustive]
 pub enum RemoteMediaTrack {
+    /// A subscribed Remote Audio Track.
     Audio(RemoteAudioTrack),
+    /// A subscribed Remote Video Track.
     Video(RemoteVideoTrack),
 }
 

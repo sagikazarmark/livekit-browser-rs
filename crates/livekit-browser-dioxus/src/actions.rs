@@ -50,13 +50,30 @@ impl RemoteTrackPublicationSubscription {
 /// requirements and the core's abandoned-future semantics.
 #[derive(Clone, Copy)]
 pub struct RoomSessionActions {
+    /// Leaves the Room Session and refreshes the provided snapshot around the operation.
     pub leave: Action<(), ()>,
+    /// Retries browser-blocked remote audio playback.
+    ///
+    /// Call this from a user activation, such as a click handler; browsers reject it otherwise.
     pub start_audio_playback: Action<(), ()>,
+    /// Subscribes to or unsubscribes from one Remote Track Publication.
+    ///
+    /// Fails with [`Error::InvalidState`] when the addressed publication is no longer current in
+    /// the snapshot, which happens when the participant left or the publication was replaced.
     pub set_remote_track_publication_subscription:
         Action<(RemoteTrackPublicationSubscription,), ()>,
+    /// Replaces the publisher-side policy for who may subscribe to local Track Publications.
+    ///
+    /// Applies to current and future publications; it does not stop capture or unpublish anything.
     pub set_publication_subscription_permissions:
         Action<(livekit_browser::PublicationSubscriptionPermissions,), ()>,
+    /// Replaces Local Participant metadata.
+    ///
+    /// The value must be non-empty: LiveKit treats an empty metadata string as no update.
     pub set_local_participant_metadata: Action<(String,), ()>,
+    /// Patches Local Participant attributes.
+    ///
+    /// Follows LiveKit's patch semantics, where an empty value deletes that attribute.
     pub update_local_participant_attributes: Action<(BTreeMap<String, String>,), ()>,
 }
 

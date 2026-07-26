@@ -39,9 +39,12 @@ where
 /// Properties for an unstyled local video attachment node.
 #[derive(Clone, Props, PartialEq)]
 pub struct LocalVideoProps {
+    /// The Local Video Track to attach. Replacing it re-attaches the element.
     pub track: LocalVideoTrack,
+    /// Receives attachment failures. Attachment does not change capture or publication state.
     #[props(default)]
     pub on_error: Callback<Error>,
+    /// Attributes forwarded to the rendered `video` element.
     #[props(extends = video, extends = GlobalAttributes)]
     pub attributes: Vec<Attribute>,
 }
@@ -64,9 +67,12 @@ pub fn LocalVideo(props: LocalVideoProps) -> Element {
 /// Properties for an unstyled local audio attachment node.
 #[derive(Clone, Props, PartialEq)]
 pub struct LocalAudioProps {
+    /// The Local Audio Track to attach. Replacing it re-attaches the element.
     pub track: LocalAudioTrack,
+    /// Receives attachment failures. Attachment does not change capture or publication state.
     #[props(default)]
     pub on_error: Callback<Error>,
+    /// Attributes forwarded to the rendered `audio` element.
     #[props(extends = audio, extends = GlobalAttributes)]
     pub attributes: Vec<Attribute>,
 }
@@ -89,9 +95,12 @@ pub fn LocalAudio(props: LocalAudioProps) -> Element {
 /// Properties for an unstyled remote video attachment node.
 #[derive(Clone, Props, PartialEq)]
 pub struct RemoteVideoProps {
+    /// The Remote Video Track to attach. Replacing it re-attaches the element.
     pub track: RemoteVideoTrack,
+    /// Receives attachment failures. Attachment does not change subscription policy.
     #[props(default)]
     pub on_error: Callback<Error>,
+    /// Attributes forwarded to the rendered `video` element.
     #[props(extends = video, extends = GlobalAttributes)]
     pub attributes: Vec<Attribute>,
 }
@@ -114,9 +123,12 @@ pub fn RemoteVideo(props: RemoteVideoProps) -> Element {
 /// Properties for an unstyled remote audio attachment node.
 #[derive(Clone, Props, PartialEq)]
 pub struct RemoteAudioProps {
+    /// The Remote Audio Track to attach. Replacing it re-attaches the element.
     pub track: RemoteAudioTrack,
+    /// Receives attachment failures. Attachment does not change subscription policy.
     #[props(default)]
     pub on_error: Callback<Error>,
+    /// Attributes forwarded to the rendered `audio` element.
     #[props(extends = audio, extends = GlobalAttributes)]
     pub attributes: Vec<Attribute>,
 }

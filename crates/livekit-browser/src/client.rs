@@ -16,10 +16,15 @@ thread_local! {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[non_exhaustive]
 pub enum LiveKitLogLevel {
+    /// Very fine-grained SDK tracing.
     Trace,
+    /// Diagnostic detail useful while debugging.
     Debug,
+    /// Routine lifecycle information.
     Info,
+    /// A recoverable condition the SDK worked around.
     Warn,
+    /// A failure the SDK could not recover from.
     Error,
 }
 
@@ -428,9 +433,13 @@ pub(crate) struct ExactDeviceId {
 #[serde(rename_all = "camelCase")]
 #[non_exhaustive]
 pub enum FacingMode {
+    /// The camera facing the user, typically a front-facing camera.
     User,
+    /// The camera facing away from the user, typically a rear-facing camera.
     Environment,
+    /// A camera facing to the user's left.
     Left,
+    /// A camera facing to the user's right.
     Right,
 }
 

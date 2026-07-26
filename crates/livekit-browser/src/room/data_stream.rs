@@ -16,16 +16,34 @@ pub const MAX_ACTIVE_INCOMING_DATA_STREAMS: usize = 16;
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[non_exhaustive]
 pub enum DataStreamErrorReason {
+    /// A stream with this identifier was already open.
     AlreadyOpened,
+    /// The stream ended without its terminal trailer, typically because the peer's Room Session
+    /// ended.
     AbnormalEnd,
+    /// A chunk could not be decoded as the stream's declared payload type.
     DecodeFailed,
+    /// The sender wrote more than the total size it declared when opening the stream.
     LengthExceeded,
+    /// The stream closed before delivering the total size it declared.
     Incomplete,
+    /// Another handler is already registered for this topic on this Room Session.
     HandlerAlreadyRegistered,
+    /// The sender and receiver disagree on the stream's encryption type.
     EncryptionTypeMismatch,
+    /// The destination Participant Identity is not present in the room.
     DestinationUnavailable,
+    /// The receiver cancelled the stream or dropped its handle.
     RemoteCancelled,
+    /// A private flow-control acknowledgement did not arrive within its timeout.
+    ///
+    /// Native SDK open, write, and close operations allow 30 seconds without progress; the
+    /// receiver handshake allows 10 seconds.
     FlowControlTimeout,
+    /// The peer violated this wrapper's private flow-control contract.
+    ///
+    /// The most common cause is a peer running a different version of this crate, or a standard
+    /// `livekit-client` Data Stream handler, which is not wire-compatible with it.
     FlowControlProtocol,
 }
 
@@ -42,6 +60,7 @@ pub struct TextStreamOptions {
 }
 
 impl TextStreamOptions {
+    /// Targets one Remote Participant on an application-defined topic, with no declared size.
     pub fn new(destination_identity: impl Into<String>, topic: impl Into<String>) -> Self {
         Self {
             destination_identity: destination_identity.into(),
@@ -50,19 +69,27 @@ impl TextStreamOptions {
         }
     }
 
+    /// Declares the stream's total size in bytes so the receiver can track progress.
+    ///
+    /// Writing more than this many bytes fails the stream with
+    /// [`DataStreamErrorReason::LengthExceeded`]; completing early fails it with
+    /// [`DataStreamErrorReason::Incomplete`].
     pub const fn with_total_size(mut self, total_size: u64) -> Self {
         self.total_size = Some(total_size);
         self
     }
 
+    /// Returns the Participant Identity this stream targets.
     pub fn destination_identity(&self) -> &str {
         &self.destination_identity
     }
 
+    /// Returns the application topic that routes this stream.
     pub fn topic(&self) -> &str {
         &self.topic
     }
 
+    /// Returns the declared total size in bytes, when one was set.
     pub const fn total_size(&self) -> Option<u64> {
         self.total_size
     }
@@ -81,6 +108,7 @@ pub struct ByteStreamOptions {
 }
 
 impl ByteStreamOptions {
+    /// Targets one Remote Participant on an application-defined topic, with no declared size.
     pub fn new(destination_identity: impl Into<String>, topic: impl Into<String>) -> Self {
         Self {
             destination_identity: destination_identity.into(),
@@ -89,19 +117,27 @@ impl ByteStreamOptions {
         }
     }
 
+    /// Declares the stream's total size in bytes so the receiver can track progress.
+    ///
+    /// Writing more than this many bytes fails the stream with
+    /// [`DataStreamErrorReason::LengthExceeded`]; completing early fails it with
+    /// [`DataStreamErrorReason::Incomplete`].
     pub const fn with_total_size(mut self, total_size: u64) -> Self {
         self.total_size = Some(total_size);
         self
     }
 
+    /// Returns the Participant Identity this stream targets.
     pub fn destination_identity(&self) -> &str {
         &self.destination_identity
     }
 
+    /// Returns the application topic that routes this stream.
     pub fn topic(&self) -> &str {
         &self.topic
     }
 
+    /// Returns the declared total size in bytes, when one was set.
     pub const fn total_size(&self) -> Option<u64> {
         self.total_size
     }
@@ -119,18 +155,22 @@ pub struct TextStreamInfo {
 }
 
 impl TextStreamInfo {
+    /// Returns LiveKit's stable identifier for this stream.
     pub fn id(&self) -> &str {
         &self.id
     }
 
+    /// Returns the application topic that routed this stream.
     pub fn topic(&self) -> &str {
         &self.topic
     }
 
+    /// Returns the total size in bytes the sender declared, when it declared one.
     pub const fn size(&self) -> Option<u64> {
         self.size
     }
 
+    /// Returns the sending Participant Identity, when LiveKit supplied it.
     pub fn sender_identity(&self) -> Option<&str> {
         self.sender_identity.as_deref()
     }
@@ -148,18 +188,22 @@ pub struct ByteStreamInfo {
 }
 
 impl ByteStreamInfo {
+    /// Returns LiveKit's stable identifier for this stream.
     pub fn id(&self) -> &str {
         &self.id
     }
 
+    /// Returns the application topic that routed this stream.
     pub fn topic(&self) -> &str {
         &self.topic
     }
 
+    /// Returns the total size in bytes the sender declared, when it declared one.
     pub const fn size(&self) -> Option<u64> {
         self.size
     }
 
+    /// Returns the sending Participant Identity, when LiveKit supplied it.
     pub fn sender_identity(&self) -> Option<&str> {
         self.sender_identity.as_deref()
     }
@@ -383,10 +427,17 @@ pub struct OutgoingTextStream {
 }
 
 impl OutgoingTextStream {
+    /// Returns this stream's stable metadata.
     pub const fn info(&self) -> &TextStreamInfo {
         &self.info
     }
 
+    /// Whether this stream can no longer be written to.
+    ///
+    /// Becomes `true` after [`complete`], after a failed write, on remote cancellation or
+    /// departure, and once the Room Session begins leaving.
+    ///
+    /// [`complete`]: Self::complete
     pub fn is_terminal(&self) -> bool {
         self.inner.is_terminal()
     }
@@ -452,10 +503,17 @@ pub struct OutgoingByteStream {
 }
 
 impl OutgoingByteStream {
+    /// Returns this stream's stable metadata.
     pub const fn info(&self) -> &ByteStreamInfo {
         &self.info
     }
 
+    /// Whether this stream can no longer be written to.
+    ///
+    /// Becomes `true` after [`complete`], after a failed write, on remote cancellation or
+    /// departure, and once the Room Session begins leaving.
+    ///
+    /// [`complete`]: Self::complete
     pub fn is_terminal(&self) -> bool {
         self.inner.is_terminal()
     }
@@ -565,10 +623,17 @@ pub struct IncomingTextStream {
 }
 
 impl IncomingTextStream {
+    /// Returns this stream's stable metadata, including its sender and topic.
     pub const fn info(&self) -> &TextStreamInfo {
         &self.info
     }
 
+    /// Whether this stream will yield no further chunks.
+    ///
+    /// Becomes `true` after the sender completes the stream, after [`cancel`], and once the Room
+    /// Session is no longer active.
+    ///
+    /// [`cancel`]: Self::cancel
     pub fn is_terminal(&self) -> bool {
         self.terminal
             || self
@@ -577,6 +642,10 @@ impl IncomingTextStream {
                 .is_none_or(|session| session.lifecycle.get() != SessionLifecycle::Active)
     }
 
+    /// Stops reading, notifies the sender, and releases the adapter registration.
+    ///
+    /// Dropping the stream does the same; calling this twice is harmless. The sender observes
+    /// [`DataStreamErrorReason::RemoteCancelled`].
     pub fn cancel(&mut self) {
         if !self.terminal {
             self.terminal = true;
@@ -669,10 +738,17 @@ pub struct IncomingByteStream {
 }
 
 impl IncomingByteStream {
+    /// Returns this stream's stable metadata, including its sender and topic.
     pub const fn info(&self) -> &ByteStreamInfo {
         &self.info
     }
 
+    /// Whether this stream will yield no further chunks.
+    ///
+    /// Becomes `true` after the sender completes the stream, after [`cancel`], and once the Room
+    /// Session is no longer active.
+    ///
+    /// [`cancel`]: Self::cancel
     pub fn is_terminal(&self) -> bool {
         self.terminal
             || self
@@ -681,6 +757,10 @@ impl IncomingByteStream {
                 .is_none_or(|session| session.lifecycle.get() != SessionLifecycle::Active)
     }
 
+    /// Stops reading, notifies the sender, and releases the adapter registration.
+    ///
+    /// Dropping the stream does the same; calling this twice is harmless. The sender observes
+    /// [`DataStreamErrorReason::RemoteCancelled`].
     pub fn cancel(&mut self) {
         if !self.terminal {
             self.terminal = true;
@@ -796,10 +876,20 @@ pub struct TextStreamHandlerRegistration {
 }
 
 impl TextStreamHandlerRegistration {
+    /// Whether this topic still accepts incoming streams.
+    ///
+    /// Returns `false` after [`unregister`], after the guard is dropped, and once the Room Session
+    /// begins leaving.
+    ///
+    /// [`unregister`]: Self::unregister
     pub fn is_active(&self) -> bool {
         self.inner.is_active()
     }
 
+    /// Stops accepting incoming streams on this topic.
+    ///
+    /// Dropping the guard does the same; calling this twice is harmless. Streams already handed to
+    /// the application are unaffected.
     pub fn unregister(&self) {
         self.inner.unregister();
     }
@@ -811,10 +901,20 @@ pub struct ByteStreamHandlerRegistration {
 }
 
 impl ByteStreamHandlerRegistration {
+    /// Whether this topic still accepts incoming streams.
+    ///
+    /// Returns `false` after [`unregister`], after the guard is dropped, and once the Room Session
+    /// begins leaving.
+    ///
+    /// [`unregister`]: Self::unregister
     pub fn is_active(&self) -> bool {
         self.inner.is_active()
     }
 
+    /// Stops accepting incoming streams on this topic.
+    ///
+    /// Dropping the guard does the same; calling this twice is harmless. Streams already handed to
+    /// the application are unaffected.
     pub fn unregister(&self) {
         self.inner.unregister();
     }

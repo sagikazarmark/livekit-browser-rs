@@ -22,11 +22,17 @@ const RPC_BYTES_PREFIX: &str = "~livekit-browser-rpc-v1:bytes:";
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[non_exhaustive]
 pub enum RpcPayload {
+    /// A native Rust string, delivered to the peer unchanged.
     Text(String),
+    /// Native bytes, delivered to the peer unchanged.
+    ///
+    /// The pinned browser SDK transports only strings, so this wrapper applies private versioned
+    /// framing. Both endpoints must run the same wrapper version.
     Bytes(Vec<u8>),
 }
 
 impl RpcPayload {
+    /// Returns the string content, or `None` if this payload carries bytes.
     pub fn as_text(&self) -> Option<&str> {
         match self {
             Self::Text(value) => Some(value),
@@ -34,6 +40,7 @@ impl RpcPayload {
         }
     }
 
+    /// Returns the byte content, or `None` if this payload carries a string.
     pub fn as_bytes(&self) -> Option<&[u8]> {
         match self {
             Self::Text(_) => None,
@@ -79,6 +86,9 @@ pub struct RpcOptions {
 }
 
 impl RpcOptions {
+    /// Targets one Remote Participant's named method with a native payload.
+    ///
+    /// The response timeout starts at [`DEFAULT_RPC_RESPONSE_TIMEOUT`].
     pub fn new(
         destination_identity: impl Into<String>,
         method: impl Into<String>,
@@ -92,23 +102,31 @@ impl RpcOptions {
         }
     }
 
+    /// Sets how long the caller waits for a response.
+    ///
+    /// Values below [`MIN_RPC_RESPONSE_TIMEOUT`] are raised to it, because the pinned SDK enforces
+    /// that minimum and a shorter Rust-side value would not be honored.
     pub fn with_response_timeout(mut self, response_timeout: Duration) -> Self {
         self.response_timeout = response_timeout.max(MIN_RPC_RESPONSE_TIMEOUT);
         self
     }
 
+    /// Returns the Participant Identity this invocation targets.
     pub fn destination_identity(&self) -> &str {
         &self.destination_identity
     }
 
+    /// Returns the method name this invocation calls.
     pub fn method(&self) -> &str {
         &self.method
     }
 
+    /// Returns the request payload.
     pub const fn payload(&self) -> &RpcPayload {
         &self.payload
     }
 
+    /// Returns the normalized response timeout.
     pub const fn response_timeout(&self) -> Duration {
         self.response_timeout
     }
@@ -124,18 +142,25 @@ pub struct RpcInvocation {
 }
 
 impl RpcInvocation {
+    /// Returns LiveKit's identifier for this request.
     pub fn request_id(&self) -> &str {
         &self.request_id
     }
 
+    /// Returns the Participant Identity that issued the request.
     pub fn caller_identity(&self) -> &str {
         &self.caller_identity
     }
 
+    /// Returns the request payload.
     pub const fn payload(&self) -> &RpcPayload {
         &self.payload
     }
 
+    /// Returns how long the caller waits before treating this request as timed out.
+    ///
+    /// A handler that exceeds this budget produces a caller-side
+    /// [`RpcFailureKind::ResponseTimeout`] even if it later returns.
     pub const fn response_timeout(&self) -> Duration {
         self.response_timeout
     }
@@ -166,19 +191,23 @@ impl RpcApplicationError {
         }
     }
 
+    /// Attaches an application-defined detail string carried alongside the message.
     pub fn with_data(mut self, data: impl Into<String>) -> Self {
         self.data = Some(data.into());
         self
     }
 
+    /// Returns the normalized error code.
     pub const fn code(&self) -> u32 {
         self.code
     }
 
+    /// Returns the human-readable failure message.
     pub fn message(&self) -> &str {
         &self.message
     }
 
+    /// Returns the application-defined detail string, when one was attached.
     pub fn data(&self) -> Option<&str> {
         self.data.as_deref()
     }
@@ -188,18 +217,32 @@ impl RpcApplicationError {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[non_exhaustive]
 pub enum RpcFailureKind {
+    /// The destination has no handler registered for the requested method (code 1400).
     UnsupportedMethod,
+    /// The destination Participant Identity is not present in the room (code 1401).
     RemoteParticipantNotFound,
+    /// The request exceeded [`MAX_RPC_PAYLOAD_BYTES`] (code 1402).
     RequestPayloadTooLarge,
+    /// The LiveKit server does not support Participant RPC (code 1403).
     UnsupportedServer,
+    /// The destination runs an incompatible RPC protocol version (code 1404).
     UnsupportedVersion,
+    /// The handler returned an [`RpcApplicationError`], or a reserved code was normalized to one
+    /// (code 1500).
     ApplicationError,
+    /// The request could not be delivered before the connection timeout elapsed (code 1501).
     ConnectionTimeout,
+    /// No response arrived within the invocation's response timeout (code 1502).
     ResponseTimeout,
+    /// The destination left the room before responding (code 1503).
     RemoteParticipantDisconnected,
+    /// The handler's response exceeded [`MAX_RPC_PAYLOAD_BYTES`] (code 1504).
     ResponsePayloadTooLarge,
+    /// The request could not be sent over the data channel (code 1505).
     SendFailed,
+    /// The handler returned a code outside LiveKit's reserved 1001-1999 range.
     ApplicationDefined,
+    /// The failure carried no code, or a code this wrapper version does not classify.
     Unknown,
 }
 
@@ -214,6 +257,9 @@ pub struct RpcFailure {
 }
 
 impl RpcFailure {
+    /// Classifies this failure so callers can branch without parsing [`message`].
+    ///
+    /// [`message`]: Self::message
     pub const fn kind(&self) -> RpcFailureKind {
         match self.code {
             Some(1400) => RpcFailureKind::UnsupportedMethod,
@@ -232,14 +278,21 @@ impl RpcFailure {
         }
     }
 
+    /// Returns the raw LiveKit or application error code, when one was reported.
+    ///
+    /// Prefer [`kind`] for branching; this is the underlying value it classifies.
+    ///
+    /// [`kind`]: Self::kind
     pub const fn code(&self) -> Option<u32> {
         self.code
     }
 
+    /// Returns the human-readable failure message.
     pub fn message(&self) -> &str {
         &self.message
     }
 
+    /// Returns the detail string attached by a remote [`RpcApplicationError`], when present.
     pub fn data(&self) -> Option<&str> {
         self.data.as_deref()
     }
@@ -577,10 +630,19 @@ pub struct RpcMethodRegistration {
 }
 
 impl RpcMethodRegistration {
+    /// Whether this method still accepts invocations.
+    ///
+    /// Returns `false` after [`unregister`], after the guard is dropped, and once the Room Session
+    /// begins leaving.
+    ///
+    /// [`unregister`]: Self::unregister
     pub fn is_active(&self) -> bool {
         self.inner.is_active()
     }
 
+    /// Stops accepting new invocations and cancels in-progress handlers for this method.
+    ///
+    /// Dropping the guard does the same; calling this twice is harmless.
     pub fn unregister(&self) {
         self.inner.unregister();
     }

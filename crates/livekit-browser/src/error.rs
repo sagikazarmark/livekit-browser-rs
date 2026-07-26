@@ -1,5 +1,13 @@
 use crate::*;
 
+/// Every failure this crate reports to the application.
+///
+/// Variants stay distinguishable so callers can react without inspecting message text: a denied
+/// permission, an unavailable device, and a device already in use are separate variants rather
+/// than one opaque media failure. Failed operations roll back; a rejected mutation leaves the
+/// Room Session, Track Publication, and Local Media Track state it touched unchanged.
+///
+/// This enum is `#[non_exhaustive]`; match with a wildcard arm.
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[non_exhaustive]
 pub enum Error {

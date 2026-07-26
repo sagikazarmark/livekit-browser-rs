@@ -26,7 +26,43 @@ export type AdapterRemoteParticipantSnapshot = { identity: string, sid: string, 
 
 export type AdapterRoomSnapshot = { revision: number, connection: RoomConnectionState, audio_playback: AudioPlaybackState, active_speakers: Array<string>, room_sid: string, room_name: string, room_metadata: string | null, local_participant: LocalParticipantSnapshot, remote_participants: { [key in string]: AdapterRemoteParticipantSnapshot }, };
 
-export type RoomEventKind = { "type": "connectionStateChanged", state: RoomConnectionState, } | { "type": "localParticipantChanged" } | { "type": "localTrackPublicationsChanged" } | { "type": "remoteParticipantJoined", identity: string, } | { "type": "remoteParticipantChanged", identity: string, } | { "type": "participantConnectionQualityChanged", participant_identity: string, quality: ConnectionQuality, } | { "type": "activeSpeakersChanged" } | { "type": "remoteParticipantLeft", identity: string, } | { "type": "remoteTrackPublicationsChanged", participant_identity: string, } | { "type": "remoteDataTracksChanged", participant_identity: string, } | { "type": "roomMetadataChanged" } | { "type": "audioPlaybackChanged", state: AudioPlaybackState, } | { "type": "lagged" };
+export type RoomEventKind = { "type": "connectionStateChanged", 
+/**
+ * The connection state at the tagged snapshot revision.
+ */
+state: RoomConnectionState, } | { "type": "localParticipantChanged" } | { "type": "localTrackPublicationsChanged" } | { "type": "remoteParticipantJoined", 
+/**
+ * The stable Participant Identity that keys this participant in a Room Snapshot.
+ */
+identity: string, } | { "type": "remoteParticipantChanged", 
+/**
+ * The stable Participant Identity that keys this participant in a Room Snapshot.
+ */
+identity: string, } | { "type": "participantConnectionQualityChanged", 
+/**
+ * The affected participant, which may be the Local Participant.
+ */
+participant_identity: string, 
+/**
+ * The estimate at the tagged snapshot revision.
+ */
+quality: ConnectionQuality, } | { "type": "activeSpeakersChanged" } | { "type": "remoteParticipantLeft", 
+/**
+ * The stable Participant Identity that keyed this participant before it was removed.
+ */
+identity: string, } | { "type": "remoteTrackPublicationsChanged", 
+/**
+ * The Remote Participant whose publications changed.
+ */
+participant_identity: string, } | { "type": "remoteDataTracksChanged", 
+/**
+ * The Remote Participant whose Data Tracks changed.
+ */
+participant_identity: string, } | { "type": "roomMetadataChanged" } | { "type": "audioPlaybackChanged", 
+/**
+ * Whether remote audio may currently play without another user activation.
+ */
+state: AudioPlaybackState, } | { "type": "lagged" };
 
 export type AdapterJoin = { snapshot: AdapterRoomSnapshot, };
 

@@ -1,3 +1,5 @@
+//! Host-target coverage for the diagnostics surface that does not require a browser.
+
 use livekit_browser::{InitializeOptions, LiveKitLogLevel, LiveKitLogRecord};
 
 #[test]
