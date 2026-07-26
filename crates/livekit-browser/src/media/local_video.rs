@@ -32,6 +32,7 @@ impl LocalVideoTrack {
 
     /// Returns the unstable `livekit-client` Local Video Track object.
     #[cfg(feature = "raw-js")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "raw-js")))]
     pub fn raw_js_media_track(&self) -> Result<wasm_bindgen::JsValue, Error> {
         if self.is_stopped() {
             return Err(Error::InvalidState {
@@ -47,6 +48,7 @@ impl LocalVideoTrack {
 
     /// Installs an unstable JavaScript video processor through the track mutation queue.
     #[cfg(feature = "raw-js")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "raw-js")))]
     pub fn set_raw_js_processor(
         &self,
         _processor: wasm_bindgen::JsValue,
@@ -73,6 +75,7 @@ impl LocalVideoTrack {
 
     /// Returns the currently installed unstable JavaScript video processor.
     #[cfg(feature = "raw-js")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "raw-js")))]
     pub fn raw_js_processor(&self) -> Result<Option<wasm_bindgen::JsValue>, Error> {
         if self.is_stopped() {
             return Err(Error::InvalidState {
@@ -93,6 +96,7 @@ impl LocalVideoTrack {
 
     /// Stops the currently installed unstable JavaScript video processor.
     #[cfg(feature = "raw-js")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "raw-js")))]
     pub fn stop_raw_js_processor(
         &self,
     ) -> Pin<Box<dyn Future<Output = Result<(), Error>> + 'static>> {
@@ -1123,6 +1127,7 @@ impl LocalVideoTrackPublication {
 
     /// Returns the unstable `livekit-client` Local Track Publication object.
     #[cfg(feature = "raw-js")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "raw-js")))]
     pub fn raw_js_publication(&self) -> Result<wasm_bindgen::JsValue, Error> {
         if self.is_terminal() || self.sid().is_none() {
             return Err(Error::InvalidState {
@@ -1142,6 +1147,7 @@ impl LocalVideoTrackPublication {
 
     /// Returns the browser's unstable raw `RTCStatsReport` for this publication.
     #[cfg(feature = "raw-js")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "raw-js")))]
     pub fn raw_js_rtc_stats_report(
         &self,
     ) -> Pin<Box<dyn Future<Output = Result<Option<wasm_bindgen::JsValue>, Error>> + 'static>> {

@@ -111,6 +111,7 @@ impl InitializeOptions {
 
     /// Emits LiveKit SDK log records through Rust `tracing` with target `livekit_client`.
     #[cfg(feature = "tracing")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "tracing")))]
     pub const fn with_tracing(mut self) -> Self {
         self.tracing = true;
         self
@@ -258,6 +259,7 @@ impl RoomOptions {
     /// Typed wrapper fields take precedence over colliding raw fields. See the crate-level
     /// `raw-js` warning before using this escape hatch.
     #[cfg(feature = "raw-js")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "raw-js")))]
     pub fn with_raw_js_room_options(mut self, options: wasm_bindgen::JsValue) -> Self {
         self.raw_js_room_options = Some(options);
         self
@@ -267,6 +269,7 @@ impl RoomOptions {
     ///
     /// `autoSubscribe` remains controlled by `with_auto_subscribe` when both are supplied.
     #[cfg(feature = "raw-js")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "raw-js")))]
     pub fn with_raw_js_connect_options(mut self, options: wasm_bindgen::JsValue) -> Self {
         self.raw_js_connect_options = Some(options);
         self
@@ -523,6 +526,7 @@ impl CameraCaptureOptions {
     ///
     /// Typed fields configured on this value take precedence over colliding raw fields.
     #[cfg(feature = "raw-js")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "raw-js")))]
     pub fn with_raw_js_options(mut self, options: wasm_bindgen::JsValue) -> Self {
         self.raw_js_options = Some(options);
         self
@@ -619,6 +623,7 @@ impl MicrophoneCaptureOptions {
     ///
     /// Typed fields configured on this value take precedence over colliding raw fields.
     #[cfg(feature = "raw-js")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "raw-js")))]
     pub fn with_raw_js_options(mut self, options: wasm_bindgen::JsValue) -> Self {
         self.raw_js_options = Some(options);
         self
@@ -652,6 +657,7 @@ impl ScreenCaptureOptions {
     ///
     /// The typed system-audio policy takes precedence over colliding raw fields.
     #[cfg(feature = "raw-js")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "raw-js")))]
     pub fn with_raw_js_options(mut self, options: wasm_bindgen::JsValue) -> Self {
         self.raw_js_options = Some(options);
         self

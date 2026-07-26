@@ -1,3 +1,4 @@
+#![cfg_attr(docsrs, feature(doc_cfg))]
 //! Framework-neutral LiveKit browser integration for Rust and WebAssembly.
 //!
 //! This crate wraps LiveKit's official browser SDK in a typed Rust interface: Room Session

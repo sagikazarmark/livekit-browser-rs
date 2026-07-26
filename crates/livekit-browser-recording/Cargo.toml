@@ -2,7 +2,14 @@
 name = "livekit-browser-recording"
 version = "0.1.0"
 edition = "2021"
+readme = "README.md"
 publish = false
+
+# This crate only functions in a browser, so docs.rs documents the wasm32 build.
+[package.metadata.docs.rs]
+default-target = "wasm32-unknown-unknown"
+targets = ["wasm32-unknown-unknown"]
+all-features = true
 
 [dependencies]
 livekit-browser = { path = "../livekit-browser" }

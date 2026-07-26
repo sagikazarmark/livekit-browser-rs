@@ -149,6 +149,7 @@ impl VideoPublishOptions {
     ///
     /// Typed fields configured on this value take precedence over colliding raw fields.
     #[cfg(feature = "raw-js")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "raw-js")))]
     pub fn with_raw_js_options(mut self, options: wasm_bindgen::JsValue) -> Self {
         self.raw_js_options = Some(options);
         self
@@ -278,6 +279,7 @@ impl AudioPublishOptions {
     ///
     /// Typed fields configured on this value take precedence over colliding raw fields.
     #[cfg(feature = "raw-js")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "raw-js")))]
     pub fn with_raw_js_options(mut self, options: wasm_bindgen::JsValue) -> Self {
         self.raw_js_options = Some(options);
         self

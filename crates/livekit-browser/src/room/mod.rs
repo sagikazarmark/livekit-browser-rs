@@ -293,6 +293,7 @@ pub struct LocalParticipant {
 impl LocalParticipant {
     /// Returns the unstable `livekit-client` Local Participant object.
     #[cfg(feature = "raw-js")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "raw-js")))]
     pub fn raw_js_participant(&self) -> Result<wasm_bindgen::JsValue, Error> {
         if self.inner.lifecycle.get() != SessionLifecycle::Active {
             return Err(Error::InvalidState {
@@ -613,6 +614,7 @@ impl LocalParticipant {
 impl RoomSession {
     /// Returns the unstable `livekit-client` Room object for this Room Session.
     #[cfg(feature = "raw-js")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "raw-js")))]
     pub fn raw_js_room(&self) -> Result<wasm_bindgen::JsValue, Error> {
         if self.inner.lifecycle.get() != SessionLifecycle::Active {
             return Err(Error::InvalidState {

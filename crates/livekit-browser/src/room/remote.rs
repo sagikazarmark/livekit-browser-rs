@@ -35,6 +35,7 @@ impl RemoteParticipant {
 
     /// Returns the unstable `livekit-client` Remote Participant object for this exact generation.
     #[cfg(feature = "raw-js")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "raw-js")))]
     pub fn raw_js_participant(&self) -> Result<wasm_bindgen::JsValue, Error> {
         let Some(_session) = self.inner.session.upgrade() else {
             return Err(Error::InvalidState {
@@ -143,6 +144,7 @@ impl RemoteTrackPublication {
 
     /// Returns the unstable `livekit-client` Remote Track Publication object.
     #[cfg(feature = "raw-js")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "raw-js")))]
     pub fn raw_js_publication(&self) -> Result<wasm_bindgen::JsValue, Error> {
         let Some(_session) = self.inner.session.upgrade() else {
             return Err(Error::InvalidState {
@@ -298,6 +300,7 @@ impl RemoteMediaTrack {
 
     /// Returns the unstable `livekit-client` Remote Media Track object.
     #[cfg(feature = "raw-js")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "raw-js")))]
     pub fn raw_js_media_track(&self) -> Result<wasm_bindgen::JsValue, Error> {
         match self {
             Self::Audio(track) => track.raw_js_media_track(),
@@ -338,6 +341,7 @@ impl RemoteAudioTrack {
 
     /// Returns the unstable `livekit-client` Remote Audio Track object.
     #[cfg(feature = "raw-js")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "raw-js")))]
     pub fn raw_js_media_track(&self) -> Result<wasm_bindgen::JsValue, Error> {
         if self.is_terminal() {
             return Err(Error::InvalidState {
@@ -353,6 +357,7 @@ impl RemoteAudioTrack {
 
     /// Returns the browser's unstable raw `RTCStatsReport` for this media generation.
     #[cfg(feature = "raw-js")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "raw-js")))]
     pub fn raw_js_rtc_stats_report(
         &self,
     ) -> Pin<Box<dyn Future<Output = Result<Option<wasm_bindgen::JsValue>, Error>> + 'static>> {
@@ -571,6 +576,7 @@ impl RemoteVideoTrack {
 
     /// Returns the unstable `livekit-client` Remote Video Track object.
     #[cfg(feature = "raw-js")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "raw-js")))]
     pub fn raw_js_media_track(&self) -> Result<wasm_bindgen::JsValue, Error> {
         if self.is_terminal() {
             return Err(Error::InvalidState {
@@ -586,6 +592,7 @@ impl RemoteVideoTrack {
 
     /// Returns the browser's unstable raw `RTCStatsReport` for this media generation.
     #[cfg(feature = "raw-js")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "raw-js")))]
     pub fn raw_js_rtc_stats_report(
         &self,
     ) -> Pin<Box<dyn Future<Output = Result<Option<wasm_bindgen::JsValue>, Error>> + 'static>> {

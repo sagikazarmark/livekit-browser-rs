@@ -2,7 +2,16 @@
 name = "livekit-browser"
 version = "0.1.0"
 edition = "2021"
+readme = "README.md"
 publish = false
+
+# These crates only function in a browser, so docs.rs documents the wasm32 build.
+# `raw-js` and `tracing` items are labeled through `doc(cfg)`, which needs `--cfg docsrs`.
+[package.metadata.docs.rs]
+default-target = "wasm32-unknown-unknown"
+targets = ["wasm32-unknown-unknown"]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
 
 [features]
 default = []
