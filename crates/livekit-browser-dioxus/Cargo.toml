@@ -13,3 +13,6 @@ web-sys = { workspace = true, features = ["HtmlAudioElement", "HtmlVideoElement"
 
 [lib]
 path = "src/lib.rs"
+
+[lints]
+workspace = true

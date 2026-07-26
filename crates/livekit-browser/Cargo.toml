@@ -28,3 +28,6 @@ ts-rs = { version = "=12.0.1", features = ["serde-compat"] }
 
 [lib]
 path = "src/lib.rs"
+
+[lints]
+workspace = true

@@ -10,3 +10,6 @@ web-sys = { workspace = true, features = ["Blob"] }
 
 [lib]
 path = "src/lib.rs"
+
+[lints]
+workspace = true
