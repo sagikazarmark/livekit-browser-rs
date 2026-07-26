@@ -85,7 +85,7 @@ pub fn use_room_actions() -> RoomSessionActions {
     });
     let start_audio_playback = use_action(move || {
         let operation = playback_room.start_audio_playback();
-        async move { operation.await }
+        operation
     });
     let set_remote_track_publication_subscription =
         use_action(move |request: RemoteTrackPublicationSubscription| {
@@ -103,17 +103,17 @@ pub fn use_room_actions() -> RoomSessionActions {
     let set_publication_subscription_permissions = use_action(
         move |permissions: livekit_browser::PublicationSubscriptionPermissions| {
             let operation = permissions_room.set_publication_subscription_permissions(permissions);
-            async move { operation.await }
+            operation
         },
     );
     let set_local_participant_metadata = use_action(move |metadata: String| {
         let operation = metadata_participant.set_metadata(metadata);
-        async move { operation.await }
+        operation
     });
     let update_local_participant_attributes =
         use_action(move |attributes: BTreeMap<String, String>| {
             let operation = attributes_participant.update_attributes(attributes);
-            async move { operation.await }
+            operation
         });
 
     RoomSessionActions {

@@ -750,7 +750,7 @@ fn App() -> Element {
     let second_identity = use_signal(|| generated_demo_identity("guest-remote-participant"));
     let mut session = use_signal(|| None::<RoomSession>);
     let mut retained_session = use_signal(|| None::<RoomSession>);
-    let mut raw_js_contract = use_signal(|| {
+    let raw_js_contract = use_signal(|| {
         if cfg!(feature = "raw-js-contract") {
             "pending"
         } else {
