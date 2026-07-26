@@ -1,10 +1,5 @@
 [workspace]
-members = [
-    "crates/livekit-browser",
-    "crates/livekit-browser-dioxus",
-    "crates/livekit-browser-recording",
-    "demo",
-]
+members = ["crates/*"]
 resolver = "2"
 
 [workspace.dependencies]
@@ -13,7 +8,6 @@ dioxus = "0.7"
 futures-core = "0.3"
 futures-executor = "0.3"
 futures-util = "0.3"
-gloo-timers = { version = "0.3", features = ["futures"] }
 js-sys = "0.3"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

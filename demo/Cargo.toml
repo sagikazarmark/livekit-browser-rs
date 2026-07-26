@@ -24,18 +24,19 @@ web = [
 ]
 
 [dependencies]
-dioxus = { workspace = true, optional = true }
-futures-util = { workspace = true, optional = true }
-gloo-timers = { workspace = true, optional = true }
-js-sys = { workspace = true, optional = true }
 livekit-browser = { path = "../crates/livekit-browser", optional = true }
 livekit-browser-dioxus = { path = "../crates/livekit-browser-dioxus", optional = true }
 livekit-browser-recording = { path = "../crates/livekit-browser-recording", optional = true }
-serde = { workspace = true }
-serde_json = { workspace = true, optional = true }
-wasm-bindgen = { workspace = true, optional = true }
-wasm-bindgen-futures = { workspace = true, optional = true }
-web-sys = { workspace = true, optional = true, features = [
+
+dioxus = { version = "0.7", optional = true }
+futures-util = { version = "0.3", optional = true }
+gloo-timers = { version = "0.3", features = ["futures"], optional = true }
+js-sys = { version = "0.3", optional = true }
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", optional = true }
+wasm-bindgen = { version = "0.2", optional = true }
+wasm-bindgen-futures = { version = "0.4", optional = true }
+web-sys = { version = "0.3", optional = true, features = [
     "Document",
     "Element",
     "Headers",
@@ -55,3 +56,5 @@ livekit-api = { version = "=0.5.6", default-features = false, features = ["acces
 [[bin]]
 name = "livekit-dioxus-prototype"
 path = "src/main.rs"
+
+[workspace]
