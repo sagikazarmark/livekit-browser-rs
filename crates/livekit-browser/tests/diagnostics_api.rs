@@ -1,3 +1,5 @@
+//! Host-target coverage for the diagnostics surface that does not require a browser.
+
 use livekit_browser::{InitializeOptions, LiveKitLogLevel, LiveKitLogRecord};
 
 #[test]
@@ -30,7 +32,9 @@ fn raw_js_feature_covers_the_documented_escape_hatches() {
     };
     use wasm_bindgen::JsValue;
 
-    #[allow(clippy::too_many_arguments)]
+    // Compile-only surface check: the body is never executed, so the returned futures are
+    // deliberately dropped unpolled.
+    #[allow(clippy::too_many_arguments, clippy::let_underscore_future)]
     fn compile_raw_api(
         raw: JsValue,
         error: &Error,

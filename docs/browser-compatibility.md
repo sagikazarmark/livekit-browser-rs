@@ -25,8 +25,8 @@ families.
 Mobile-sized Chromium and WebKit projects use a `390 x 844` touch viewport. They verify responsive
 consumption, Room Session state, and capability-driven optional controls. Browser emulation does not
 validate real cameras, microphones, display choosers, hardware codecs, operating-system permission
-prompts, backgrounding, or network transitions. Follow the physical iOS and Android guidance in the
-root README before release.
+prompts, backgrounding, or network transitions. Follow the physical iOS and Android guidance in
+[Demo Application](demo.md) before release.
 
 Capabilities are detected without requesting permission. Camera and microphone capture, display
 capture, audio output selection, Transcription Segments, and Local Clip Recording remain conditional

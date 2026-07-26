@@ -281,7 +281,9 @@ struct RemoteTrackPublicationInner {
 #[derive(Clone)]
 #[non_exhaustive]
 pub enum RemoteMediaTrack {
+    /// A subscribed Remote Audio Track.
     Audio(RemoteAudioTrack),
+    /// A subscribed Remote Video Track.
     Video(RemoteVideoTrack),
 }
 
@@ -454,7 +456,7 @@ impl RemoteAudioTrack {
         }
     }
 
-    #[cfg(test)]
+    #[cfg(all(test, not(target_arch = "wasm32")))]
     pub(crate) fn test_track(session: &RoomSession) -> Self {
         Self {
             inner: test_remote_media_track(
@@ -479,7 +481,7 @@ impl fmt::Debug for RemoteAudioTrack {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, not(target_arch = "wasm32")))]
 fn test_remote_media_track(
     session: &RoomSession,
     sid: &str,
@@ -665,7 +667,7 @@ impl RemoteVideoTrack {
         }
     }
 
-    #[cfg(test)]
+    #[cfg(all(test, not(target_arch = "wasm32")))]
     pub(crate) fn test_track(session: &RoomSession) -> Self {
         Self {
             inner: test_remote_media_track(
@@ -857,7 +859,7 @@ impl RemoteVideoTrackAttachment {
         Ok(())
     }
 
-    #[cfg(test)]
+    #[cfg(all(test, not(target_arch = "wasm32")))]
     pub(crate) fn test_attachment(track: &RemoteVideoTrack) -> Self {
         let state = Rc::new(RemoteTrackAttachmentState {
             active: Cell::new(true),

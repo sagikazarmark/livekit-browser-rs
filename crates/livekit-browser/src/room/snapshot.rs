@@ -6,11 +6,17 @@ use super::*;
 #[serde(rename_all = "camelCase")]
 #[non_exhaustive]
 pub enum RoomConnectionState {
+    /// The initial join is in progress.
     Connecting,
+    /// The Room Session is established and media can flow.
     Connected,
+    /// A full reconnection is in progress within the same Room Session.
     Reconnecting,
+    /// Only the signaling connection is being re-established; media may continue to flow.
     SignalReconnecting,
+    /// An explicit leave is in progress.
     Disconnecting,
+    /// The Room Session is not connected, either before joining or after it ended.
     Disconnected,
 }
 
@@ -20,10 +26,15 @@ pub enum RoomConnectionState {
 #[serde(rename_all = "camelCase")]
 #[non_exhaustive]
 pub enum ConnectionQuality {
+    /// The connection comfortably sustains the participant's media.
     Excellent,
+    /// The connection sustains media with some degradation.
     Good,
+    /// The connection is degraded enough to affect media quality.
     Poor,
+    /// LiveKit considers the participant's connection lost.
     Lost,
+    /// LiveKit has not yet reported an estimate for this participant.
     Unknown,
 }
 
@@ -119,14 +130,22 @@ impl VideoSenderStatistics {
         &self.sender
     }
 
+    /// Returns the count of Full Intra Request messages received from the receiver, when reported.
     pub const fn fir_count(&self) -> Option<u64> {
         self.fir_count
     }
 
+    /// Returns the count of Picture Loss Indication messages received from the receiver, when
+    /// reported.
+    ///
+    /// A rising count indicates the receiver is losing video and asking for a new keyframe.
     pub const fn pli_count(&self) -> Option<u64> {
         self.pli_count
     }
 
+    /// Returns the count of negative acknowledgements received from the receiver, when reported.
+    ///
+    /// A rising count indicates packet loss on the path to that receiver.
     pub const fn nack_count(&self) -> Option<u64> {
         self.nack_count
     }
@@ -136,38 +155,55 @@ impl VideoSenderStatistics {
         self.rid.as_deref()
     }
 
+    /// Returns the width in pixels of the last frame sent for this encoding, when reported.
     pub const fn frame_width(&self) -> Option<u32> {
         self.frame_width
     }
 
+    /// Returns the height in pixels of the last frame sent for this encoding, when reported.
     pub const fn frame_height(&self) -> Option<u32> {
         self.frame_height
     }
 
+    /// Returns frames sent per second over the last second, when reported.
     pub const fn frames_per_second(&self) -> Option<f64> {
         self.frames_per_second
     }
 
+    /// Returns the total number of frames sent on this encoding, when reported.
     pub const fn frames_sent(&self) -> Option<u64> {
         self.frames_sent
     }
 
+    /// Returns why the browser is currently limiting encoding quality, when reported.
+    ///
+    /// Values come from the browser's `qualityLimitationReason`, typically `none`, `cpu`,
+    /// `bandwidth`, or `other`.
     pub fn quality_limitation_reason(&self) -> Option<&str> {
         self.quality_limitation_reason.as_deref()
     }
 
+    /// Returns cumulative seconds spent in each quality-limitation reason, when reported.
+    ///
+    /// Keys match the values returned by [`quality_limitation_reason`].
+    ///
+    /// [`quality_limitation_reason`]: Self::quality_limitation_reason
     pub fn quality_limitation_durations(&self) -> Option<&BTreeMap<String, f64>> {
         self.quality_limitation_durations.as_ref()
     }
 
+    /// Returns how many times the browser changed resolution because of quality limitation, when
+    /// reported.
     pub const fn quality_limitation_resolution_changes(&self) -> Option<u64> {
         self.quality_limitation_resolution_changes
     }
 
+    /// Returns the number of packets retransmitted for this encoding, when reported.
     pub const fn retransmitted_packets_sent(&self) -> Option<u64> {
         self.retransmitted_packets_sent
     }
 
+    /// Returns the encoder's current target bitrate in bits per second, when reported.
     pub const fn target_bitrate(&self) -> Option<f64> {
         self.target_bitrate
     }
@@ -195,26 +231,36 @@ impl ReceiverStatistics {
         self.timestamp
     }
 
+    /// Returns cumulative seconds packets spent in the jitter buffer, when reported.
+    ///
+    /// Divide by the browser's corresponding emitted-count to obtain an average delay.
     pub const fn jitter_buffer_delay(&self) -> Option<f64> {
         self.jitter_buffer_delay
     }
 
+    /// Returns packets lost on the inbound stream, when reported.
+    ///
+    /// This value can be negative when duplicate packets arrive.
     pub const fn packets_lost(&self) -> Option<i64> {
         self.packets_lost
     }
 
+    /// Returns the number of RTP packets received, when reported.
     pub const fn packets_received(&self) -> Option<u64> {
         self.packets_received
     }
 
+    /// Returns the number of payload and header bytes received, when reported.
     pub const fn bytes_received(&self) -> Option<u64> {
         self.bytes_received
     }
 
+    /// Returns the inbound RTP stream identifier, when reported.
     pub fn stream_id(&self) -> Option<&str> {
         self.stream_id.as_deref()
     }
 
+    /// Returns packet arrival jitter in seconds, when reported.
     pub const fn jitter(&self) -> Option<f64> {
         self.jitter
     }
@@ -244,26 +290,38 @@ impl AudioReceiverStatistics {
         &self.receiver
     }
 
+    /// Returns samples synthesized to conceal lost or late audio, when reported.
+    ///
+    /// A rising count relative to the received sample count indicates audible degradation.
     pub const fn concealed_samples(&self) -> Option<u64> {
         self.concealed_samples
     }
 
+    /// Returns the number of contiguous concealment runs, when reported.
     pub const fn concealment_events(&self) -> Option<u64> {
         self.concealment_events
     }
 
+    /// Returns concealed samples that were synthesized as silence, when reported.
     pub const fn silent_concealed_samples(&self) -> Option<u64> {
         self.silent_concealed_samples
     }
 
+    /// Returns the number of contiguous silent-concealment runs, when reported.
     pub const fn silent_concealment_events(&self) -> Option<u64> {
         self.silent_concealment_events
     }
 
+    /// Returns cumulative audio energy of received samples, when reported.
+    ///
+    /// Combine with [`total_samples_duration`] to derive an average audio level.
+    ///
+    /// [`total_samples_duration`]: Self::total_samples_duration
     pub const fn total_audio_energy(&self) -> Option<f64> {
         self.total_audio_energy
     }
 
+    /// Returns cumulative seconds of received audio, when reported.
     pub const fn total_samples_duration(&self) -> Option<f64> {
         self.total_samples_duration
     }
@@ -302,42 +360,55 @@ impl VideoReceiverStatistics {
         &self.receiver
     }
 
+    /// Returns the total number of frames decoded, when reported.
     pub const fn frames_decoded(&self) -> Option<u64> {
         self.frames_decoded
     }
 
+    /// Returns frames dropped before display, when reported.
     pub const fn frames_dropped(&self) -> Option<u64> {
         self.frames_dropped
     }
 
+    /// Returns the total number of complete frames received, when reported.
     pub const fn frames_received(&self) -> Option<u64> {
         self.frames_received
     }
 
+    /// Returns the width in pixels of the last decoded frame, when reported.
     pub const fn frame_width(&self) -> Option<u32> {
         self.frame_width
     }
 
+    /// Returns the height in pixels of the last decoded frame, when reported.
     pub const fn frame_height(&self) -> Option<u32> {
         self.frame_height
     }
 
+    /// Returns the count of Full Intra Request messages this receiver sent, when reported.
     pub const fn fir_count(&self) -> Option<u64> {
         self.fir_count
     }
 
+    /// Returns the count of Picture Loss Indication messages this receiver sent, when reported.
     pub const fn pli_count(&self) -> Option<u64> {
         self.pli_count
     }
 
+    /// Returns the count of negative acknowledgements this receiver sent, when reported.
     pub const fn nack_count(&self) -> Option<u64> {
         self.nack_count
     }
 
+    /// Returns the browser's decoder name, when reported.
+    ///
+    /// Useful for distinguishing hardware from software decoding; the exact strings are
+    /// browser-specific and not stable across versions.
     pub fn decoder_implementation(&self) -> Option<&str> {
         self.decoder_implementation.as_deref()
     }
 
+    /// Returns the negotiated codec MIME type, such as `video/VP8`, when reported.
     pub fn mime_type(&self) -> Option<&str> {
         self.mime_type.as_deref()
     }
@@ -629,10 +700,15 @@ impl ParticipantGrants {
 #[serde(rename_all = "camelCase")]
 #[non_exhaustive]
 pub enum TrackSource {
+    /// LiveKit did not report a recognized source for this publication.
     Unknown,
+    /// Camera video.
     Camera,
+    /// Microphone audio.
     Microphone,
+    /// Display-capture video.
     ScreenShare,
+    /// System or tab audio captured alongside display video.
     ScreenShareAudio,
 }
 
@@ -642,8 +718,11 @@ pub enum TrackSource {
 #[serde(rename_all = "camelCase")]
 #[non_exhaustive]
 pub enum TrackKind {
+    /// The publication carries audio.
     Audio,
+    /// The publication carries video.
     Video,
+    /// LiveKit did not report a recognized media kind.
     Unknown,
 }
 

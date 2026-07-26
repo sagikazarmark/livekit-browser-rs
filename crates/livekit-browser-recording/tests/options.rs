@@ -1,3 +1,5 @@
+//! Host-target coverage for Local Clip Recording option validation.
+
 use std::time::Duration;
 
 use livekit_browser::Error;

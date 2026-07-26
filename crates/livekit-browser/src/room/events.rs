@@ -7,32 +7,55 @@ use super::*;
 #[non_exhaustive]
 pub enum RoomEventKind {
     /// The Room Session's connection state changed.
-    ConnectionStateChanged { state: RoomConnectionState },
+    ConnectionStateChanged {
+        /// The connection state at the tagged snapshot revision.
+        state: RoomConnectionState,
+    },
     /// Local Participant identity, SID, metadata, attributes, or grants changed.
     LocalParticipantChanged,
     /// The Local Participant's Track Publications changed.
     LocalTrackPublicationsChanged,
     /// A Remote Participant became visible in this Room Session.
-    RemoteParticipantJoined { identity: String },
+    RemoteParticipantJoined {
+        /// The stable Participant Identity that keys this participant in a Room Snapshot.
+        identity: String,
+    },
     /// A Remote Participant's metadata or attributes changed.
-    RemoteParticipantChanged { identity: String },
+    RemoteParticipantChanged {
+        /// The stable Participant Identity that keys this participant in a Room Snapshot.
+        identity: String,
+    },
     /// LiveKit's connection-quality estimate changed for a participant.
     ParticipantConnectionQualityChanged {
+        /// The affected participant, which may be the Local Participant.
         participant_identity: String,
+        /// The estimate at the tagged snapshot revision.
         quality: ConnectionQuality,
     },
     /// LiveKit's ordered active-speaker set changed.
     ActiveSpeakersChanged,
     /// A Remote Participant ceased to be visible in this Room Session.
-    RemoteParticipantLeft { identity: String },
+    RemoteParticipantLeft {
+        /// The stable Participant Identity that keyed this participant before it was removed.
+        identity: String,
+    },
     /// A Remote Participant's Track Publications or their availability changed.
-    RemoteTrackPublicationsChanged { participant_identity: String },
+    RemoteTrackPublicationsChanged {
+        /// The Remote Participant whose publications changed.
+        participant_identity: String,
+    },
     /// A Remote Participant's separately published Data Tracks changed.
-    RemoteDataTracksChanged { participant_identity: String },
+    RemoteDataTracksChanged {
+        /// The Remote Participant whose Data Tracks changed.
+        participant_identity: String,
+    },
     /// Room metadata changed.
     RoomMetadataChanged,
     /// Browser autoplay policy for remote audio changed.
-    AudioPlaybackChanged { state: AudioPlaybackState },
+    AudioPlaybackChanged {
+        /// Whether remote audio may currently play without another user activation.
+        state: AudioPlaybackState,
+    },
     /// This subscriber fell behind and must recover from `RoomSession::snapshot`.
     Lagged,
 }

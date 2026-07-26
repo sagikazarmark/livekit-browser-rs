@@ -1,9 +1,95 @@
-//! Framework-neutral LiveKit browser integration.
+//! Framework-neutral LiveKit browser integration for Rust and WebAssembly.
+//!
+//! This crate wraps LiveKit's official browser SDK in a typed Rust interface: Room Session
+//! join/leave and reconnection, camera, microphone, and display capture, publication and
+//! subscription, coherent room state snapshots, Chat Messages, Transcription Segments, Participant
+//! RPC, backpressured data streams, and audio analysis. It targets `wasm32-unknown-unknown` and is
+//! UI-framework agnostic — see `livekit-browser-dioxus` for a Dioxus binding and
+//! `livekit-browser-recording` for local clip recording.
+//!
+//! # The host page must load the SDK
+//!
+//! **This crate does not bundle JavaScript.** It calls into a `livekit-client` UMD build that the
+//! host page loads, and the version must match [`LIVEKIT_CLIENT_VERSION`] exactly. Load it before
+//! the WASM module:
+//!
+//! ```html
+//! <script src="/assets/livekit-client.umd.min.js"></script>
+//! ```
+//!
+//! [`BrowserClient::initialize`] validates that global and the required WebRTC support before any
+//! Room Session or media state can exist, so a missing or mismatched SDK surfaces as
+//! [`Error::SdkMissing`] or [`Error::SdkVersionMismatch`] rather than a failure deep inside a call.
+//! See the repository's browser-compatibility document for UMD setup and load order.
+//!
+//! Camera, microphone, and display capture additionally require a secure context: HTTPS, or the
+//! `localhost` origin browsers treat specially.
+//!
+//! # Getting started
+//!
+//! Join, capture, and publish are separate steps. Joining captures and publishes nothing, capture
+//! works before or after joining, and stopping a publication does not stop capture:
+//!
+//! ```no_run
+//! use livekit_browser::{
+//!     BrowserClient, ConnectionCredentials, InitializeOptions, RoomOptions, TrackSource,
+//!     VideoPublishOptions,
+//! };
+//!
+//! # async fn example(token: String) -> Result<(), livekit_browser::Error> {
+//! // Validates the loaded SDK and browser support. Requests no permissions.
+//! let client = BrowserClient::initialize(InitializeOptions::default())?;
+//!
+//! // Joining captures and publishes no media.
+//! let credentials = ConnectionCredentials::new("wss://example.livekit.cloud", token);
+//! let session = client.join(credentials, RoomOptions::default()).await?;
+//!
+//! // Capture is independent of the Room Session and of publication.
+//! let camera = client.create_camera_video_track().await?;
+//! let publication = camera
+//!     .publish(
+//!         &session,
+//!         VideoPublishOptions::default().with_source(TrackSource::Camera),
+//!     )
+//!     .await?;
+//!
+//! // Unpublishing keeps the local capture and preview alive.
+//! publication.unpublish().await?;
+//! session.leave().await?;
+//! # Ok(())
+//! # }
+//! ```
+//!
+//! Read room state from [`RoomSession::snapshot`], which returns an immutable, internally coherent
+//! [`RoomSnapshot`] carrying a monotonic revision. [`RoomSession::subscribe_events`] delivers
+//! bounded [`RoomEvent`]s tagged with the revision installed before each one; a subscriber that
+//! falls behind receives [`RoomEventKind::Lagged`] and recovers by reading the current snapshot
+//! rather than silently missing changes.
+//!
+//! # Handles and lifetimes
+//!
+//! Handles are cloneable and browser-thread-local — deliberately neither `Send` nor `Sync`.
+//!
+//! Remote handles are replacement-safe: when LiveKit replaces the underlying JavaScript object,
+//! the old handle becomes terminal instead of silently retargeting the new one, even if the
+//! logical ID is reused. Check `is_terminal` before treating a handle as live.
 //!
 //! State-changing handle operations start when their methods are called. Dropping one of those
 //! returned Rust futures only abandons that waiter; it does not claim to cancel LiveKit's
 //! JavaScript Promise. Creation and join futures instead clean up resources that finish after
 //! their Rust waiter is abandoned.
+//!
+//! # Failure handling
+//!
+//! [`Error`] keeps failure causes distinguishable — a denied permission, an unavailable device,
+//! and a device already in use are separate variants — and failed mutations roll back rather than
+//! leaving partial media state.
+//!
+//! # Feature flags
+//!
+//! - `tracing`: adds `InitializeOptions::with_tracing`, mapping SDK log levels to `tracing` events
+//!   under the `livekit_client` target.
+//! - `raw-js`: exposes the underlying `livekit-client` objects. Off by default; see below.
 //!
 //! # Unstable JavaScript escape hatches
 //!
@@ -158,5 +244,5 @@ pub use room::{
     MIN_RPC_RESPONSE_TIMEOUT,
 };
 
-#[cfg(test)]
+#[cfg(all(test, not(target_arch = "wasm32")))]
 mod tests;

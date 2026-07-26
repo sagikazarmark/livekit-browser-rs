@@ -542,12 +542,12 @@ impl LocalVideoTrack {
         })
     }
 
-    #[cfg(test)]
+    #[cfg(all(test, not(target_arch = "wasm32")))]
     pub(crate) fn test_track(stop_count: Rc<Cell<usize>>) -> Self {
         Self::test_track_with_source(stop_count, TrackSource::Camera)
     }
 
-    #[cfg(test)]
+    #[cfg(all(test, not(target_arch = "wasm32")))]
     pub(crate) fn test_track_with_source(stop_count: Rc<Cell<usize>>, source: TrackSource) -> Self {
         Self {
             inner: Rc::new(LocalVideoTrackInner {
@@ -586,8 +586,7 @@ pub(crate) struct LocalVideoTrackInner {
     #[cfg(target_arch = "wasm32")]
     next_publication_id: Cell<u32>,
     #[cfg(target_arch = "wasm32")]
-    publication_replacement_callback:
-        OnceCell<wasm_bindgen::closure::Closure<dyn Fn(u32, Option<String>, bool) -> u32>>,
+    publication_replacement_callback: OnceCell<PublicationReplacementCallback>,
     #[cfg(target_arch = "wasm32")]
     sdk_replacement_source: RefCell<Option<Rc<LocalVideoTrackPublicationInner>>>,
     #[cfg(target_arch = "wasm32")]
@@ -596,7 +595,7 @@ pub(crate) struct LocalVideoTrackInner {
     stop_operation: RefCell<Option<Result<js_sys::Promise, AdapterError>>>,
     #[cfg(target_arch = "wasm32")]
     pub(crate) ended_callback: RefCell<Option<wasm_bindgen::closure::Closure<dyn Fn()>>>,
-    #[cfg(test)]
+    #[cfg(all(test, not(target_arch = "wasm32")))]
     stop_count: Rc<Cell<usize>>,
 }
 
@@ -805,7 +804,7 @@ impl LocalVideoTrackInner {
                 attachment.active.set(false);
             }
         }
-        #[cfg(test)]
+        #[cfg(all(test, not(target_arch = "wasm32")))]
         self.stop_count.set(self.stop_count.get() + 1);
         true
     }
@@ -885,7 +884,7 @@ impl VideoTrackAttachment {
         Ok(())
     }
 
-    #[cfg(test)]
+    #[cfg(all(test, not(target_arch = "wasm32")))]
     pub(crate) fn test_attachment(track: &LocalVideoTrack) -> Self {
         let inner = Rc::new(VideoTrackAttachmentInner {
             active: Cell::new(true),

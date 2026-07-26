@@ -16,10 +16,15 @@ thread_local! {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[non_exhaustive]
 pub enum LiveKitLogLevel {
+    /// Very fine-grained SDK tracing.
     Trace,
+    /// Diagnostic detail useful while debugging.
     Debug,
+    /// Routine lifecycle information.
     Info,
+    /// A recoverable condition the SDK worked around.
     Warn,
+    /// A failure the SDK could not recover from.
     Error,
 }
 
@@ -47,7 +52,7 @@ pub struct LiveKitLogRecord {
 }
 
 impl LiveKitLogRecord {
-    #[cfg(test)]
+    #[cfg(all(test, not(target_arch = "wasm32"), feature = "tracing"))]
     pub(crate) fn test_record(
         level: LiveKitLogLevel,
         message: impl Into<String>,
@@ -79,6 +84,11 @@ impl LiveKitLogRecord {
 }
 
 type LiveKitLogCallback = Rc<dyn Fn(LiveKitLogRecord)>;
+
+/// The SDK log extension closure kept alive for the lifetime of the runtime.
+#[cfg(target_arch = "wasm32")]
+type LogExtensionClosure =
+    wasm_bindgen::closure::Closure<dyn Fn(u8, String, wasm_bindgen::JsValue)>;
 
 /// Options for initializing the application-wide LiveKit browser runtime.
 #[derive(Clone, Default)]
@@ -423,9 +433,13 @@ pub(crate) struct ExactDeviceId {
 #[serde(rename_all = "camelCase")]
 #[non_exhaustive]
 pub enum FacingMode {
+    /// The camera facing the user, typically a front-facing camera.
     User,
+    /// The camera facing away from the user, typically a rear-facing camera.
     Environment,
+    /// A camera facing to the user's left.
     Left,
+    /// A camera facing to the user's right.
     Right,
 }
 
@@ -793,15 +807,11 @@ impl fmt::Debug for BrowserClient {
 pub(crate) struct ClientInner {
     pub(crate) capabilities: BrowserCapabilities,
     #[cfg(target_arch = "wasm32")]
-    _log_extension:
-        Option<wasm_bindgen::closure::Closure<dyn Fn(u8, String, wasm_bindgen::JsValue)>>,
+    _log_extension: Option<LogExtensionClosure>,
 }
 
 #[cfg(target_arch = "wasm32")]
-fn install_log_extension(
-    options: InitializeOptions,
-) -> Result<Option<wasm_bindgen::closure::Closure<dyn Fn(u8, String, wasm_bindgen::JsValue)>>, Error>
-{
+fn install_log_extension(options: InitializeOptions) -> Result<Option<LogExtensionClosure>, Error> {
     use wasm_bindgen::JsCast;
 
     if !options.receives_logs() {

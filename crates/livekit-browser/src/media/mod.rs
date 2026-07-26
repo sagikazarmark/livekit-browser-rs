@@ -17,7 +17,7 @@ mod local_video;
 pub(crate) use analyser::create_audio_analyser;
 pub(crate) use analyser::{terminate_audio_analysers, AudioAnalyserSource, AudioAnalyserState};
 pub use analyser::{AudioAnalyser, AudioAnalysis};
-#[cfg(test)]
+#[cfg(all(test, not(target_arch = "wasm32")))]
 pub(crate) use local_audio::AdapterScreenCapture;
 pub(crate) use local_audio::{capture_microphone_audio_track, capture_screen};
 pub use local_audio::{AudioTrackAttachment, LocalAudioTrack, LocalAudioTrackPublication};
@@ -28,14 +28,27 @@ pub(crate) use local_video::{
 };
 pub use local_video::{LocalVideoTrack, LocalVideoTrackPublication, VideoTrackAttachment};
 
+/// The SDK callback invoked when a local Track Publication is replaced.
+#[cfg(target_arch = "wasm32")]
+pub(crate) type PublicationReplacementCallback =
+    wasm_bindgen::closure::Closure<dyn Fn(u32, Option<String>, bool) -> u32>;
+
+/// A codec requested for publishing a Local Video Track.
+///
+/// Browser support varies. LiveKit negotiates the final codec with the server and the receiving
+/// participants, so a requested codec is a preference rather than a guarantee.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
 #[cfg_attr(test, derive(ts_rs::TS))]
 #[serde(rename_all = "lowercase")]
 #[non_exhaustive]
 pub enum VideoCodec {
+    /// VP8, the most broadly supported codec across browsers.
     Vp8,
+    /// VP9.
     Vp9,
+    /// H.264.
     H264,
+    /// AV1.
     Av1,
 }
 
@@ -183,6 +196,7 @@ impl From<&VideoPublishOptions> for AdapterVideoPublishOptions {
 #[serde(rename_all = "lowercase")]
 #[non_exhaustive]
 pub enum AudioCodec {
+    /// Opus, the only codec browsers publish through LiveKit 2.20.1.
     Opus,
 }
 
@@ -191,7 +205,9 @@ pub enum AudioCodec {
 #[serde(rename_all = "camelCase")]
 #[non_exhaustive]
 pub enum AudioTrackSource {
+    /// Microphone audio.
     Microphone,
+    /// System or tab audio captured alongside display video.
     ScreenShareAudio,
 }
 

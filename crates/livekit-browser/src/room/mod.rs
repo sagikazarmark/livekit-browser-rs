@@ -19,15 +19,16 @@ mod snapshot;
 
 #[cfg(target_arch = "wasm32")]
 use data_stream::{
-    begin_byte_stream_open, begin_text_stream_open, AdapterIncomingByteStream,
-    AdapterIncomingTextStream, OutgoingStreamInner, OutgoingStreamLifecycle,
+    begin_byte_stream_open, begin_text_stream_open, OutgoingStreamInner, OutgoingStreamLifecycle,
     StreamHandlerRegistrationInner,
 };
-#[cfg(test)]
+#[cfg(all(test, not(target_arch = "wasm32")))]
 pub(crate) use data_stream::{
-    AdapterByteStreamRead, AdapterIncomingByteStream, AdapterIncomingTextStream,
-    AdapterOutgoingByteStream, AdapterOutgoingTextStream, AdapterTextStreamRead,
+    AdapterByteStreamRead, AdapterOutgoingByteStream, AdapterOutgoingTextStream,
+    AdapterTextStreamRead,
 };
+#[cfg(any(test, target_arch = "wasm32"))]
+pub(crate) use data_stream::{AdapterIncomingByteStream, AdapterIncomingTextStream};
 pub use data_stream::{
     ByteStreamHandlerRegistration, ByteStreamInfo, ByteStreamOptions, DataStreamErrorReason,
     IncomingByteStream, IncomingTextStream, OutgoingByteStream, OutgoingTextStream,
@@ -41,16 +42,14 @@ use messaging::{
     close_bounded_queues, ChatMessageQueue, ChatMessageSubscription, DataPacketQueue,
     DataPacketSubscription, TranscriptionSegmentQueue, TranscriptionSegmentSubscription,
 };
-#[cfg(test)]
+#[cfg(any(test, target_arch = "wasm32"))]
 pub(crate) use messaging::{AdapterChatMessage, AdapterTranscriptionSegment};
-#[cfg(target_arch = "wasm32")]
-use messaging::{AdapterChatMessage, AdapterTranscriptionSegment};
 pub use messaging::{
     ChatMessage, ChatMessageStream, ChatMessageStreamItem, DataPacket, DataPacketDelivery,
     DataPacketStream, DataPacketStreamItem, TranscriptionSegment, TranscriptionSegmentStream,
     TranscriptionSegmentStreamItem,
 };
-#[cfg(test)]
+#[cfg(all(test, not(target_arch = "wasm32")))]
 pub(crate) use remote::AdapterRemoteMediaTrack;
 pub(crate) use remote::RemoteMediaTrackInner;
 use remote::RemoteParticipantInner;
@@ -61,24 +60,23 @@ pub use remote::{
 use rpc::encode_rpc_payload;
 #[cfg(target_arch = "wasm32")]
 use rpc::{
-    complete_rpc_handler, decode_rpc_payload, start_rpc_invocation, AdapterRpcHandlerCompletion,
-    AdapterRpcInvocation, RpcHandlerCapacity, RpcHandlerTask, RpcMethodRegistrationInner,
+    complete_rpc_handler, decode_rpc_payload, start_rpc_invocation, RpcHandlerTask,
+    RpcMethodRegistrationInner,
 };
-#[cfg(test)]
-pub(crate) use rpc::{
-    AdapterRpcFailure, AdapterRpcHandlerCompletion, AdapterRpcInvocation, AdapterRpcOptions,
-    RpcHandlerCapacity,
-};
+#[cfg(all(test, not(target_arch = "wasm32")))]
+pub(crate) use rpc::{AdapterRpcFailure, AdapterRpcOptions};
+#[cfg(any(test, target_arch = "wasm32"))]
+pub(crate) use rpc::{AdapterRpcHandlerCompletion, AdapterRpcInvocation, RpcHandlerCapacity};
 pub use rpc::{
     RpcApplicationError, RpcFailure, RpcFailureKind, RpcInvocation, RpcMethodRegistration,
     RpcOptions, RpcPayload, DEFAULT_RPC_HANDLER_CAPACITY, DEFAULT_RPC_RESPONSE_TIMEOUT,
     MAX_RPC_PAYLOAD_BYTES, MIN_RPC_RESPONSE_TIMEOUT,
 };
-#[cfg(target_arch = "wasm32")]
-use snapshot::AdapterRoomSnapshot;
-#[cfg(test)]
+#[cfg(any(test, target_arch = "wasm32"))]
+pub(crate) use snapshot::AdapterRoomSnapshot;
+#[cfg(all(test, not(target_arch = "wasm32")))]
 pub(crate) use snapshot::{
-    AdapterRemoteParticipantSnapshot, AdapterRemoteTrackPublicationSnapshot, AdapterRoomSnapshot,
+    AdapterRemoteParticipantSnapshot, AdapterRemoteTrackPublicationSnapshot,
 };
 pub use snapshot::{
     AudioPlaybackState, AudioReceiverStatistics, AudioSenderStatistics, ConnectionQuality,
@@ -203,7 +201,7 @@ pub(crate) async fn join_room_session(
         rpc_handler_tasks: RefCell::new(Vec::new()),
         lifecycle: Cell::new(SessionLifecycle::Active),
         cleanup_started: Cell::new(false),
-        #[cfg(test)]
+        #[cfg(all(test, not(target_arch = "wasm32")))]
         cleanup_count: Rc::new(Cell::new(0)),
         room_id,
         leave_operation: RefCell::new(None),
@@ -1235,12 +1233,12 @@ impl RoomSession {
         })
     }
 
-    #[cfg(test)]
+    #[cfg(all(test, not(target_arch = "wasm32")))]
     pub(crate) fn test_session(snapshot: RoomSnapshot) -> Self {
         Self::test_session_with_cleanup(snapshot, Rc::new(Cell::new(0)))
     }
 
-    #[cfg(test)]
+    #[cfg(all(test, not(target_arch = "wasm32")))]
     pub(crate) fn test_session_with_cleanup(
         snapshot: RoomSnapshot,
         cleanup_count: Rc<Cell<usize>>,
@@ -1279,22 +1277,22 @@ impl RoomSession {
         }
     }
 
-    #[cfg(test)]
+    #[cfg(all(test, not(target_arch = "wasm32")))]
     pub(crate) fn install_test_update(&self, snapshot: RoomSnapshot, kind: RoomEventKind) {
         self.inner.install_normalized_update(snapshot, [kind]);
     }
 
-    #[cfg(test)]
+    #[cfg(all(test, not(target_arch = "wasm32")))]
     pub(crate) fn install_test_data_packet(&self, packet: DataPacket) {
         self.inner.install_data_packet(packet);
     }
 
-    #[cfg(test)]
+    #[cfg(all(test, not(target_arch = "wasm32")))]
     pub(crate) fn install_test_chat_message(&self, message: ChatMessage) {
         self.inner.install_chat_message(message);
     }
 
-    #[cfg(test)]
+    #[cfg(all(test, not(target_arch = "wasm32")))]
     pub(crate) fn install_test_transcription_segment(&self, segment: TranscriptionSegment) {
         self.inner.install_transcription_segment(segment);
     }
@@ -1310,7 +1308,7 @@ pub(crate) struct SessionInner {
     rpc_handler_tasks: RefCell<Vec<Weak<RpcHandlerTask>>>,
     pub(crate) lifecycle: Cell<SessionLifecycle>,
     cleanup_started: Cell<bool>,
-    #[cfg(test)]
+    #[cfg(all(test, not(target_arch = "wasm32")))]
     cleanup_count: Rc<Cell<usize>>,
     #[cfg(target_arch = "wasm32")]
     pub(crate) room_id: u32,
@@ -1520,7 +1518,7 @@ impl SessionInner {
 
     fn start_cleanup(self: &Rc<Self>) {
         if !self.cleanup_started.replace(true) {
-            #[cfg(test)]
+            #[cfg(all(test, not(target_arch = "wasm32")))]
             {
                 self.cleanup_count.set(self.cleanup_count.get() + 1);
                 self.finish_leave();
@@ -1564,7 +1562,7 @@ impl Drop for SessionInner {
         #[cfg(target_arch = "wasm32")]
         self.cancel_rpc_handler_tasks();
         if !self.cleanup_started.replace(true) {
-            #[cfg(test)]
+            #[cfg(all(test, not(target_arch = "wasm32")))]
             self.cleanup_count.set(self.cleanup_count.get() + 1);
 
             #[cfg(target_arch = "wasm32")]
