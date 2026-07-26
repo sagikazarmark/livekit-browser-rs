@@ -40,7 +40,7 @@ they do not prevent otherwise supported Room Sessions.
 The application, rather than the Rust crate, owns the exact JavaScript dependency:
 
 ```sh
-cd examples/dioxus-room
+cd demo
 npm install --save-exact livekit-client@2.20.1
 ```
 
@@ -50,7 +50,7 @@ the build; `Dockerfile.web` performs that copy for the example. Do not fetch a f
 at runtime.
 
 The UMD script must load synchronously before the WASM bootstrap. The Dioxus example declares it in
-`examples/dioxus-room/Dioxus.toml`:
+`demo/Dioxus.toml`:
 
 ```toml
 [web.resource]
@@ -187,7 +187,7 @@ Upgrade `livekit-client` as one commit; never merge an intermediate mixed-versio
 
 1. Read the upstream release notes and compare TypeScript declarations for Room Events, options,
    errors, statistics, worker assets, media behavior, and browser support.
-2. Run `npm install --save-exact livekit-client@<version>` in `examples/dioxus-room` to update the
+2. Run `npm install --save-exact livekit-client@<version>` in `demo` to update the
    application dependency and lockfile. Run the same command in `crates/livekit-browser/js` to update
    the adapter's type dependency and lockfile. Confirm `Dockerfile.web` still copies the intended UMD
    file.

@@ -28,9 +28,9 @@ dioxus = { workspace = true, optional = true }
 futures-util = { workspace = true, optional = true }
 gloo-timers = { workspace = true, optional = true }
 js-sys = { workspace = true, optional = true }
-livekit-browser = { path = "../../crates/livekit-browser", optional = true }
-livekit-browser-dioxus = { path = "../../crates/livekit-browser-dioxus", optional = true }
-livekit-browser-recording = { path = "../../crates/livekit-browser-recording", optional = true }
+livekit-browser = { path = "../crates/livekit-browser", optional = true }
+livekit-browser-dioxus = { path = "../crates/livekit-browser-dioxus", optional = true }
+livekit-browser-recording = { path = "../crates/livekit-browser-recording", optional = true }
 serde = { workspace = true }
 serde_json = { workspace = true, optional = true }
 wasm-bindgen = { workspace = true, optional = true }

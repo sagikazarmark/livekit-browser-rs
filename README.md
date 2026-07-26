@@ -248,7 +248,7 @@ Browser --POST /api/token--> Dioxus full-stack server (Rust/Axum)
 Dioxus Rust UI (WASM) --independent artifact workflow--> livekit-browser-recording
 ```
 
-- `examples/dioxus-room`: Dioxus full-stack app, application-owned browser SDK dependency, assets, the full rendered state snapshot, and server-side token issuance that keeps the LiveKit API secret out of WASM.
+- `demo`: Dioxus full-stack app, application-owned browser SDK dependency, assets, the full rendered state snapshot, and server-side token issuance that keeps the LiveKit API secret out of WASM.
 - `crates/livekit-browser`: framework-neutral initialization, typed capabilities, disruption-safe Room Session join/leave/reconnection, immutable room and participant application-state snapshots, typed connection quality, on-demand media statistics and audio analysis, Local Participant updates, Chat Messages, Transcription Segments, and Participant RPC, bounded lag-aware events, pull-driven incoming and backpressured outgoing data streams, replacement-safe remote handles and attachments, and independent Local Audio/Video Track lifecycles.
 - `crates/livekit-browser-dioxus`: subtree-scoped Room Session provider, reactive snapshot/participant/publication/capability/playback hooks, typed actions, and unstyled local/remote audio/video attachment nodes.
 - `crates/livekit-browser-recording`: bounded Local Clip Recording over selected Local Media Tracks, with ordered MIME negotiation, pause/resume and automatic-stop lifecycles, browser-owned Blob artifacts, and revocable object URL guards.

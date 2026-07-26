@@ -3,7 +3,7 @@ members = [
     "crates/livekit-browser",
     "crates/livekit-browser-dioxus",
     "crates/livekit-browser-recording",
-    "examples/dioxus-room",
+    "demo",
 ]
 resolver = "2"
 

@@ -1,6 +1,6 @@
 FROM node:24-alpine AS livekit-sdk
-WORKDIR /app/examples/dioxus-room
-COPY examples/dioxus-room/package.json examples/dioxus-room/package-lock.json ./
+WORKDIR /app/demo
+COPY demo/package.json demo/package-lock.json ./
 RUN npm ci --omit=dev --ignore-scripts --no-audit --no-fund
 
 FROM node:24-alpine AS adapter-contracts
@@ -10,7 +10,7 @@ RUN npm ci --no-audit --no-fund
 COPY crates/livekit-browser/js ./
 COPY test-prototype.sh /app/test-prototype.sh
 COPY tests/test-prototype.test.sh /app/tests/test-prototype.test.sh
-COPY --from=livekit-sdk /app/examples/dioxus-room/node_modules/livekit-client/dist/livekit-client.umd.js /app/livekit-client.umd.js
+COPY --from=livekit-sdk /app/demo/node_modules/livekit-client/dist/livekit-client.umd.js /app/livekit-client.umd.js
 RUN sh /app/tests/test-prototype.test.sh \
     && LIVEKIT_CLIENT_UMD=/app/livekit-client.umd.js npm run check \
     && touch /adapter-contracts-passed
@@ -35,7 +35,7 @@ WORKDIR /app
 COPY Cargo.toml Cargo.lock ./
 COPY crates ./crates
 COPY docs/browser-compatibility.md ./docs/browser-compatibility.md
-COPY examples/dioxus-room ./examples/dioxus-room
+COPY demo ./demo
 COPY --from=adapter-contracts /adapter-contracts-passed /tmp/adapter-contracts-passed
 RUN cargo test -p livekit-browser tests::adapter_contracts_are_fresh -- --exact \
     && cargo test -p livekit-browser --doc \
@@ -43,8 +43,8 @@ RUN cargo test -p livekit-browser tests::adapter_contracts_are_fresh -- --exact 
     && cargo check --workspace --all-features \
     && cargo check --workspace --exclude livekit-dioxus-prototype --all-features --target wasm32-unknown-unknown \
     && cargo check -p livekit-dioxus-prototype --features raw-js-contract --target wasm32-unknown-unknown
-WORKDIR /app/examples/dioxus-room
-COPY --from=livekit-sdk /app/examples/dioxus-room/node_modules/livekit-client/dist/livekit-client.umd.js ./assets/livekit-client.umd.min.js
+WORKDIR /app/demo
+COPY --from=livekit-sdk /app/demo/node_modules/livekit-client/dist/livekit-client.umd.js ./assets/livekit-client.umd.min.js
 RUN dx bundle --fullstack true --web --release --debug-symbols=false --features raw-js-contract \
     && cp assets/styles.css assets/livekit-client.umd.min.js dist/public/
 
@@ -52,7 +52,7 @@ FROM debian:trixie-slim
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates \
     && rm -rf /var/lib/apt/lists/*
-COPY --from=frontend /app/examples/dioxus-room/dist /app
+COPY --from=frontend /app/demo/dist /app
 ENV IP=0.0.0.0
 ENV PORT=8080
 EXPOSE 8080

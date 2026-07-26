@@ -30,8 +30,7 @@ livekit-proto/
 │   ├── livekit-browser/
 │   ├── livekit-browser-dioxus/
 │   └── livekit-browser-recording/
-├── examples/
-│   └── dioxus-room/ (full-stack web app with server-side token issuance)
+├── demo/ (full-stack web app with server-side token issuance)
 └── tests/
 ```
 
@@ -40,7 +39,7 @@ Dependency edges:
 ```text
 livekit-browser-dioxus ───────> livekit-browser
 livekit-browser-recording ────> livekit-browser
-examples/dioxus-room ─────────> all three crates
+demo ─────────────────────────> all three crates
 livekit-browser ──────────────> application-loaded livekit-client 2.20.1
 ```
 
@@ -222,7 +221,7 @@ Chromium, Firefox, and WebKit are gating engines. Mobile-sized Chromium and WebK
 
 ### 0. Establish The Workspace And Contract Harness
 
-- Convert the prototype into a Cargo workspace and move the current application to `examples/dioxus-room` without changing behavior.
+- Convert the prototype into a Cargo workspace and move the current application to `demo` without changing behavior.
 - Add the three private crate manifests and one application-owned npm lockfile pinned to `livekit-client` 2.20.1.
 - Add one command that installs/copies the UMD artifact, builds the workspace, starts Docker, and runs browser tests.
 - Preserve the existing Playwright publish/recording smoke check as the baseline.

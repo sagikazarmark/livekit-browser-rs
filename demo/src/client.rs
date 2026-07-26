@@ -1,4 +1,4 @@
-//! Executable acceptance harness for the browser LiveKit crates.
+//! Browser acceptance harness for the LiveKit crates.
 
 use std::{
     collections::BTreeMap,
@@ -750,7 +750,8 @@ fn App() -> Element {
     let second_identity = use_signal(|| generated_demo_identity("guest-remote-participant"));
     let mut session = use_signal(|| None::<RoomSession>);
     let mut retained_session = use_signal(|| None::<RoomSession>);
-    let raw_js_contract = use_signal(|| {
+    #[allow(unused_mut)]
+    let mut raw_js_contract = use_signal(|| {
         if cfg!(feature = "raw-js-contract") {
             "pending"
         } else {

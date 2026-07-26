@@ -248,7 +248,7 @@ Its recorder lifecycle and MIME preference ordering are good design references, 
 
 #### [Issue #22: Complete headless Dioxus Room Session integration](https://github.com/sagikazarmark/klassroom-proto.orig/issues/22)
 
-None of the libraries removes the relevant boilerplate. The project needs unstyled components that obtain Dioxus-mounted `HtmlAudioElement`/`HtmlVideoElement` values and retain existing LiveKit attachment guards. The repeated code is currently visible in the example's remote nodes ([video](../examples/dioxus-room/src/main.rs#L2007-L2123), [audio](../examples/dioxus-room/src/main.rs#L2223-L2322)), while `livekit-browser-dioxus` is still an empty shell ([crate root](../crates/livekit-browser-dioxus/src/lib.rs)).
+None of the libraries removes the relevant boilerplate. The project needs unstyled components that obtain Dioxus-mounted `HtmlAudioElement`/`HtmlVideoElement` values and retain existing LiveKit attachment guards. The repeated code is currently visible in the demo's remote nodes ([video](../demo/src/client.rs#L4722-L4959), [audio](../demo/src/client.rs#L4962-L5206)), while `livekit-browser-dioxus` is still an empty shell ([crate root](../crates/livekit-browser-dioxus/src/lib.rs)).
 
 `dioxus-cameras` renders native-camera frames through its own loopback server and canvas. `dioxus-audio` creates a private `HtmlAudioElement` from copied `AudioData`; it does not attach externally owned LiveKit tracks to a mounted element ([player implementation](https://github.com/sagikazarmark/dioxus-audio/blob/a3bbab0cd921f2f1f39acb5b25dcd6b2dac04905/src/playback/web.rs#L207-L265)). Its visual components are styled application UI, which issue #22 explicitly excludes from the headless adapter.
 
