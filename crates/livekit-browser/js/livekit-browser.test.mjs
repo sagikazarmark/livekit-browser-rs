@@ -393,6 +393,8 @@ test("room events discard the initial burst, batch updates, and cancel delivery 
     { type: "connectionStateChanged", state: "connected" },
     { type: "roomMetadataChanged" },
   ]);
+  Room.instance.emit(roomEvents.DataReceived, new Uint8Array([2]), undefined, 0, "topic");
+  assert.deepEqual(directPackets, [[new Uint8Array([2]), null, true]]);
 
   Room.instance.emit(
     roomEvents.ChatMessage,
@@ -597,6 +599,8 @@ test("raw room, participant, publication, media, and statistics handles preserve
   let connectOptions;
   let publishOptions;
   let audioPublishOptions;
+  let participantAttributes;
+  let subscriptionPermissions;
   let rpcHandler;
   const replacements = [];
 
@@ -672,9 +676,13 @@ test("raw room, participant, publication, media, and statistics handles preserve
       return publication;
     },
     unpublishTrack: async () => {},
-    setTrackSubscriptionPermissions() {},
+    setTrackSubscriptionPermissions(allParticipantsAllowed, participantPermissions) {
+      subscriptionPermissions = { allParticipantsAllowed, participantPermissions };
+    },
     setMetadata: async () => {},
-    setAttributes: async () => {},
+    setAttributes: async (attributes) => {
+      participantAttributes = attributes;
+    },
     publishData: async () => {},
     sendChatMessage: async () => {},
     streamText: async () => {},
@@ -772,6 +780,19 @@ test("raw room, participant, publication, media, and statistics handles preserve
   assert.equal(Object.getPrototypeOf(joined.snapshot.remote_participants), null);
   assert.equal(adapter.rawRoom(roomId) instanceof Room, true);
   assert.equal(adapter.rawLocalParticipant(roomId), localParticipant);
+  adapter.setTrackSubscriptionPermissions(roomId, {
+    allParticipantsAllowed: false,
+    participantIdentities: ["student"],
+  });
+  assert.deepEqual(subscriptionPermissions, {
+    allParticipantsAllowed: false,
+    participantPermissions: [{ participantIdentity: "student", allowAll: true }],
+  });
+  await adapter.updateLocalParticipantAttributes(roomId, {
+    role: "teacher",
+    cohort: "blue",
+  });
+  assert.deepEqual(participantAttributes, { role: "teacher", cohort: "blue" });
 
   const participantSnapshot = joined.snapshot.remote_participants.student;
   const participantLocator = {

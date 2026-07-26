@@ -168,6 +168,19 @@ npm run check --prefix crates/livekit-browser/js
 freshness test. The regular npm `check` remains Node-only so adapter consumers do not need Cargo;
 the Rust freshness check runs explicitly in the Rust stage of `Dockerfile.web`.
 
+### Intentional Exclusions
+
+Every named Serde object DTO belongs in the generated contract registry. These generic or
+positional boundaries remain intentionally handwritten:
+
+| Boundary | Rust shape | Reason |
+| --- | --- | --- |
+| Local Participant attribute updates | `BTreeMap<String, String>` | Serialized as a plain JavaScript object; no named DTO exists. |
+| Structured SDK log context | `serde_json::Value` | Recursively normalized JSON data rather than a fixed object schema. |
+| Positional data-packet callbacks | `Uint8Array`, optional Participant Identity, and delivery flag | Preserves the existing callback ABI; changing to an object requires an explicit ABI decision. |
+
+The Rust `adapter_contract_exclusions_are_documented` test keeps this exclusion registry present.
+
 ## Atomic SDK Upgrade
 
 Upgrade `livekit-client` as one commit; never merge an intermediate mixed-version state.

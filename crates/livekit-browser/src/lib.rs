@@ -5967,6 +5967,7 @@ impl RemoteDataTrackSnapshot {
 /// Participant-specific policy is keyed only by stable Participant Identity. Participants omitted
 /// from a participant-specific policy cannot subscribe to this publisher's media.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
 #[serde(rename_all = "camelCase")]
 pub struct PublicationSubscriptionPermissions {
     all_participants_allowed: bool,
@@ -11639,6 +11640,7 @@ mod tests {
         append_contract::<AdapterVideoPublishOptions>(&mut output, &config);
         append_contract::<AudioCodec>(&mut output, &config);
         append_contract::<AdapterAudioPublishOptions>(&mut output, &config);
+        append_contract::<PublicationSubscriptionPermissions>(&mut output, &config);
         assert_eq!(output.pop(), Some('\n'));
 
         assert!(output.is_ascii(), "adapter contracts must remain ASCII");
@@ -11673,6 +11675,28 @@ mod tests {
             render_adapter_contracts(),
             "adapter contracts are stale; run npm run contracts:generate --prefix crates/livekit-browser/js"
         );
+    }
+
+    #[test]
+    fn adapter_contract_exclusions_are_documented() {
+        let path =
+            PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../docs/browser-compatibility.md");
+        let documentation = std::fs::read_to_string(&path).unwrap_or_else(|error| {
+            panic!(
+                "read adapter contract documentation at {}: {error}",
+                path.display()
+            )
+        });
+        for marker in [
+            "`BTreeMap<String, String>`",
+            "`serde_json::Value`",
+            "Positional data-packet callbacks",
+        ] {
+            assert!(
+                documentation.contains(marker),
+                "adapter contract exclusion {marker} is not documented"
+            );
+        }
     }
 
     #[test]

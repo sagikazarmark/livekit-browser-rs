@@ -109,3 +109,5 @@ export type AdapterVideoPublishOptions = { name?: string, videoCodec?: VideoCode
 export type AudioCodec = "opus";
 
 export type AdapterAudioPublishOptions = { name?: string, audioCodec: AudioCodec, dtx?: boolean, red?: boolean, };
+
+export type PublicationSubscriptionPermissions = { allParticipantsAllowed: boolean, participantIdentities: Array<string>, };

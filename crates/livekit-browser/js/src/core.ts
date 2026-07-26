@@ -12,6 +12,7 @@ import type {
   AdapterJoin,
   AdapterRoomSnapshot as RoomSnapshot,
   AdapterUpdate,
+  PublicationSubscriptionPermissions,
 } from "./generated/adapter-contracts";
 import {
   createAudioAnalyser,
@@ -195,7 +196,7 @@ export function rawLocalParticipant(roomId: RoomId): LocalParticipant {
 
 export function setTrackSubscriptionPermissions(
   roomId: RoomId,
-  permissions: { participantIdentities?: string[]; allParticipantsAllowed?: boolean } | null,
+  permissions: PublicationSubscriptionPermissions,
 ) {
   const roomRecord = roomSessions.get(roomId);
   if (!roomRecord || roomRecord.released) throw new Error("Room Session is no longer available");
@@ -207,11 +208,11 @@ export function setTrackSubscriptionPermissions(
     throw error;
   }
 
-  const participantPermissions = (permissions?.participantIdentities || []).map(
+  const participantPermissions = permissions.participantIdentities.map(
     (participantIdentity) => ({ participantIdentity, allowAll: true }),
   );
   participant.setTrackSubscriptionPermissions(
-    permissions?.allParticipantsAllowed === true,
+    permissions.allParticipantsAllowed,
     participantPermissions,
   );
 }

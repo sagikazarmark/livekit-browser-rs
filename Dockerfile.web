@@ -34,6 +34,7 @@ RUN case "$TARGETARCH" in \
 WORKDIR /app
 COPY Cargo.toml Cargo.lock ./
 COPY crates ./crates
+COPY docs/browser-compatibility.md ./docs/browser-compatibility.md
 COPY examples/dioxus-room ./examples/dioxus-room
 COPY --from=adapter-contracts /adapter-contracts-passed /tmp/adapter-contracts-passed
 RUN cargo test -p livekit-browser tests::adapter_contracts_are_fresh -- --exact \

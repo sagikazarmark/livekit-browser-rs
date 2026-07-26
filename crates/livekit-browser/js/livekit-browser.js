@@ -3749,11 +3749,11 @@ function setTrackSubscriptionPermissions(roomId, permissions) {
     error.status = 403;
     throw error;
   }
-  const participantPermissions = (permissions?.participantIdentities || []).map(
+  const participantPermissions = permissions.participantIdentities.map(
     (participantIdentity) => ({ participantIdentity, allowAll: true })
   );
   participant.setTrackSubscriptionPermissions(
-    permissions?.allParticipantsAllowed === true,
+    permissions.allParticipantsAllowed,
     participantPermissions
   );
 }
