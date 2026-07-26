@@ -5,7 +5,7 @@ edition = "2021"
 publish = false
 
 [dependencies]
-dioxus = { workspace = true }
+dioxus = { workspace = true, features = ["web"] }
 futures-util = { workspace = true }
 livekit-browser = { path = "../livekit-browser" }
 wasm-bindgen = { workspace = true }

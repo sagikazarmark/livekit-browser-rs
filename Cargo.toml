@@ -9,7 +9,7 @@ resolver = "2"
 
 [workspace.dependencies]
 base64 = "0.22"
-dioxus = { version = "0.7", features = ["web"] }
+dioxus = "0.7"
 futures-core = "0.3"
 futures-executor = "0.3"
 futures-util = "0.3"

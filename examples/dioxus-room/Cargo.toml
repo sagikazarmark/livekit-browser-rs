@@ -6,9 +6,10 @@ publish = false
 
 [features]
 default = ["web"]
-raw-js-contract = ["web", "livekit-browser/raw-js"]
-server = ["dep:axum", "dep:livekit-api", "dep:tokio"]
+raw-js-contract = ["livekit-browser?/raw-js"]
+server = ["dioxus/fullstack", "dioxus/server", "dep:livekit-api"]
 web = [
+    "dioxus/web",
     "dep:dioxus",
     "dep:futures-util",
     "dep:gloo-timers",
@@ -49,17 +50,8 @@ web-sys = { workspace = true, optional = true, features = [
     "Window",
 ] }
 
-[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-axum = { version = "0.8", optional = true }
 livekit-api = { version = "=0.5.6", default-features = false, features = ["access-token"], optional = true }
-tokio = { version = "1", features = ["macros", "net", "rt-multi-thread"], optional = true }
 
 [[bin]]
 name = "livekit-dioxus-prototype"
 path = "src/main.rs"
-required-features = ["web"]
-
-[[bin]]
-name = "token-server"
-path = "src/bin/token-server.rs"
-required-features = ["server"]

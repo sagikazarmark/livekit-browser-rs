@@ -28,7 +28,7 @@ Requirements: Docker Engine and Docker Compose v2. No host Rust, Node.js, or Dio
 ./run-prototype.sh
 ```
 
-The first run downloads the pinned toolchains and builds two Rust programs, so it takes longer than subsequent runs. The command prints two URLs:
+The first run downloads the pinned toolchains and builds the Dioxus client and server bundles, so it takes longer than subsequent runs. The command prints two URLs:
 
 - Desktop: `http://localhost:8081`
 - Mobile: an HTTPS URL such as `https://192.168.1.42.nip.io:8443`
@@ -55,7 +55,7 @@ System audio remains optional even when requested: browsers and selectable displ
 
 Local Participant metadata updates must be non-empty because the pinned LiveKit server treats an empty metadata string as no update. Attribute patches use LiveKit's empty-value deletion semantics.
 
-The browser receives only the signaling URL and a participant token issued by the example token service. The LiveKit API secret remains server-side.
+The browser receives only the signaling URL and a participant token issued by the example's Dioxus server. The LiveKit API secret remains server-side.
 
 ## Try It With LiveKit Cloud
 
@@ -77,7 +77,7 @@ Start the prototype normally:
 ./run-prototype.sh
 ```
 
-The example token service signs participant tokens with the Cloud credentials and returns the Cloud URL to the browser. The API secret stays in the server-side token-service container and is never sent to the browser. The local LiveKit container is not started while `LIVEKIT_URL` is set, and a LAN address is only needed if you want to open the app from another device.
+The example's Dioxus server signs participant tokens with the Cloud credentials and returns the Cloud URL to the browser. The API secret stays in the full-stack app container and is never sent to the browser. The local LiveKit container is not started while `LIVEKIT_URL` is set, and a LAN address is only needed if you want to open the app from another device.
 
 Without a LAN address, the HTTPS endpoint is `https://localhost:8443`. Trust `.prototype-runtime/caddy-local-root.crt` before using it. Plain `http://localhost:8081` remains a browser secure context without a certificate because browsers treat `localhost` specially.
 
@@ -147,7 +147,7 @@ HTTP_PORT=8090 ./run-prototype.sh
 
 ## Automated Check
 
-Install the pinned browser SDK, build both Rust programs, start the local stack,
+Install the pinned browser SDK, build both Dioxus app bundles, start the local stack,
 and run the browser workflow with one command:
 
 ```sh
@@ -243,17 +243,17 @@ LiveKit browser SDK + private normalization adapter
         v
 LiveKit server (Docker, UDP 7882)
 
-Browser --POST /api/token--> Rust/Axum token service
+Browser --POST /api/token--> Dioxus full-stack server (Rust/Axum)
 
 Dioxus Rust UI (WASM) --independent artifact workflow--> livekit-browser-recording
 ```
 
-- `examples/dioxus-room`: Dioxus UI, application-owned browser SDK dependency, assets, the full rendered state snapshot, and the native token-server binary that keeps the LiveKit API secret out of WASM.
+- `examples/dioxus-room`: Dioxus full-stack app, application-owned browser SDK dependency, assets, the full rendered state snapshot, and server-side token issuance that keeps the LiveKit API secret out of WASM.
 - `crates/livekit-browser`: framework-neutral initialization, typed capabilities, disruption-safe Room Session join/leave/reconnection, immutable room and participant application-state snapshots, typed connection quality, on-demand media statistics and audio analysis, Local Participant updates, Chat Messages, Transcription Segments, and Participant RPC, bounded lag-aware events, pull-driven incoming and backpressured outgoing data streams, replacement-safe remote handles and attachments, and independent Local Audio/Video Track lifecycles.
 - `crates/livekit-browser-dioxus`: subtree-scoped Room Session provider, reactive snapshot/participant/publication/capability/playback hooks, typed actions, and unstyled local/remote audio/video attachment nodes.
 - `crates/livekit-browser-recording`: bounded Local Clip Recording over selected Local Media Tracks, with ordered MIME negotiation, pause/resume and automatic-stop lifecycles, browser-owned Blob artifacts, and revocable object URL guards.
-- `Caddyfile`: static app, token proxy, WebSocket proxy, and local TLS.
-- `compose.yaml`: pinned LiveKit, app gateway, the example's token-server binary, and optional smoke test.
+- `Caddyfile`: Dioxus app and LiveKit WebSocket proxying with local TLS.
+- `compose.yaml`: pinned LiveKit, the Dioxus full-stack app, Caddy gateway, and optional smoke test.
 
 The default local setup is deliberately insecure for production: it uses LiveKit's public development key pair and an unauthenticated token endpoint. Cloud credentials replace the development key pair but do not secure the token endpoint. Do not expose either setup beyond a trusted development network.
 

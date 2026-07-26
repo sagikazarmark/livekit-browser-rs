@@ -12,10 +12,10 @@ services:
       - "7881:7881/tcp"
       - "7882:7882/udp"
 
-  token-server:
+  app:
     build:
       context: .
-      dockerfile: examples/dioxus-room/Dockerfile.server
+      dockerfile: Dockerfile.web
     environment:
       LIVEKIT_URL: "${LIVEKIT_URL:-}"
       LIVEKIT_API_KEY: "${LIVEKIT_API_KEY:-devkey}"
@@ -25,17 +25,16 @@ services:
       LIVEKIT_NON_METADATA_UPDATER_IDENTITIES: participant-state-denied
 
   gateway:
-    build:
-      context: .
-      dockerfile: Dockerfile.web
+    image: caddy:2.10.0-alpine
     depends_on:
-      - token-server
+      - app
     environment:
       LAN_HOST: "${LAN_HOST:-127.0.0.1.nip.io}"
     ports:
       - "127.0.0.1:${HTTP_PORT:-8081}:8080"
       - "8443:8443"
     volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
 
