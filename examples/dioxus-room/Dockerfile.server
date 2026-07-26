@@ -1,0 +1,15 @@
+FROM rust:trixie AS builder
+WORKDIR /app
+COPY Cargo.toml Cargo.lock ./
+COPY crates ./crates
+COPY examples/dioxus-room ./examples/dioxus-room
+RUN cargo build --release --locked --no-default-features --features server \
+    -p livekit-dioxus-prototype --bin token-server
+
+FROM debian:trixie-slim
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+COPY --from=builder /app/target/release/token-server /usr/local/bin/token-server
+EXPOSE 3000
+CMD ["token-server"]

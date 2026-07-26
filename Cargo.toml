@@ -5,7 +5,6 @@ members = [
     "crates/livekit-browser-recording",
     "examples/dioxus-room",
 ]
-exclude = ["token-server"]
 resolver = "2"
 
 [workspace.dependencies]

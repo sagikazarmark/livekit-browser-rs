@@ -25,5 +25,3 @@ target/
 /crates/livekit-browser/js/node_modules/
 /tests/node_modules/
 /tests/test-results/
-/token-server/target/
-token-server/Cargo.lock

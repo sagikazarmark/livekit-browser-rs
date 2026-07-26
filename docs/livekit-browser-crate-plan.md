@@ -31,8 +31,7 @@ livekit-proto/
 │   ├── livekit-browser-dioxus/
 │   └── livekit-browser-recording/
 ├── examples/
-│   └── dioxus-room/
-├── token-server/
+│   └── dioxus-room/ (web app and native token server)
 └── tests/
 ```
 

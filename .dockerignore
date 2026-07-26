@@ -3,7 +3,6 @@
 .prototype-runtime
 dist
 target
-token-server/target
 examples/dioxus-room/assets/livekit-client.umd.min.js
 examples/dioxus-room/node_modules
 crates/livekit-browser/js/node_modules
