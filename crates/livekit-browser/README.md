@@ -1,7 +1,10 @@
 # livekit-browser
 
-Framework-neutral Rust and WebAssembly bindings for [LiveKit](https://livekit.io)'s official browser
-SDK.
+[![crates.io](https://img.shields.io/crates/v/livekit-browser?style=flat-square)](https://crates.io/crates/livekit-browser)
+[![docs.rs](https://img.shields.io/docsrs/livekit-browser?style=flat-square)](https://docs.rs/livekit-browser)
+
+**Framework-neutral Rust and WebAssembly bindings for [LiveKit](https://livekit.io)'s official
+browser SDK.**
 
 LiveKit's Rust SDK targets native platforms and does not build for `wasm32`. This crate takes the
 other route: it wraps the `livekit-client` browser SDK behind a typed Rust interface, so a Rust/WASM
@@ -82,7 +85,7 @@ Never ship a LiveKit API secret to WASM.
 - **Diagnostics**: connection quality in snapshots, on-demand sender and receiver statistics, and
   audio analysers returning owned waveform and RMS frames.
 
-## Feature flags
+## Feature Flags
 
 | Feature | Default | Description |
 | --- | --- | --- |
@@ -105,5 +108,15 @@ matrix and the SDK upgrade procedure.
 
 ## License
 
-Licensed under either of [Apache License, Version 2.0](../../LICENSE-APACHE) or
-[MIT license](../../LICENSE-MIT) at your option.
+Licensed under either of
+
+- Apache License, Version 2.0 ([LICENSE-APACHE](../../LICENSE-APACHE) or <http://www.apache.org/licenses/LICENSE-2.0>)
+- MIT license ([LICENSE-MIT](../../LICENSE-MIT) or <http://opensource.org/licenses/MIT>)
+
+at your option.
+
+### Contribution
+
+Unless you explicitly state otherwise, any contribution intentionally submitted
+for inclusion in the work by you, as defined in the Apache-2.0 license, shall be
+dual licensed as above, without any additional terms or conditions.

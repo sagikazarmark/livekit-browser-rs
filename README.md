@@ -1,11 +1,35 @@
 # livekit-browser-rs
 
-Rust and WebAssembly bindings for [LiveKit](https://livekit.io)'s official browser SDK.
+[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/sagikazarmark/livekit-browser-rs/dagger.yaml?style=flat-square)](https://github.com/sagikazarmark/livekit-browser-rs/actions/workflows/dagger.yaml)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/sagikazarmark/livekit-browser-rs/badge?style=flat-square)](https://securityscorecards.dev/viewer/?uri=github.com/sagikazarmark/livekit-browser-rs)
+[![crates.io](https://img.shields.io/crates/v/livekit-browser?style=flat-square)](https://crates.io/crates/livekit-browser)
+[![docs.rs](https://img.shields.io/docsrs/livekit-browser?style=flat-square)](https://docs.rs/livekit-browser)
+
+**Rust and WebAssembly bindings for [LiveKit](https://livekit.io)'s official browser SDK.**
+
+> [!WARNING]
+> This project is in early development and may change without notice.
 
 LiveKit's Rust SDK targets native platforms and does not build for `wasm32`. This workspace takes
 the other route: it wraps the `livekit-client` browser SDK behind a typed, framework-neutral Rust
 interface, so a Rust/WASM application can join rooms, capture and publish media, exchange data, and
 observe room state without writing JavaScript.
+
+## Features
+
+- **Room Sessions**: one session per participation lifetime, with automatic reconnection, immutable
+  revisioned snapshots, and bounded event streams that report lag instead of silently dropping
+  changes.
+- **Media capture and publishing**: independent camera, microphone, and display lifecycles with
+  typed constraints, distinguishable permission and device errors, and rollback on failed mutations.
+- **Data, messaging, and RPC**: Data Streams with real end-to-end backpressure, Participant RPC with
+  typed failure kinds, and dedicated bounded streams for Chat Messages and Transcription Segments.
+- **Diagnostics**: revisioned connection quality, on-demand typed sender and receiver statistics,
+  cloneable Audio Analysers, and application-owned SDK log callbacks.
+- **Local Clip Recording**: `MediaRecorder`-backed clips of Local Media Tracks into bounded,
+  browser-owned artifacts, independent of LiveKit Egress.
+- **Headless Dioxus integration**: a subtree-scoped Room Session provider, reactive state hooks,
+  typed actions, and bare media attachment nodes, with no styling of its own.
 
 ## Crates
 
@@ -49,7 +73,7 @@ is exported as `LIVEKIT_CLIENT_VERSION`.
 See [Browser Compatibility](docs/browser-compatibility.md) for UMD setup and load order, the browser
 capability matrix, and the atomic SDK upgrade procedure.
 
-## Quick start
+## Quick Start
 
 Joining, capturing, and publishing are separate steps. Joining captures and publishes nothing,
 capture works before or after joining, and unpublishing does not stop capture.
@@ -218,11 +242,31 @@ pair and an unauthenticated token endpoint. Do not expose it beyond a trusted de
 - [Domain language](CONTEXT.md) — the vocabulary these crates use, and the terms they avoid
 - [ADR 0001](docs/adr/0001-wrap-livekit-browser-sdk.md) — why this wraps the browser SDK
 
+## Development
+
+Minimum verification:
+
+- `cargo fmt --all -- --check`
+- `cargo clippy --workspace --all-targets --all-features -- -D warnings`
+- `cargo test --workspace --all-features`
+
+Or run the same checks in a container with [Dagger](https://dagger.io), exactly as CI
+does:
+
+- `dagger check`: from the repo root for the workspace, or from `demo/` for the demo app
+- `dagger generate`: refresh the generated files, including the GitHub Actions workflows
+
 ## License
 
-Licensed under either of [Apache License, Version 2.0](LICENSE-APACHE) or [MIT license](LICENSE-MIT)
+Licensed under either of
+
+- Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or <http://www.apache.org/licenses/LICENSE-2.0>)
+- MIT license ([LICENSE-MIT](LICENSE-MIT) or <http://opensource.org/licenses/MIT>)
+
 at your option.
 
-Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in this
-project by you, as defined in the Apache-2.0 license, shall be dual licensed as above, without any
-additional terms or conditions.
+### Contribution
+
+Unless you explicitly state otherwise, any contribution intentionally submitted
+for inclusion in the work by you, as defined in the Apache-2.0 license, shall be
+dual licensed as above, without any additional terms or conditions.
