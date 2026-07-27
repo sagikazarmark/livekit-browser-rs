@@ -22,9 +22,6 @@
     wasm-pack
     wasm-bindgen-cli_0_2_126
 
-    # Builds the demo's Cloudflare Worker (`demo/wrangler.toml`). nixpkgs does
-    # not bundle worker-build's wasm-bindgen/wasm-opt dependencies, so both have
-    # to be on PATH or it downloads its own.
     worker-build
     binaryen
   ];
