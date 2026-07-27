@@ -1,0 +1,179 @@
+type Demo {
+  let node: NodeEnvironment!
+  let dioxus: Dioxus!
+  let workerDioxus: Dioxus!
+  let workerBuild: WorkerBuild!
+  let envFile: File
+
+  new(rustVersion: String!, envFile: File) {
+    let rustContainer = Dagger.container.from("rust:" + rustVersion)
+
+    let cargoRegistryIndexCache = Dagger.cacheVolume("cargo-registry-index")
+    let cargoRegistryArchiveCache = Dagger.cacheVolume("cargo-registry-cache")
+    let cargoGitDbCache = Dagger.cacheVolume("cargo-git-db")
+
+    # `dx` keys its bundle output on the crate name alone, so two concurrent
+    # `dx bundle` runs of this crate share `target/dx/demo` and race: one wipes
+    # the wasm the other's wasm-opt pass is about to read. `dagger check` runs
+    # `build` and `worker:build` in parallel, so each gets its own target cache
+    # rather than one shared volume. The registry and git caches are only ever
+    # read concurrently, so those stay shared.
+    self.node = Dagger.nodeEnvironment(install: true, locked: true)
+    self.dioxus = Dagger.dioxus(
+      container: rustContainer,
+      envFile: envFile,
+      cargoRegistryIndexCache: cargoRegistryIndexCache,
+      cargoRegistryArchiveCache: cargoRegistryArchiveCache,
+      cargoGitDbCache: cargoGitDbCache,
+      cargoTargetCache: Dagger.cacheVolume("livekit-browser-rs-cargo-target-app"),
+    )
+    self.workerDioxus = Dagger.dioxus(
+      container: rustContainer,
+      envFile: envFile,
+      cargoRegistryIndexCache: cargoRegistryIndexCache,
+      cargoRegistryArchiveCache: cargoRegistryArchiveCache,
+      cargoGitDbCache: cargoGitDbCache,
+      cargoTargetCache: Dagger.cacheVolume("livekit-browser-rs-cargo-target-worker-client"),
+    )
+    self.workerBuild = Dagger.workerBuild(
+      container: rustContainer,
+      envFile: envFile,
+      cargoRegistryIndexCache: cargoRegistryIndexCache,
+      cargoRegistryArchiveCache: cargoRegistryArchiveCache,
+      cargoGitDbCache: cargoGitDbCache,
+      cargoTargetCache: Dagger.cacheVolume("livekit-browser-rs-cargo-target-worker"),
+    )
+    self.envFile = envFile
+
+    self
+  }
+
+  """
+  The pinned LiveKit browser SDK, taken from node_modules rather than a CDN.
+  """
+  livekitClient(ws: Workspace!): File! {
+    self
+      .node
+      .container(ws)
+      .file("node_modules/livekit-client/dist/livekit-client.umd.js")
+  }
+
+  """
+  The crate's `public/` directory, with the browser SDK filled in.
+
+  `dx` copies every file under `public/` verbatim into the served root, which is
+  where `Dioxus.toml`'s `[web.resource]` entries expect to find them.
+  """
+  assets(ws: Workspace!): Directory! {
+    Dagger
+      .directory
+      .withFile("public/styles.css", ws.file("public/styles.css"))
+      .withFile("public/livekit-client.umd.min.js", self.livekitClient(ws))
+  }
+
+  let withAssets(ws: Workspace!): Workspace! {
+    # DAGGER_TODO:
+    # the browser SDK is normally ignored by git, so adding it back causes
+    # it to be ignored next time workspace is called
+    ws
+      .withNewFile(
+        ".gitignore",
+        ws.file(".gitignore").contents + "\n" + ["!/public/livekit-client.umd.min.js"].join("\n"),
+      )
+      .withNewDirectory("public", self.assets(ws).directory("public"))
+  }
+
+  """
+  Build the demo application as a full-stack bundle.
+  """
+  build(ws: Workspace!): Directory! @check {
+    self
+      .dioxus
+      .bundle(
+        self.withAssets(ws),
+        fullstack: true,
+        release: true,
+        debugSymbols: false,
+      )
+  }
+
+  """
+  Serve the demo application.
+  """
+  service(ws: Workspace!): Service! @up {
+    self.dioxus.serve(self.withAssets(ws), fullstack: true)
+  }
+
+  """
+  Cloudflare Worker operations.
+  """
+  worker: Worker! {
+    Worker(self)
+  }
+}
+
+type Worker {
+  let parent: Demo!
+
+  """
+  Builds the Cloudflare Worker bundle.
+
+  The client is a plain SPA rather than a full-stack build: on Workers the only
+  server-side route is the token endpoint, which `src/worker.rs` serves.
+  """
+  build(ws: Workspace!): Directory! @check {
+    let client = parent
+      .workerDioxus
+      .bundle(
+        parent.withAssets(ws),
+        fullstack: false,
+        release: true,
+        debugSymbols: false,
+        platform: DioxusPlatform.WEB,
+      )
+
+    let server = parent
+      .workerBuild
+      .build(ws, args: ["--no-default-features", "--features", "worker"])
+
+    Dagger
+      .directory
+      .withDirectory("dist", client)
+      .withDirectory("dist/worker", server)
+      .withFile("wrangler.toml", ws.file("wrangler.toml"))
+  }
+
+  """
+  Runs the Cloudflare Worker locally using `wrangler dev`.
+  """
+  dev(ws: Workspace!): Service! {
+    Dagger.wrangler.dev(build(ws)
+      .{
+        if (parent.envFile != null) {
+          _.withFile(".dev.vars", parent.envFile!)
+        } else _
+      })
+  }
+
+  """
+  Deploys the Cloudflare Worker.
+  """
+  deploy(
+    ws: Workspace!,
+    """
+    Account ID for the Cloudflare account.
+    """
+    accountId: String!,
+    """
+    API token for the Cloudflare account.
+    """
+    apiToken: Secret!,
+  ): Void @cache(policy: FunctionCachePolicy.Never) {
+    Dagger
+      .wrangler(accountId: accountId, apiToken: apiToken)
+      .deploy(build(ws))
+      .sync
+
+    null
+  }
+}

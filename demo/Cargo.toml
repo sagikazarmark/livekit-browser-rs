@@ -1,5 +1,5 @@
 [package]
-name = "livekit-dioxus-prototype"
+name = "demo"
 version = "0.1.0"
 edition = "2021"
 publish = false
@@ -7,7 +7,11 @@ publish = false
 [features]
 default = ["web"]
 raw-js-contract = ["livekit-browser?/raw-js"]
-server = ["dioxus/fullstack", "dioxus/server", "dep:livekit-api"]
+# Access-token minting, shared by the native server and the Cloudflare Worker.
+# Testable on its own with `cargo test --no-default-features --features token`.
+token = ["dep:base64", "dep:hmac", "dep:serde_json", "dep:sha2", "dep:web-time"]
+server = ["token", "dioxus/fullstack", "dioxus/server"]
+worker = ["token", "dep:worker"]
 web = [
     "dioxus/web",
     "dep:dioxus",
@@ -51,10 +55,24 @@ web-sys = { version = "0.3", optional = true, features = [
     "Window",
 ] }
 
-livekit-api = { version = "=0.5.6", default-features = false, features = ["access-token"], optional = true }
+base64 = { version = "0.22", optional = true }
+hmac = { version = "0.12", optional = true }
+sha2 = { version = "0.10", optional = true }
+# `std::time::SystemTime::now()` panics on wasm32-unknown-unknown; this maps it
+# to `Date.now()` there and to `std::time` on the native server.
+web-time = { version = "1.1", optional = true }
+worker = { version = "0.8", optional = true }
+
+# Only the reference implementation the token tests are pinned against; the
+# Worker build cannot use it (see `src/token.rs`).
+[target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
+livekit-api = { version = "=0.5.6", default-features = false, features = ["access-token"] }
+
+[lib]
+crate-type = ["cdylib", "rlib"]
 
 [[bin]]
-name = "livekit-dioxus-prototype"
+name = "demo"
 path = "src/main.rs"
 
 [workspace]

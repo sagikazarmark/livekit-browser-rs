@@ -1,0 +1,6 @@
+[modules.demo]
+source = "."
+entrypoint = true
+
+[modules.demo.settings]
+rustVersion = "1.97-trixie"

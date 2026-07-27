@@ -45,8 +45,9 @@ npm install --save-exact livekit-client@2.20.1
 ```
 
 Commit both `package.json` and `package-lock.json`. Copy
-`node_modules/livekit-client/dist/livekit-client.umd.js` into the application's served assets during
-the build; `Dockerfile.web` performs that copy for the example. Do not fetch a floating CDN artifact
+`node_modules/livekit-client/dist/livekit-client.umd.js` into the application's `public` directory,
+which `dx` copies verbatim into the served root; for the example, `npm run assets` performs that
+copy and `Dockerfile.web` performs it in the container build. Do not fetch a floating CDN artifact
 at runtime.
 
 The UMD script must load synchronously before the WASM bootstrap. The Dioxus example declares it in

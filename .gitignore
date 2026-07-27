@@ -20,7 +20,7 @@ target/
 /.dioxus/
 /.env
 /.prototype-runtime/
-/demo/assets/livekit-client.umd.min.js
+/demo/public/livekit-client.umd.min.js
 /demo/node_modules/
 /crates/livekit-browser/js/node_modules/
 /tests/node_modules/

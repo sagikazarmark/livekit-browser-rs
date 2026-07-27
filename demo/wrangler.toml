@@ -1,0 +1,40 @@
+name = "dioxus-livekit-demo"
+main = "dist/worker/index.js"
+compatibility_date = "2026-07-01"
+
+send_metrics = false
+workers_dev = true
+preview_urls = true
+
+# route = { pattern = "livekit-demo.dioxus.cc", custom_domain = true, zone_name = "dioxus.cc" }
+
+[observability]
+enabled = true
+
+# `npm run build` (or `dagger call worker build`) produces both directories
+# below. Wrangler is handed a finished bundle rather than building one itself,
+# so that the Dagger pipeline and a local `npx wrangler deploy` agree on layout.
+
+[assets]
+directory = "dist/public"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+# Everything else is served straight from the asset bundle at the edge; only
+# these paths need the API secret, so only these reach the Worker.
+run_worker_first = ["/api/*", "/healthz"]
+
+# The signaling URL is the only variable the Worker needs, and it is required:
+# unlike the Docker stack there is no LiveKit server on the Worker's own origin
+# to fall back to. It is not a secret — it is handed to the browser in the token
+# response — so committing it here is fine:
+#
+#   [vars]
+#   LIVEKIT_URL = "wss://your-project.livekit.cloud"
+#
+# It is left unset so the project URL stays out of the repository. Set it with
+# `wrangler secret put LIVEKIT_URL` instead; deployments never delete secrets,
+# whereas a `[vars]` block here overwrites anything set out of band. See
+# README.md, "Setting LIVEKIT_URL without committing it".
+#
+# LIVEKIT_API_KEY and LIVEKIT_API_SECRET are the real secrets and must only ever
+# be set with `wrangler secret put`.

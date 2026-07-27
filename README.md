@@ -199,8 +199,13 @@ only Docker:
 ./run-prototype.sh
 ```
 
-See [Demo Application](docs/demo.md) for the guided checklist, LiveKit Cloud setup, phone testing
-with a local certificate authority, network ports, and the automated check.
+It also runs directly with `dx serve --fullstack`, and deploys to Cloudflare Workers against a
+LiveKit Cloud project. `demo/` is a Dagger module, so the build, the local server, and the Worker
+build, dev server, and deployment all run from `dagger call` without a host toolchain.
+
+See [Demo Application](docs/demo.md) for the guided checklist, LiveKit Cloud setup, running it
+locally with `dx`, deploying it to Cloudflare Workers, phone testing with a local certificate
+authority, network ports, and the automated check.
 
 The default setup is deliberately insecure for production: it uses LiveKit's public development key
 pair and an unauthenticated token endpoint. Do not expose it beyond a trusted development network.

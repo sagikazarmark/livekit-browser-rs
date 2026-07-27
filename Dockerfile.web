@@ -41,12 +41,14 @@ RUN cargo test -p livekit-browser tests::adapter_contracts_are_fresh -- --exact 
     && cargo test -p livekit-browser --doc \
     && cargo test --workspace --all-features \
     && cargo check --workspace --all-features \
-    && cargo check --workspace --exclude livekit-dioxus-prototype --all-features --target wasm32-unknown-unknown \
-    && cargo check -p livekit-dioxus-prototype --features raw-js-contract --target wasm32-unknown-unknown
+    && cargo check --workspace --all-features --target wasm32-unknown-unknown
 WORKDIR /app/demo
-COPY --from=livekit-sdk /app/demo/node_modules/livekit-client/dist/livekit-client.umd.js ./assets/livekit-client.umd.min.js
-RUN dx bundle --fullstack true --web --release --debug-symbols=false --features raw-js-contract \
-    && cp assets/styles.css assets/livekit-client.umd.min.js dist/public/
+COPY --from=livekit-sdk /app/demo/node_modules/livekit-client/dist/livekit-client.umd.js ./public/livekit-client.umd.min.js
+# The demo is its own workspace, so its checks only resolve from this directory.
+RUN cargo test --no-default-features --features token \
+    && cargo check --features raw-js-contract --target wasm32-unknown-unknown \
+    && cargo check --no-default-features --features worker --target wasm32-unknown-unknown
+RUN dx bundle --fullstack true --web --release --debug-symbols=false --features raw-js-contract
 
 FROM debian:trixie-slim
 RUN apt-get update \

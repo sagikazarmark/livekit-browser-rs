@@ -1,7 +1,16 @@
 {
-  "name": "livekit-dioxus-room-example",
+  "name": "demo",
   "private": true,
+  "scripts": {
+    "assets": "cp node_modules/livekit-client/dist/livekit-client.umd.js public/livekit-client.umd.min.js",
+    "build": "npm run assets && dx bundle --web --release --fullstack false --debug-symbols=false && worker-build --release --out-dir dist/worker --no-default-features --features worker",
+    "dev": "npm run build && wrangler dev",
+    "deploy": "npm run build && wrangler deploy"
+  },
   "dependencies": {
     "livekit-client": "2.20.1"
+  },
+  "devDependencies": {
+    "wrangler": "^4"
   }
 }

@@ -1,5 +1,4 @@
 [application]
-name = "livekit-dioxus-prototype"
 out_dir = "dist"
 
 [web.app]
@@ -7,7 +6,7 @@ title = "LiveKit + Dioxus WASM prototype"
 
 [web.watcher]
 reload_html = true
-watch_path = ["src", "assets"]
+watch_path = ["src", "public"]
 
 [web.resource]
 style = ["/styles.css"]

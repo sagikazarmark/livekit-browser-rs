@@ -7,22 +7,8 @@ use dioxus::server::axum::{
     routing::{get, post},
     Json,
 };
-use livekit_api::access_token::{AccessToken, VideoGrants};
-use serde::{Deserialize, Serialize};
 
-#[derive(Deserialize)]
-struct TokenRequest {
-    room: String,
-    identity: String,
-}
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-struct TokenResponse {
-    participant_token: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    server_url: Option<String>,
-}
+use crate::token::{unix_now, TokenRequest, TokenResponse, TokenService};
 
 pub fn launch() {
     dioxus::serve(|| async move {
@@ -56,51 +42,26 @@ async fn index() -> Result<Html<String>, StatusCode> {
 async fn issue_token(
     Json(request): Json<TokenRequest>,
 ) -> Result<Json<TokenResponse>, (StatusCode, String)> {
-    let room = request.room.trim();
-    let identity = request.identity.trim();
-    if room.is_empty() || identity.is_empty() || room.len() > 128 || identity.len() > 128 {
-        return Err((
-            StatusCode::BAD_REQUEST,
-            "room and identity must contain 1-128 characters".into(),
-        ));
-    }
-
-    let api_key = env::var("LIVEKIT_API_KEY").unwrap_or_else(|_| "devkey".into());
-    let api_secret = env::var("LIVEKIT_API_SECRET").unwrap_or_else(|_| "secret".into());
-    let server_url = env::var("LIVEKIT_URL")
-        .ok()
-        .map(|server_url| server_url.trim().to_owned())
-        .filter(|server_url| !server_url.is_empty());
-    let can_publish = identity_not_listed("LIVEKIT_NON_PUBLISHER_IDENTITIES", identity);
-    let can_publish_data = identity_not_listed("LIVEKIT_NON_DATA_PUBLISHER_IDENTITIES", identity);
-    let can_update_own_metadata =
-        identity_not_listed("LIVEKIT_NON_METADATA_UPDATER_IDENTITIES", identity);
-    let participant_token = AccessToken::with_api_key(&api_key, &api_secret)
-        .with_identity(identity)
-        .with_name(identity)
-        .with_grants(VideoGrants {
-            room_join: true,
-            room: room.into(),
-            can_publish,
-            can_publish_data,
-            can_update_own_metadata,
-            ..Default::default()
+    token_service()
+        .issue(&request, unix_now())
+        .map(Json)
+        .map_err(|error| {
+            let status =
+                StatusCode::from_u16(error.status()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR);
+            (status, error.to_string())
         })
-        .to_jwt()
-        .map_err(|error| (StatusCode::INTERNAL_SERVER_ERROR, error.to_string()))?;
-
-    Ok(Json(TokenResponse {
-        participant_token,
-        server_url,
-    }))
 }
 
-fn identity_not_listed(variable: &str, identity: &str) -> bool {
-    env::var(variable)
-        .map(|identities| {
-            !identities
-                .split(',')
-                .any(|candidate| candidate.trim() == identity)
-        })
-        .unwrap_or(true)
+fn token_service() -> TokenService {
+    TokenService {
+        api_key: env::var("LIVEKIT_API_KEY").unwrap_or_else(|_| "devkey".into()),
+        api_secret: env::var("LIVEKIT_API_SECRET").unwrap_or_else(|_| "secret".into()),
+        server_url: env::var("LIVEKIT_URL")
+            .ok()
+            .map(|server_url| server_url.trim().to_owned())
+            .filter(|server_url| !server_url.is_empty()),
+        non_publishers: env::var("LIVEKIT_NON_PUBLISHER_IDENTITIES").ok(),
+        non_data_publishers: env::var("LIVEKIT_NON_DATA_PUBLISHER_IDENTITIES").ok(),
+        non_metadata_updaters: env::var("LIVEKIT_NON_METADATA_UPDATER_IDENTITIES").ok(),
+    }
 }

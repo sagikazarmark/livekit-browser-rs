@@ -1,8 +1,9 @@
 # Demo Application
 
 The repository ships a Dioxus full-stack demo that exercises every workflow this wrapper
-supports, against a local LiveKit server or a LiveKit Cloud project. It is a development
-harness, not a deployable application.
+supports, against a local LiveKit server or a LiveKit Cloud project. It runs under Docker
+Compose, directly with `dx`, or deployed to Cloudflare Workers. Its token endpoint is
+unauthenticated, so it stays a development harness rather than a production application.
 
 ## Run it
 
@@ -70,6 +71,120 @@ Without a LAN address, the HTTPS endpoint is `https://localhost:8443`. Trust `.p
 For Firefox, open **Settings > Privacy & Security > Certificates > View Certificates > Authorities > Import**, select `.prototype-runtime/caddy-local-root.crt`, and trust it to identify websites. Then reopen `https://localhost:8443`.
 
 The repository ignores the root `.env` file, but it still contains a credential that can authorize access to the Cloud project. Do not share it, commit it under another name, or use this unauthenticated example token endpoint in production. To switch back to the local development server, remove the three values from `.env` and rerun `./run-prototype.sh`.
+
+## Run It Locally With `dx`
+
+Docker is not required if you have the repository's devenv shell, or a Rust toolchain with the
+`wasm32-unknown-unknown` target plus the Dioxus CLI and Node.js.
+
+```sh
+cd demo
+npm install
+npm run assets
+dx serve --fullstack
+```
+
+`npm run assets` copies the pinned LiveKit UMD bundle out of `node_modules` into `demo/public/`.
+`dx` copies everything under `public/` verbatim into the served root, which is where
+`demo/Dioxus.toml`'s `[web.resource]` entries point. Without it the page still mounts but reports
+the browser SDK as missing.
+
+`dx serve` prints its URL. The token endpoint signs with `devkey` and `secret` unless
+`LIVEKIT_API_KEY` and `LIVEKIT_API_SECRET` are set, and the browser falls back to signaling on the
+serving origin unless `LIVEKIT_URL` names a LiveKit server, so point it at a Cloud project:
+
+```sh
+LIVEKIT_URL=wss://your-project.livekit.cloud \
+LIVEKIT_API_KEY=your-api-key \
+LIVEKIT_API_SECRET=your-api-secret \
+dx serve --fullstack
+```
+
+Camera and microphone need a secure context, which `http://localhost` satisfies. Phone and LAN
+testing needs a certificate, so use the Docker stack described below for that.
+
+## Deploy To Cloudflare Workers
+
+The example also deploys to Cloudflare Workers against a LiveKit Cloud project. Nothing proxies
+LiveKit there: the browser connects straight to the Cloud signaling URL, and the Worker only issues
+participant tokens, so the API secret never reaches the browser. The local Caddy `/rtc*` reverse
+proxy exists solely to give the development LiveKit container a secure same-origin URL and has no
+counterpart in a Cloud deployment.
+
+Requirements: a LiveKit Cloud project, a Cloudflare account, and `worker-build` plus the Dioxus CLI,
+both of which the repository's devenv shell provides.
+
+The Worker reads exactly three values. `LIVEKIT_API_KEY` and `LIVEKIT_API_SECRET` are the only
+secrets; they are what the token endpoint signs with and must never reach the browser.
+`LIVEKIT_URL` is not sensitive — it is handed to the browser in the token response — but it is
+required, because unlike the Docker stack there is no LiveKit server on the deployment's own origin
+to fall back to.
+
+```sh
+cd demo
+npx wrangler secret put LIVEKIT_API_KEY
+npx wrangler secret put LIVEKIT_API_SECRET
+npx wrangler secret put LIVEKIT_URL   # or commit it to [vars] in wrangler.toml
+npm run deploy
+```
+
+`demo/wrangler.toml` ships with `[vars]` unset and the `LIVEKIT_URL` entry commented as an example,
+so the project URL stays out of the repository. Deployments never delete secrets, whereas an
+uncommented `[vars]` block overwrites anything set out of band. `demo/README.md` covers the
+alternatives (`--var` per deploy, or the dashboard plus `--keep-vars`).
+
+For a local run, copy the template instead — `wrangler dev` has no secret store, so `.dev.vars`
+carries all three:
+
+```sh
+cp .env.dist .dev.vars   # then fill in the Cloud values
+npm run dev
+```
+
+The `LIVEKIT_NON_*_IDENTITIES` variables the Docker stack sets are not read here. They exist only so
+the Playwright suite can drive permission-denial paths, so every participant on a Worker deployment
+receives the default grants.
+
+`npm run build`, which `npm run deploy` and `npm run dev` both run first, bundles the Dioxus client
+into `demo/dist/public` and compiles this crate's `worker` feature into `demo/dist/worker`.
+Wrangler is handed that finished bundle rather than building one itself, so the Dagger pipeline
+below and a plain `npx wrangler deploy` agree on the layout. Cloudflare serves the client from its
+edge asset store; only `/api/token` and `/healthz` reach the Worker, as listed under
+`run_worker_first` in `demo/wrangler.toml`. Preview the whole thing locally with `npm run dev`.
+
+The token endpoint is unauthenticated, so anyone who reaches the deployment can mint a token for
+any room in the project. Use a throwaway LiveKit project, or put access control in front of it.
+
+### With Dagger
+
+`demo/` is also a Dagger module, so the same pipeline runs in CI and locally without a host Rust,
+Dioxus, or Node.js installation:
+
+```sh
+cd demo
+dagger call build                 # full-stack bundle
+dagger call service up            # dx serve
+dagger call worker build          # Cloudflare Worker bundle
+dagger call worker dev up         # wrangler dev
+dagger call worker deploy --account-id=<id> --api-token=env://CLOUDFLARE_API_TOKEN
+```
+
+`dagger check` runs the two build targets. The `dev` target mounts whatever `--env-file` points at
+as `.dev.vars`, so the same file serves both paths:
+
+```sh
+dagger call worker dev --env-file=.dev.vars up
+```
+
+### Why the Worker Does Not Use `livekit-api`
+
+`livekit_api::access_token::AccessToken::with_api_key` reads `std::time::SystemTime::now()`, which
+on `wasm32-unknown-unknown` is a stub that panics with "time not implemented on this platform", so
+a Worker built against that crate aborts on its first request. `demo/src/token.rs` mints the same
+HS256 JWT with `hmac` and `sha2` and takes its clock from `web-time`, which resolves to `Date.now()`
+on wasm and to `std::time` on the native server. One implementation therefore serves both
+deployments, and `cargo test --no-default-features --features token` pins its claims and signature
+against `livekit-api` on native targets.
 
 ## Test From A Phone
 
