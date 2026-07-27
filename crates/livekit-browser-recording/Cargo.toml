@@ -2,6 +2,7 @@
 name = "livekit-browser-recording"
 version = "0.1.0"
 edition = "2021"
+license = "MIT OR Apache-2.0"
 readme = "README.md"
 publish = false
 
@@ -12,7 +13,9 @@ targets = ["wasm32-unknown-unknown"]
 all-features = true
 
 [dependencies]
-livekit-browser = { path = "../livekit-browser" }
+# Pinned exactly: this crate builds on the `local_clip_recording_support` integration seam, which is
+# `#[doc(hidden)]` and carries no compatibility guarantee across `livekit-browser` releases.
+livekit-browser = { version = "=0.1.0", path = "../livekit-browser" }
 web-sys = { workspace = true, features = ["Blob"] }
 
 [lib]

@@ -2,6 +2,7 @@
 name = "livekit-browser-dioxus"
 version = "0.1.0"
 edition = "2021"
+license = "MIT OR Apache-2.0"
 readme = "README.md"
 publish = false
 
@@ -14,7 +15,7 @@ all-features = true
 [dependencies]
 dioxus = { workspace = true, features = ["web"] }
 futures-util = { workspace = true }
-livekit-browser = { path = "../livekit-browser" }
+livekit-browser = { version = "0.1.0", path = "../livekit-browser" }
 wasm-bindgen = { workspace = true }
 web-sys = { workspace = true, features = ["HtmlAudioElement", "HtmlVideoElement"] }
 

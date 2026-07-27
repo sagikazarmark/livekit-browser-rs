@@ -2,8 +2,20 @@
 name = "livekit-browser"
 version = "0.1.0"
 edition = "2021"
+license = "MIT OR Apache-2.0"
 readme = "README.md"
 publish = false
+
+# Only the bundled `js/livekit-browser.js` is needed to build the crate; the TypeScript sources and
+# their toolchain are development inputs regenerated from this repository.
+exclude = [
+    "js/livekit-browser.test.mjs",
+    "js/package-lock.json",
+    "js/package.json",
+    "js/scripts/",
+    "js/src/",
+    "js/tsconfig.json",
+]
 
 # These crates only function in a browser, so docs.rs documents the wasm32 build.
 # `raw-js` and `tracing` items are labeled through `doc(cfg)`, which needs `--cfg docsrs`.
