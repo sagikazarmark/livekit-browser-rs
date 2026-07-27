@@ -3,4 +3,15 @@ ignore = [".devenv", "target"]
 [modules.rust]
 source = "github.com/sagikazarmark/daggerverse-beta/rust"
 
-settings.noCache = "true"
+[modules.rust.settings]
+version = "1.97-slim-trixie"
+noCache = "true"
+
+[modules.dagger-gha]
+source = "github.com/sagikazarmark/daggerverse-beta/dagger-gha"
+
+[modules.dagger-gha.settings]
+lock = '"PINNED"'
+
+[modules.dang]
+source = "github.com/sagikazarmark/daggerverse-beta/dang"
