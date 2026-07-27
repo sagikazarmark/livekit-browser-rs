@@ -39,13 +39,13 @@ mod actions;
 mod media;
 mod room;
 
-pub use actions::{use_room_actions, RemoteTrackPublicationSubscription, RoomSessionActions};
+pub use actions::{RemoteTrackPublicationSubscription, RoomSessionActions, use_room_actions};
 pub use media::{
     LocalAudio, LocalAudioProps, LocalVideo, LocalVideoProps, RemoteAudio, RemoteAudioProps,
     RemoteVideo, RemoteVideoProps,
 };
 pub use room::{
+    ParticipantSnapshots, RoomSessionProvider, RoomSessionProviderProps, TrackPublicationSnapshots,
     use_audio_playback, use_browser_capabilities, use_participants, use_room_session,
-    use_room_snapshot, use_track_publications, ParticipantSnapshots, RoomSessionProvider,
-    RoomSessionProviderProps, TrackPublicationSnapshots,
+    use_room_snapshot, use_track_publications,
 };

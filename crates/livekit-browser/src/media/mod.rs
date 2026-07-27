@@ -15,16 +15,16 @@ mod local_video;
 
 #[cfg(target_arch = "wasm32")]
 pub(crate) use analyser::create_audio_analyser;
-pub(crate) use analyser::{terminate_audio_analysers, AudioAnalyserSource, AudioAnalyserState};
 pub use analyser::{AudioAnalyser, AudioAnalysis};
+pub(crate) use analyser::{AudioAnalyserSource, AudioAnalyserState, terminate_audio_analysers};
 #[cfg(all(test, not(target_arch = "wasm32")))]
 pub(crate) use local_audio::AdapterScreenCapture;
-pub(crate) use local_audio::{capture_microphone_audio_track, capture_screen};
 pub use local_audio::{AudioTrackAttachment, LocalAudioTrack, LocalAudioTrackPublication};
+pub(crate) use local_audio::{capture_microphone_audio_track, capture_screen};
 pub(crate) use local_video::capture_camera_video_track;
 #[cfg(target_arch = "wasm32")]
 pub(crate) use local_video::{
-    complete_browser_capture, create_local_video_track, BrowserCaptureFuture, BrowserCaptureState,
+    BrowserCaptureFuture, BrowserCaptureState, complete_browser_capture, create_local_video_track,
 };
 pub use local_video::{LocalVideoTrack, LocalVideoTrackPublication, VideoTrackAttachment};
 

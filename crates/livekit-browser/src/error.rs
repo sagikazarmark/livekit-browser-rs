@@ -149,7 +149,9 @@ impl fmt::Display for Error {
             Self::SdkVersionMismatch { expected, actual } => write!(
                 formatter,
                 "expected livekit-client {expected}, found {}",
-                actual.as_deref().unwrap_or("an SDK with no reported version")
+                actual
+                    .as_deref()
+                    .unwrap_or("an SDK with no reported version")
             ),
             Self::UnsupportedBrowser { missing } => write!(formatter, "{missing} is unavailable"),
             Self::AdapterFailure(error) => {
@@ -159,12 +161,17 @@ impl fmt::Display for Error {
             Self::LeaveFailed(error) => {
                 write!(formatter, "could not disconnect LiveKit room: {error}")
             }
-            Self::CaptureFailed(error) => write!(formatter, "could not capture local media: {error}"),
+            Self::CaptureFailed(error) => {
+                write!(formatter, "could not capture local media: {error}")
+            }
             Self::PermissionDenied(error) => {
                 write!(formatter, "operation permission denied: {error}")
             }
             Self::DisplayCaptureNotAllowed(error) => {
-                write!(formatter, "display capture was cancelled or not allowed: {error}")
+                write!(
+                    formatter,
+                    "display capture was cancelled or not allowed: {error}"
+                )
             }
             Self::DisplayCaptureRequiresActivation(error) => write!(
                 formatter,
@@ -180,22 +187,34 @@ impl fmt::Display for Error {
                 write!(formatter, "could not control browser media: {error}")
             }
             Self::PublicationFailed(error) => {
-                write!(formatter, "could not control LiveKit Track Publication: {error}")
+                write!(
+                    formatter,
+                    "could not control LiveKit Track Publication: {error}"
+                )
             }
             Self::SubscriptionFailed(error) => {
                 write!(formatter, "could not control LiveKit subscription: {error}")
             }
             Self::StatisticsFailed(error) => {
-                write!(formatter, "could not query LiveKit media statistics: {error}")
+                write!(
+                    formatter,
+                    "could not query LiveKit media statistics: {error}"
+                )
             }
             Self::AudioAnalysisFailed(error) => {
                 write!(formatter, "could not analyse browser audio: {error}")
             }
             Self::PublisherPermissionsFailed(error) => {
-                write!(formatter, "could not control publisher permissions: {error}")
+                write!(
+                    formatter,
+                    "could not control publisher permissions: {error}"
+                )
             }
             Self::ParticipantUpdateFailed(error) => {
-                write!(formatter, "could not update Local Participant state: {error}")
+                write!(
+                    formatter,
+                    "could not update Local Participant state: {error}"
+                )
             }
             Self::DataPacketSendFailed(error) => {
                 write!(formatter, "could not send LiveKit data packet: {error}")
@@ -216,13 +235,19 @@ impl fmt::Display for Error {
                 write!(formatter, "could not read LiveKit data stream: {error}")
             }
             Self::DataStreamHandlerFailed(error) => {
-                write!(formatter, "could not register LiveKit data stream handler: {error}")
+                write!(
+                    formatter,
+                    "could not register LiveKit data stream handler: {error}"
+                )
             }
             Self::RpcInvocationFailed(error) => {
                 write!(formatter, "Participant RPC invocation failed: {error}")
             }
             Self::RpcMethodRegistrationFailed(error) => {
-                write!(formatter, "could not register Participant RPC method: {error}")
+                write!(
+                    formatter,
+                    "could not register Participant RPC method: {error}"
+                )
             }
             Self::InvalidLocalClipRecordingOptions { reason } => {
                 write!(formatter, "invalid Local Clip Recording options: {reason}")

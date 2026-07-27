@@ -7,7 +7,7 @@ use crate::error::{
     classify_subscription_permission_error, is_permission_error, participant_update_operation,
 };
 #[cfg(target_arch = "wasm32")]
-use crate::media::{complete_browser_capture, BrowserCaptureFuture, BrowserCaptureState};
+use crate::media::{BrowserCaptureFuture, BrowserCaptureState, complete_browser_capture};
 use crate::*;
 
 mod data_stream;
@@ -17,11 +17,6 @@ mod remote;
 mod rpc;
 mod snapshot;
 
-#[cfg(target_arch = "wasm32")]
-use data_stream::{
-    begin_byte_stream_open, begin_text_stream_open, OutgoingStreamInner, OutgoingStreamLifecycle,
-    StreamHandlerRegistrationInner,
-};
 #[cfg(all(test, not(target_arch = "wasm32")))]
 pub(crate) use data_stream::{
     AdapterByteStreamRead, AdapterOutgoingByteStream, AdapterOutgoingTextStream,
@@ -30,24 +25,29 @@ pub(crate) use data_stream::{
 #[cfg(any(test, target_arch = "wasm32"))]
 pub(crate) use data_stream::{AdapterIncomingByteStream, AdapterIncomingTextStream};
 pub use data_stream::{
-    ByteStreamHandlerRegistration, ByteStreamInfo, ByteStreamOptions, DataStreamErrorReason,
-    IncomingByteStream, IncomingTextStream, OutgoingByteStream, OutgoingTextStream,
-    TextStreamHandlerRegistration, TextStreamInfo, TextStreamOptions,
-    DATA_STREAM_RECEIVE_WINDOW_CHUNKS, MAX_ACTIVE_INCOMING_DATA_STREAMS,
-    MAX_DATA_STREAM_CHUNK_BYTES,
+    ByteStreamHandlerRegistration, ByteStreamInfo, ByteStreamOptions,
+    DATA_STREAM_RECEIVE_WINDOW_CHUNKS, DataStreamErrorReason, IncomingByteStream,
+    IncomingTextStream, MAX_ACTIVE_INCOMING_DATA_STREAMS, MAX_DATA_STREAM_CHUNK_BYTES,
+    OutgoingByteStream, OutgoingTextStream, TextStreamHandlerRegistration, TextStreamInfo,
+    TextStreamOptions,
+};
+#[cfg(target_arch = "wasm32")]
+use data_stream::{
+    OutgoingStreamInner, OutgoingStreamLifecycle, StreamHandlerRegistrationInner,
+    begin_byte_stream_open, begin_text_stream_open,
 };
 use events::EventQueue;
 pub use events::{RoomEvent, RoomEventKind, RoomEventStream};
-use messaging::{
-    close_bounded_queues, ChatMessageQueue, ChatMessageSubscription, DataPacketQueue,
-    DataPacketSubscription, TranscriptionSegmentQueue, TranscriptionSegmentSubscription,
-};
 #[cfg(any(test, target_arch = "wasm32"))]
 pub(crate) use messaging::{AdapterChatMessage, AdapterTranscriptionSegment};
 pub use messaging::{
     ChatMessage, ChatMessageStream, ChatMessageStreamItem, DataPacket, DataPacketDelivery,
     DataPacketStream, DataPacketStreamItem, TranscriptionSegment, TranscriptionSegmentStream,
     TranscriptionSegmentStreamItem,
+};
+use messaging::{
+    ChatMessageQueue, ChatMessageSubscription, DataPacketQueue, DataPacketSubscription,
+    TranscriptionSegmentQueue, TranscriptionSegmentSubscription, close_bounded_queues,
 };
 #[cfg(all(test, not(target_arch = "wasm32")))]
 pub(crate) use remote::AdapterRemoteMediaTrack;
@@ -58,19 +58,19 @@ pub use remote::{
     RemoteTrackPublication, RemoteVideoTrack, RemoteVideoTrackAttachment,
 };
 use rpc::encode_rpc_payload;
-#[cfg(target_arch = "wasm32")]
-use rpc::{
-    complete_rpc_handler, decode_rpc_payload, start_rpc_invocation, RpcHandlerTask,
-    RpcMethodRegistrationInner,
-};
 #[cfg(all(test, not(target_arch = "wasm32")))]
 pub(crate) use rpc::{AdapterRpcFailure, AdapterRpcOptions};
 #[cfg(any(test, target_arch = "wasm32"))]
 pub(crate) use rpc::{AdapterRpcHandlerCompletion, AdapterRpcInvocation, RpcHandlerCapacity};
 pub use rpc::{
-    RpcApplicationError, RpcFailure, RpcFailureKind, RpcInvocation, RpcMethodRegistration,
-    RpcOptions, RpcPayload, DEFAULT_RPC_HANDLER_CAPACITY, DEFAULT_RPC_RESPONSE_TIMEOUT,
-    MAX_RPC_PAYLOAD_BYTES, MIN_RPC_RESPONSE_TIMEOUT,
+    DEFAULT_RPC_HANDLER_CAPACITY, DEFAULT_RPC_RESPONSE_TIMEOUT, MAX_RPC_PAYLOAD_BYTES,
+    MIN_RPC_RESPONSE_TIMEOUT, RpcApplicationError, RpcFailure, RpcFailureKind, RpcInvocation,
+    RpcMethodRegistration, RpcOptions, RpcPayload,
+};
+#[cfg(target_arch = "wasm32")]
+use rpc::{
+    RpcHandlerTask, RpcMethodRegistrationInner, complete_rpc_handler, decode_rpc_payload,
+    start_rpc_invocation,
 };
 #[cfg(any(test, target_arch = "wasm32"))]
 pub(crate) use snapshot::AdapterRoomSnapshot;

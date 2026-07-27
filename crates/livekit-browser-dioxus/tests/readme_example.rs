@@ -2,7 +2,7 @@
 
 use dioxus::prelude::*;
 use livekit_browser::{BrowserCapabilities, RoomSession};
-use livekit_browser_dioxus::{use_participants, RoomSessionProvider};
+use livekit_browser_dioxus::{RoomSessionProvider, use_participants};
 
 #[component]
 #[allow(dead_code)]

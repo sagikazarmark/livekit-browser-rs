@@ -50,7 +50,7 @@ impl RpcPayload {
 }
 
 pub(super) fn encode_rpc_payload(payload: &RpcPayload) -> String {
-    use base64::{engine::general_purpose::STANDARD, Engine as _};
+    use base64::{Engine as _, engine::general_purpose::STANDARD};
 
     match payload {
         RpcPayload::Text(value) if value.starts_with(RPC_WIRE_PREFIX) => {
@@ -63,7 +63,7 @@ pub(super) fn encode_rpc_payload(payload: &RpcPayload) -> String {
 
 #[cfg(target_arch = "wasm32")]
 pub(super) fn decode_rpc_payload(payload: String) -> RpcPayload {
-    use base64::{engine::general_purpose::STANDARD, Engine as _};
+    use base64::{Engine as _, engine::general_purpose::STANDARD};
 
     if let Some(encoded) = payload.strip_prefix(RPC_BYTES_PREFIX) {
         if let Ok(bytes) = STANDARD.decode(encoded) {

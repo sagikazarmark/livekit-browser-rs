@@ -1,6 +1,6 @@
 #[cfg(feature = "tracing")]
 use crate::client::emit_tracing_record;
-use crate::client::{finish_initialization, ClientInner, RuntimeInspection};
+use crate::client::{ClientInner, RuntimeInspection, finish_initialization};
 use crate::error::{
     classify_capture_error, classify_chat_message_send_error, classify_data_packet_send_error,
     classify_display_capture_error, classify_participant_update_error,
@@ -33,9 +33,9 @@ fn sdk_log_levels_map_to_typed_records_and_silent_is_ignored() {
 fn tracing_integration_emits_each_level_with_message_and_context() {
     use std::sync::{Arc, Mutex};
     use tracing::{
+        Event, Level, Metadata, Subscriber,
         field::{Field, Visit},
         span::{Attributes, Id, Record},
-        Event, Level, Metadata, Subscriber,
     };
 
     #[derive(Default)]
@@ -420,11 +420,13 @@ fn terminal_room_session_rejects_local_participant_updates() {
     ));
     assert_eq!(session.snapshot().revision(), terminal_revision);
     assert_eq!(session.snapshot().local_participant().metadata(), None);
-    assert!(session
-        .snapshot()
-        .local_participant()
-        .attributes()
-        .is_empty());
+    assert!(
+        session
+            .snapshot()
+            .local_participant()
+            .attributes()
+            .is_empty()
+    );
 }
 
 #[test]
@@ -516,9 +518,11 @@ fn screen_capture_options_request_optional_system_audio() {
 #[test]
 fn room_options_default_to_automatic_subscription() {
     assert!(RoomOptions::default().auto_subscribe());
-    assert!(!RoomOptions::default()
-        .with_auto_subscribe(false)
-        .auto_subscribe());
+    assert!(
+        !RoomOptions::default()
+            .with_auto_subscribe(false)
+            .auto_subscribe()
+    );
 }
 
 #[test]
@@ -1725,13 +1729,15 @@ fn remote_track_publication_handle_becomes_terminal_without_hiding_snapshot_stat
     assert_eq!(publication.sid(), "TR_camera");
     assert_eq!(publication.kind(), TrackKind::Video);
     assert!(!publication.is_terminal());
-    assert!(session
-        .snapshot()
-        .remote_participants()
-        .get("student")
-        .unwrap()
-        .track_publications()
-        .contains_key("TR_camera"));
+    assert!(
+        session
+            .snapshot()
+            .remote_participants()
+            .get("student")
+            .unwrap()
+            .track_publications()
+            .contains_key("TR_camera")
+    );
 
     session.install_test_update(
         test_snapshot(2),
@@ -1950,13 +1956,15 @@ fn same_update_installs_remote_snapshot_before_detailed_room_events() {
     assert_eq!(joined.revision(), 2);
     assert_eq!(publications_changed.revision(), 2);
     assert_eq!(session.snapshot().revision(), 2);
-    assert!(session
-        .snapshot()
-        .remote_participants()
-        .get("student")
-        .unwrap()
-        .track_publications()
-        .contains_key("TR_microphone"));
+    assert!(
+        session
+            .snapshot()
+            .remote_participants()
+            .get("student")
+            .unwrap()
+            .track_publications()
+            .contains_key("TR_microphone")
+    );
     assert_eq!(
         joined.kind(),
         &RoomEventKind::RemoteParticipantJoined {
@@ -2254,11 +2262,13 @@ fn screen_tracks_keep_authoritative_sources_and_reject_device_controls() {
             ..
         })
     ));
-    assert!(block_on(video.publish(
-        &session,
-        VideoPublishOptions::default().with_source(TrackSource::ScreenShare),
-    ))
-    .is_ok());
+    assert!(
+        block_on(video.publish(
+            &session,
+            VideoPublishOptions::default().with_source(TrackSource::ScreenShare),
+        ))
+        .is_ok()
+    );
 }
 
 #[test]

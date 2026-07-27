@@ -9,8 +9,8 @@ use std::{
 
 use dioxus::prelude::*;
 use futures_util::{
-    future::{AbortHandle, Abortable},
     StreamExt,
+    future::{AbortHandle, Abortable},
 };
 use gloo_timers::future::TimeoutFuture;
 use livekit_browser::{
@@ -30,9 +30,9 @@ use livekit_browser::{
     VideoTrackAttachment,
 };
 use livekit_browser_dioxus::{
-    use_audio_playback, use_browser_capabilities, use_participants, use_room_actions,
-    use_room_session, use_room_snapshot, use_track_publications, LocalAudio, LocalVideo,
-    RemoteAudio, RemoteTrackPublicationSubscription, RemoteVideo, RoomSessionProvider,
+    LocalAudio, LocalVideo, RemoteAudio, RemoteTrackPublicationSubscription, RemoteVideo,
+    RoomSessionProvider, use_audio_playback, use_browser_capabilities, use_participants,
+    use_room_actions, use_room_session, use_room_snapshot, use_track_publications,
 };
 use livekit_browser_recording::{
     LocalClip, LocalClipLimits, LocalClipOptions, LocalClipRecorder, LocalClipRecording,
@@ -3485,11 +3485,10 @@ fn App() -> Element {
                                     .as_ref()
                                     .map(RoomSession::start_audio_playback);
                                 async move {
-                                    if let Some(operation) = operation {
-                                        if let Err(playback_error) = operation.await {
+                                    if let Some(operation) = operation
+                                        && let Err(playback_error) = operation.await {
                                             error.set(playback_error.to_string());
                                         }
-                                    }
                                 }
                             },
                             "Enable remote audio"
@@ -4857,11 +4856,10 @@ fn RemoteVideoPublicationNode(
                         })
                         .map(|publication| publication.set_subscribed(!subscribed));
                     async move {
-                        if let Some(operation) = operation {
-                            if let Err(subscription_error) = operation.await {
+                        if let Some(operation) = operation
+                            && let Err(subscription_error) = operation.await {
                                 error.set(subscription_error.to_string());
                             }
-                        }
                     }
                 },
                 "{subscription_label} {participant_identity} video"
@@ -5096,11 +5094,10 @@ fn RemoteAudioPublicationNode(
                         })
                         .map(|publication| publication.set_subscribed(!subscribed));
                     async move {
-                        if let Some(operation) = operation {
-                            if let Err(subscription_error) = operation.await {
+                        if let Some(operation) = operation
+                            && let Err(subscription_error) = operation.await {
                                 error.set(subscription_error.to_string());
                             }
-                        }
                     }
                 },
                 "{subscription_label} {participant_identity} audio"

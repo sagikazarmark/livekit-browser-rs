@@ -6,7 +6,7 @@ use crate::error::deserialize_statistics;
 use crate::error::raw_js_statistics;
 #[cfg(target_arch = "wasm32")]
 use crate::media::create_audio_analyser;
-use crate::media::{terminate_audio_analysers, AudioAnalyserSource, AudioAnalyserState};
+use crate::media::{AudioAnalyserSource, AudioAnalyserState, terminate_audio_analysers};
 
 /// A handle for one exact Remote Participant instance.
 ///
@@ -87,12 +87,11 @@ impl RemoteParticipant {
         if session.lifecycle.get() != SessionLifecycle::Active {
             return None;
         }
-        let participant = session
+        session
             .snapshot
             .borrow()
             .participant_for(&self.inner.locator)
-            .cloned();
-        participant
+            .cloned()
     }
 }
 
@@ -253,12 +252,11 @@ impl RemoteTrackPublication {
         if session.lifecycle.get() != SessionLifecycle::Active {
             return None;
         }
-        let publication = session
+        session
             .snapshot
             .borrow()
             .publication_for(&self.inner.locator)
-            .cloned();
-        publication
+            .cloned()
     }
 }
 

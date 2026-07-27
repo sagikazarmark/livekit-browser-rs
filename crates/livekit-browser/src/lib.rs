@@ -212,9 +212,9 @@ mod room;
 
 pub use client::{
     BrowserCapabilities, BrowserCapability, BrowserClient, CameraCaptureOptions, CameraResolution,
-    ConnectionCredentials, FacingMode, InitializeOptions, LiveKitLogLevel, LiveKitLogRecord,
-    MediaDeviceInfo, MediaDeviceKind, MicrophoneCaptureOptions, RoomOptions, ScreenCaptureOptions,
-    LIVEKIT_CLIENT_VERSION,
+    ConnectionCredentials, FacingMode, InitializeOptions, LIVEKIT_CLIENT_VERSION, LiveKitLogLevel,
+    LiveKitLogRecord, MediaDeviceInfo, MediaDeviceKind, MicrophoneCaptureOptions, RoomOptions,
+    ScreenCaptureOptions,
 };
 pub use error::{AdapterError, Error};
 pub use media::{
@@ -228,21 +228,21 @@ pub use recording::local_clip_recording_support;
 pub use room::{
     AudioPlaybackState, AudioReceiverStatistics, AudioSenderStatistics,
     ByteStreamHandlerRegistration, ByteStreamInfo, ByteStreamOptions, ChatMessage,
-    ChatMessageStream, ChatMessageStreamItem, ConnectionQuality, DataPacket, DataPacketDelivery,
+    ChatMessageStream, ChatMessageStreamItem, ConnectionQuality, DATA_STREAM_RECEIVE_WINDOW_CHUNKS,
+    DEFAULT_RPC_HANDLER_CAPACITY, DEFAULT_RPC_RESPONSE_TIMEOUT, DataPacket, DataPacketDelivery,
     DataPacketStream, DataPacketStreamItem, DataStreamErrorReason, IncomingByteStream,
     IncomingTextStream, LocalParticipant, LocalParticipantSnapshot, LocalTrackPublicationSnapshot,
-    OutgoingByteStream, OutgoingTextStream, ParticipantGrants, PublicationSubscriptionPermissions,
-    ReceiverStatistics, RemoteAudioTrack, RemoteAudioTrackAttachment, RemoteDataTrackSnapshot,
-    RemoteMediaTrack, RemoteParticipant, RemoteParticipantSnapshot, RemoteTrackPublication,
-    RemoteTrackPublicationSnapshot, RemoteVideoTrack, RemoteVideoTrackAttachment,
-    RoomConnectionState, RoomEvent, RoomEventKind, RoomEventStream, RoomSession, RoomSnapshot,
-    RpcApplicationError, RpcFailure, RpcFailureKind, RpcInvocation, RpcMethodRegistration,
-    RpcOptions, RpcPayload, SenderStatistics, TextStreamHandlerRegistration, TextStreamInfo,
-    TextStreamOptions, TrackKind, TrackSource, TranscriptionSegment, TranscriptionSegmentStream,
-    TranscriptionSegmentStreamItem, VideoReceiverStatistics, VideoSenderStatistics,
-    DATA_STREAM_RECEIVE_WINDOW_CHUNKS, DEFAULT_RPC_HANDLER_CAPACITY, DEFAULT_RPC_RESPONSE_TIMEOUT,
     MAX_ACTIVE_INCOMING_DATA_STREAMS, MAX_DATA_STREAM_CHUNK_BYTES, MAX_RPC_PAYLOAD_BYTES,
-    MIN_RPC_RESPONSE_TIMEOUT,
+    MIN_RPC_RESPONSE_TIMEOUT, OutgoingByteStream, OutgoingTextStream, ParticipantGrants,
+    PublicationSubscriptionPermissions, ReceiverStatistics, RemoteAudioTrack,
+    RemoteAudioTrackAttachment, RemoteDataTrackSnapshot, RemoteMediaTrack, RemoteParticipant,
+    RemoteParticipantSnapshot, RemoteTrackPublication, RemoteTrackPublicationSnapshot,
+    RemoteVideoTrack, RemoteVideoTrackAttachment, RoomConnectionState, RoomEvent, RoomEventKind,
+    RoomEventStream, RoomSession, RoomSnapshot, RpcApplicationError, RpcFailure, RpcFailureKind,
+    RpcInvocation, RpcMethodRegistration, RpcOptions, RpcPayload, SenderStatistics,
+    TextStreamHandlerRegistration, TextStreamInfo, TextStreamOptions, TrackKind, TrackSource,
+    TranscriptionSegment, TranscriptionSegmentStream, TranscriptionSegmentStreamItem,
+    VideoReceiverStatistics, VideoSenderStatistics,
 };
 
 #[cfg(all(test, not(target_arch = "wasm32")))]

@@ -4,9 +4,9 @@
 //! them under `run_worker_first`; every other path is served straight from the
 //! static asset bundle at the edge and never reaches this code.
 
-use worker::{event, Context, Env, Method, Request, Response, Result};
+use worker::{Context, Env, Method, Request, Response, Result, event};
 
-use crate::token::{unix_now, TokenRequest, TokenService};
+use crate::token::{TokenRequest, TokenService, unix_now};
 
 #[event(fetch)]
 async fn fetch(mut request: Request, env: Env, _context: Context) -> Result<Response> {

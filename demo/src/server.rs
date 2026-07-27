@@ -2,13 +2,13 @@ use std::env;
 
 use dioxus::prelude::*;
 use dioxus::server::axum::{
+    Json,
     http::StatusCode,
     response::Html,
     routing::{get, post},
-    Json,
 };
 
-use crate::token::{unix_now, TokenRequest, TokenResponse, TokenService};
+use crate::token::{TokenRequest, TokenResponse, TokenService, unix_now};
 
 pub fn launch() {
     dioxus::serve(|| async move {
