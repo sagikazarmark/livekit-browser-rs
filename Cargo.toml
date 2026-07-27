@@ -2,6 +2,13 @@
 members = ["crates/*"]
 resolver = "2"
 
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/sagikazarmark/livekit-browser-rs"
+homepage = "https://github.com/sagikazarmark/livekit-browser-rs"
+
 [workspace.lints.rust]
 missing_docs = "deny"
 unexpected_cfgs = { level = "deny", check-cfg = ["cfg(docsrs)"] }

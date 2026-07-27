@@ -1,9 +1,14 @@
 [package]
 name = "livekit-browser-dioxus"
-version = "0.1.0"
-edition = "2021"
-license = "MIT OR Apache-2.0"
+version = { workspace = true }
+description = "Headless Dioxus integration for livekit-browser Room Sessions"
+edition = { workspace = true }
+license = { workspace = true }
+repository = { workspace = true }
+homepage = { workspace = true }
 readme = "README.md"
+keywords = ["livekit", "dioxus", "webrtc", "wasm", "realtime"]
+categories = ["wasm", "web-programming", "gui", "multimedia"]
 publish = false
 
 # This crate only functions in a browser, so docs.rs documents the wasm32 build.

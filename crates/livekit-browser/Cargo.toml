@@ -1,9 +1,14 @@
 [package]
 name = "livekit-browser"
-version = "0.1.0"
-edition = "2021"
-license = "MIT OR Apache-2.0"
+version = { workspace = true }
+description = "Framework-neutral Rust and WebAssembly bindings for LiveKit's official browser SDK"
+edition = { workspace = true }
+license = { workspace = true }
+repository = { workspace = true }
+homepage = { workspace = true }
 readme = "README.md"
+keywords = ["livekit", "webrtc", "wasm", "browser", "realtime"]
+categories = ["wasm", "web-programming", "multimedia", "api-bindings"]
 publish = false
 
 # Only the bundled `js/livekit-browser.js` is needed to build the crate; the TypeScript sources and
