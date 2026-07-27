@@ -1,8 +1,6 @@
 [application]
 name = "livekit-dioxus-prototype"
-default_platform = "web"
 out_dir = "dist"
-asset_dir = "assets"
 
 [web.app]
 title = "LiveKit + Dioxus WASM prototype"
@@ -15,5 +13,6 @@ watch_path = ["src", "assets"]
 style = ["/styles.css"]
 script = ["/livekit-client.umd.min.js"]
 
+# Required by dioxus-cli: `WebResourceConfig::dev` has no serde default.
 [web.resource.dev]
 script = []
