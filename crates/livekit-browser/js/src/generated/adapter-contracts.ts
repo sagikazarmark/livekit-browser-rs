@@ -1,4 +1,4 @@
-// Generated from Rust DTOs by npm run contracts:generate. Do not edit.
+// Generated from Rust DTOs by `cargo test -p livekit-browser`. Do not edit.
 
 export type BrowserCapabilities = { web_rtc: boolean, secure_context: boolean, user_media: boolean, display_capture: boolean, audio_playback: boolean, audio_output_selection: boolean, transcription: boolean, local_clip_recording: boolean, };
 

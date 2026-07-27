@@ -37,7 +37,7 @@ COPY crates ./crates
 COPY docs/browser-compatibility.md ./docs/browser-compatibility.md
 COPY demo ./demo
 COPY --from=adapter-contracts /adapter-contracts-passed /tmp/adapter-contracts-passed
-RUN cargo test -p livekit-browser tests::adapter_contracts_are_fresh -- --exact \
+RUN cargo test -p livekit-browser contracts::adapter_contracts_are_fresh -- --exact \
     && cargo test -p livekit-browser --doc \
     && cargo test --workspace --all-features \
     && cargo check --workspace --all-features \

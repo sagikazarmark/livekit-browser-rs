@@ -160,14 +160,18 @@ data-stream DTOs crossing `serde-wasm-bindgen` are declared in Rust and generate
 DTOs or its Serde representation, regenerate and verify the committed TypeScript contract:
 
 ```sh
-npm run contracts:generate --prefix crates/livekit-browser/js
-npm run contracts:check --prefix crates/livekit-browser/js
+cargo test -p livekit-browser contracts::adapter_contracts_are_fresh -- --exact
 npm run check --prefix crates/livekit-browser/js
 ```
 
-`contracts:generate` runs the ignored Rust writer test. `contracts:check` runs the normal Rust
-freshness test. The regular npm `check` remains Node-only so adapter consumers do not need Cargo;
-the Rust freshness check runs explicitly in the Rust stage of `Dockerfile.web`.
+The DTOs derive `ts_rs::TS` only under `cfg(test)`, which keeps the generator out of the shipped
+wasm dependency graph, so a test is the only place the contract can be rendered. When the committed
+file is stale, `adapter_contracts_are_fresh` rewrites it and then fails: run the tests again to
+confirm the update, and commit the result. A plain `cargo test` covers this, so the command above
+matters only when you want the check alone. CI fails on its single run rather than self-healing.
+
+The npm `check` remains Node-only so adapter consumers do not need Cargo; the Rust freshness check
+runs explicitly in the Rust stage of `Dockerfile.web`.
 
 ### Intentional Exclusions
 
@@ -195,8 +199,8 @@ Upgrade `livekit-client` as one commit; never merge an intermediate mixed-versio
 3. Change `LIVEKIT_CLIENT_VERSION` in `crates/livekit-browser/src/lib.rs` to the same exact version.
 4. Update the TypeScript sources under `crates/livekit-browser/js/src` and normalized Rust types
    together for every changed SDK contract. Run
-   `npm run contracts:generate --prefix crates/livekit-browser/js`, then
-   `npm run contracts:check --prefix crates/livekit-browser/js`, and commit the updated
+   `cargo test -p livekit-browser contracts::adapter_contracts_are_fresh -- --exact` until it
+   passes, and commit the updated
    `crates/livekit-browser/js/src/generated/adapter-contracts.ts`. Run
    `npm run build --prefix crates/livekit-browser/js` and commit the generated
    `crates/livekit-browser/js/livekit-browser.js`. Update browser capability and unsupported-feature

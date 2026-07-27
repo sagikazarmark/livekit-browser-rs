@@ -1,159 +1,16 @@
 #[cfg(feature = "tracing")]
 use crate::client::emit_tracing_record;
-use crate::client::{finish_initialization, ClientInner, ExactDeviceId, RuntimeInspection};
+use crate::client::{finish_initialization, ClientInner, RuntimeInspection};
 use crate::error::{
     classify_capture_error, classify_chat_message_send_error, classify_data_packet_send_error,
     classify_display_capture_error, classify_participant_update_error,
     classify_publisher_mutation_error, classify_subscription_permission_error,
 };
-use crate::media::{AdapterAudioPublishOptions, AdapterScreenCapture, AdapterVideoPublishOptions};
-use crate::room::{
-    AdapterByteStreamRead, AdapterChatMessage, AdapterIncomingByteStream,
-    AdapterIncomingTextStream, AdapterJoin, AdapterOutgoingByteStream, AdapterOutgoingTextStream,
-    AdapterRemoteMediaTrack, AdapterRemoteParticipantSnapshot,
-    AdapterRemoteTrackPublicationSnapshot, AdapterRoomSnapshot, AdapterRpcFailure,
-    AdapterRpcHandlerCompletion, AdapterRpcInvocation, AdapterRpcOptions, AdapterTextStreamRead,
-    AdapterTranscriptionSegment, AdapterUpdate, RemoteParticipantLocator, RemotePublicationLocator,
-    RpcHandlerCapacity,
-};
+use crate::room::{AdapterRoomSnapshot, AdapterTranscriptionSegment, RpcHandlerCapacity};
 use crate::*;
 
 use futures_executor::block_on;
 use futures_util::{FutureExt, StreamExt};
-use std::path::PathBuf;
-use ts_rs::{Config, TS};
-
-const ADAPTER_CONTRACTS_HEADER: &str =
-    "// Generated from Rust DTOs by npm run contracts:generate. Do not edit.\n\n";
-
-fn adapter_contracts_path() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("js/src/generated/adapter-contracts.ts")
-}
-
-fn append_contract<T: TS>(output: &mut String, config: &Config) {
-    output.push_str("export ");
-    output.push_str(&T::decl(config));
-    output.push_str("\n\n");
-}
-
-fn render_adapter_contracts() -> String {
-    let mut output = String::from(ADAPTER_CONTRACTS_HEADER);
-    let config = Config::default();
-
-    // Keep this registry explicit and ordered so contract additions are intentional and diffs
-    // are stable across filesystems.
-    append_contract::<BrowserCapabilities>(&mut output, &config);
-    append_contract::<RoomConnectionState>(&mut output, &config);
-    append_contract::<ConnectionQuality>(&mut output, &config);
-    append_contract::<AudioPlaybackState>(&mut output, &config);
-    append_contract::<TrackSource>(&mut output, &config);
-    append_contract::<TrackKind>(&mut output, &config);
-    append_contract::<ParticipantGrants>(&mut output, &config);
-    append_contract::<LocalTrackPublicationSnapshot>(&mut output, &config);
-    append_contract::<LocalParticipantSnapshot>(&mut output, &config);
-    append_contract::<RemoteDataTrackSnapshot>(&mut output, &config);
-    append_contract::<AdapterRemoteTrackPublicationSnapshot>(&mut output, &config);
-    append_contract::<AdapterRemoteParticipantSnapshot>(&mut output, &config);
-    append_contract::<AdapterRoomSnapshot>(&mut output, &config);
-    append_contract::<RoomEventKind>(&mut output, &config);
-    append_contract::<AdapterJoin>(&mut output, &config);
-    append_contract::<AdapterUpdate>(&mut output, &config);
-    append_contract::<RuntimeInspection>(&mut output, &config);
-    append_contract::<AdapterScreenCapture>(&mut output, &config);
-    append_contract::<RemoteParticipantLocator>(&mut output, &config);
-    append_contract::<RemotePublicationLocator>(&mut output, &config);
-    append_contract::<AdapterRemoteMediaTrack>(&mut output, &config);
-    append_contract::<AdapterRpcOptions>(&mut output, &config);
-    append_contract::<AdapterRpcFailure>(&mut output, &config);
-    append_contract::<AdapterRpcInvocation>(&mut output, &config);
-    append_contract::<AdapterRpcHandlerCompletion>(&mut output, &config);
-    append_contract::<TextStreamOptions>(&mut output, &config);
-    append_contract::<ByteStreamOptions>(&mut output, &config);
-    append_contract::<TextStreamInfo>(&mut output, &config);
-    append_contract::<ByteStreamInfo>(&mut output, &config);
-    append_contract::<AdapterOutgoingTextStream>(&mut output, &config);
-    append_contract::<AdapterOutgoingByteStream>(&mut output, &config);
-    append_contract::<AdapterTextStreamRead>(&mut output, &config);
-    append_contract::<AdapterIncomingTextStream>(&mut output, &config);
-    append_contract::<AdapterIncomingByteStream>(&mut output, &config);
-    append_contract::<AdapterByteStreamRead>(&mut output, &config);
-    append_contract::<MediaDeviceKind>(&mut output, &config);
-    append_contract::<MediaDeviceInfo>(&mut output, &config);
-    append_contract::<SenderStatistics>(&mut output, &config);
-    append_contract::<VideoSenderStatistics>(&mut output, &config);
-    append_contract::<ReceiverStatistics>(&mut output, &config);
-    append_contract::<AudioReceiverStatistics>(&mut output, &config);
-    append_contract::<VideoReceiverStatistics>(&mut output, &config);
-    append_contract::<AdapterChatMessage>(&mut output, &config);
-    append_contract::<AdapterTranscriptionSegment>(&mut output, &config);
-    append_contract::<ExactDeviceId>(&mut output, &config);
-    append_contract::<FacingMode>(&mut output, &config);
-    append_contract::<CameraResolution>(&mut output, &config);
-    append_contract::<CameraCaptureOptions>(&mut output, &config);
-    append_contract::<MicrophoneCaptureOptions>(&mut output, &config);
-    append_contract::<ScreenCaptureOptions>(&mut output, &config);
-    append_contract::<VideoCodec>(&mut output, &config);
-    append_contract::<VideoEncoding>(&mut output, &config);
-    append_contract::<AdapterVideoPublishOptions>(&mut output, &config);
-    append_contract::<AudioCodec>(&mut output, &config);
-    append_contract::<AdapterAudioPublishOptions>(&mut output, &config);
-    append_contract::<PublicationSubscriptionPermissions>(&mut output, &config);
-    assert_eq!(output.pop(), Some('\n'));
-
-    assert!(output.is_ascii(), "adapter contracts must remain ASCII");
-    assert!(
-        !output.contains('\r'),
-        "adapter contracts must use LF endings"
-    );
-    output
-}
-
-#[test]
-#[ignore = "writes the committed TypeScript adapter contracts"]
-fn generate_adapter_contracts() {
-    let path = adapter_contracts_path();
-    std::fs::create_dir_all(path.parent().expect("generated contracts parent"))
-        .expect("create generated contracts directory");
-    std::fs::write(path, render_adapter_contracts()).expect("write generated adapter contracts");
-}
-
-#[test]
-fn adapter_contracts_are_fresh() {
-    let path = adapter_contracts_path();
-    let committed = std::fs::read_to_string(&path).unwrap_or_else(|error| {
-        panic!(
-            "read generated adapter contracts at {}: {error}",
-            path.display()
-        )
-    });
-    assert_eq!(
-            committed,
-            render_adapter_contracts(),
-            "adapter contracts are stale; run npm run contracts:generate --prefix crates/livekit-browser/js"
-        );
-}
-
-#[test]
-fn adapter_contract_exclusions_are_documented() {
-    let path =
-        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../docs/browser-compatibility.md");
-    let documentation = std::fs::read_to_string(&path).unwrap_or_else(|error| {
-        panic!(
-            "read adapter contract documentation at {}: {error}",
-            path.display()
-        )
-    });
-    for marker in [
-        "`BTreeMap<String, String>`",
-        "`serde_json::Value`",
-        "Positional data-packet callbacks",
-    ] {
-        assert!(
-            documentation.contains(marker),
-            "adapter contract exclusion {marker} is not documented"
-        );
-    }
-}
 
 #[test]
 fn sdk_log_levels_map_to_typed_records_and_silent_is_ignored() {

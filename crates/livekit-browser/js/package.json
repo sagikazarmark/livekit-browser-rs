@@ -5,8 +5,6 @@
   "scripts": {
     "build": "node ./scripts/build.mjs",
     "check": "tsc --noEmit && node ./scripts/build.mjs --check && node --test ./livekit-browser.test.mjs",
-    "contracts:check": "cargo test --manifest-path ../Cargo.toml tests::adapter_contracts_are_fresh -- --exact",
-    "contracts:generate": "cargo test --manifest-path ../Cargo.toml tests::generate_adapter_contracts -- --ignored --exact",
     "test": "node --test ./livekit-browser.test.mjs",
     "typecheck": "tsc --noEmit"
   },

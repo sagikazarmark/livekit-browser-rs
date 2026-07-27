@@ -246,4 +246,6 @@ pub use room::{
 };
 
 #[cfg(all(test, not(target_arch = "wasm32")))]
+mod contracts;
+#[cfg(all(test, not(target_arch = "wasm32")))]
 mod tests;
