@@ -9,19 +9,8 @@ devenv.local.yaml
 # pre-commit
 .pre-commit-config.yaml
 
-# Rust
-target/
-
-.env
-
-
-/target/
-/dist/
 /.dioxus/
 /.env
 /.prototype-runtime/
-/demo/public/livekit-client.umd.min.js
-/demo/node_modules/
-/crates/livekit-browser/js/node_modules/
-/tests/node_modules/
-/tests/test-results/
+/dist/
+target/

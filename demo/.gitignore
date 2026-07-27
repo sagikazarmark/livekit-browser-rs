@@ -2,3 +2,6 @@
 /.env
 /.wrangler/
 /dist/
+/node_modules/
+/public/livekit-client.umd.min.js
+/target/
