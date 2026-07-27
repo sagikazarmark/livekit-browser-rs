@@ -198,6 +198,11 @@ dagger call worker dev --env-file=.dev.vars up
 
 Cloudflare credentials are explicit arguments to `deploy` rather than entries in `.env.dist`.
 
+CI deploys automatically ([`demo.yaml`](../.github/workflows/demo.yaml)): pushes to `main` roll out
+to production, and pull requests upload a preview version, with its URLs posted as a PR comment. Both
+jobs need `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` repository secrets; preview only runs
+for same-repo PRs, since fork and Dependabot PRs cannot read the secrets.
+
 ## Build-only checks
 
 ```bash
