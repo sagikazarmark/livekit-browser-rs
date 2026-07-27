@@ -1,21 +1,14 @@
 [package]
 name = "livekit-browser-dioxus"
-version = { workspace = true }
+version.workspace = true
 description = "Headless Dioxus integration for livekit-browser Room Sessions"
-edition = { workspace = true }
-license = { workspace = true }
-repository = { workspace = true }
-homepage = { workspace = true }
-readme = "README.md"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
 keywords = ["livekit", "dioxus", "webrtc", "wasm", "realtime"]
 categories = ["wasm", "web-programming", "gui", "multimedia"]
-publish = false
-
-# This crate only functions in a browser, so docs.rs documents the wasm32 build.
-[package.metadata.docs.rs]
-default-target = "wasm32-unknown-unknown"
-targets = ["wasm32-unknown-unknown"]
-all-features = true
 
 [dependencies]
 dioxus = { workspace = true, features = ["web"] }
@@ -24,8 +17,11 @@ livekit-browser = { version = "0.1.0", path = "../livekit-browser" }
 wasm-bindgen = { workspace = true }
 web-sys = { workspace = true, features = ["HtmlAudioElement", "HtmlVideoElement"] }
 
-[lib]
-path = "src/lib.rs"
+# This crate only functions in a browser, so docs.rs documents the wasm32 build.
+[package.metadata.docs.rs]
+default-target = "wasm32-unknown-unknown"
+targets = ["wasm32-unknown-unknown"]
+all-features = true
 
 [lints]
 workspace = true

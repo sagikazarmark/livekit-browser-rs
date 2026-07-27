@@ -3,22 +3,23 @@
 [![crates.io](https://img.shields.io/crates/v/livekit-browser?style=flat-square)](https://crates.io/crates/livekit-browser)
 [![docs.rs](https://img.shields.io/docsrs/livekit-browser?style=flat-square)](https://docs.rs/livekit-browser)
 
-**Framework-neutral Rust and WebAssembly bindings for [LiveKit](https://livekit.io)'s official
-browser SDK.**
+**Framework-neutral Rust and WebAssembly bindings for [LiveKit](https://livekit.io)'s official browser SDK.**
 
-LiveKit's Rust SDK targets native platforms and does not build for `wasm32`. This crate takes the
-other route: it wraps the `livekit-client` browser SDK behind a typed Rust interface, so a Rust/WASM
-application can join rooms, capture and publish media, exchange data, and observe room state without
-writing JavaScript.
+LiveKit's Rust SDK targets native platforms and does not build for `wasm32`.
+This crate takes the other route: it wraps the `livekit-client` browser SDK behind a typed Rust interface,
+so a Rust/WASM application can join rooms, capture and publish media, exchange data,
+and observe room state without writing JavaScript.
 
 It is UI-framework agnostic. See [`livekit-browser-dioxus`](https://crates.io/crates/livekit-browser-dioxus)
 for a Dioxus binding and [`livekit-browser-recording`](https://crates.io/crates/livekit-browser-recording)
 for local clip recording.
 
-## The host page must load the SDK
+## Prerequisites
 
-**This crate does not bundle JavaScript.** It calls into a `livekit-client` UMD build that your page
-loads, and the version must match `LIVEKIT_CLIENT_VERSION` exactly:
+**This crate does not bundle JavaScript.**
+
+It calls into a `livekit-client` UMD build that your page loads,
+and the version must match `LIVEKIT_CLIENT_VERSION` exactly:
 
 ```sh
 npm install livekit-client@2.20.1
@@ -33,8 +34,8 @@ npm install livekit-client@2.20.1
 Session or media state can exist, so a missing or mismatched SDK surfaces as `Error::SdkMissing` or
 `Error::SdkVersionMismatch` rather than failing deep inside a later call.
 
-Media capture additionally requires a secure context: HTTPS, or the `localhost` origin browsers treat
-specially.
+Media capture additionally requires a secure context:
+HTTPS, or the `localhost` origin browsers treat specially.
 
 ## Usage
 
@@ -87,10 +88,10 @@ Never ship a LiveKit API secret to WASM.
 
 ## Feature Flags
 
-| Feature | Default | Description |
-| --- | --- | --- |
-| `tracing` | off | Routes SDK logs to `tracing` under the `livekit_client` target |
-| `raw-js` | off | Exposes the underlying `livekit-client` JavaScript objects |
+| Feature   | Default | Description                                                    |
+| --------- | ------- | -------------------------------------------------------------- |
+| `tracing` | off     | Routes SDK logs to `tracing` under the `livekit_client` target |
+| `raw-js`  | off     | Exposes the underlying `livekit-client` JavaScript objects     |
 
 `raw-js` has **no compatibility guarantee** beyond the exact pinned SDK. Calling methods on raw
 handles can bypass mutation queues and error classification, desynchronize snapshots, replace or stop
@@ -110,8 +111,8 @@ matrix and the SDK upgrade procedure.
 
 Licensed under either of
 
-- Apache License, Version 2.0 ([LICENSE-APACHE](../../LICENSE-APACHE) or <http://www.apache.org/licenses/LICENSE-2.0>)
-- MIT license ([LICENSE-MIT](../../LICENSE-MIT) or <http://opensource.org/licenses/MIT>)
+- Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or <http://www.apache.org/licenses/LICENSE-2.0>)
+- MIT license ([LICENSE-MIT](LICENSE-MIT) or <http://opensource.org/licenses/MIT>)
 
 at your option.
 

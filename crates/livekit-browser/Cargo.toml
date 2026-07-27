@@ -1,34 +1,18 @@
 [package]
 name = "livekit-browser"
-version = { workspace = true }
+version.workspace = true
 description = "Framework-neutral Rust and WebAssembly bindings for LiveKit's official browser SDK"
-edition = { workspace = true }
-license = { workspace = true }
-repository = { workspace = true }
-homepage = { workspace = true }
-readme = "README.md"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
 keywords = ["livekit", "webrtc", "wasm", "browser", "realtime"]
 categories = ["wasm", "web-programming", "multimedia", "api-bindings"]
-publish = false
 
 # Only the bundled `js/livekit-browser.js` is needed to build the crate; the TypeScript sources and
 # their toolchain are development inputs regenerated from this repository.
-exclude = [
-    "js/livekit-browser.test.mjs",
-    "js/package-lock.json",
-    "js/package.json",
-    "js/scripts/",
-    "js/src/",
-    "js/tsconfig.json",
-]
-
-# These crates only function in a browser, so docs.rs documents the wasm32 build.
-# `raw-js` and `tracing` items are labeled through `doc(cfg)`, which needs `--cfg docsrs`.
-[package.metadata.docs.rs]
-default-target = "wasm32-unknown-unknown"
-targets = ["wasm32-unknown-unknown"]
-all-features = true
-rustdoc-args = ["--cfg", "docsrs"]
+exclude = ["js/*", "!js/livekit-browser.js"]
 
 [features]
 default = []
@@ -52,8 +36,13 @@ web-sys = { workspace = true, features = ["Blob", "HtmlAudioElement", "HtmlMedia
 futures-executor = { workspace = true }
 ts-rs = { version = "=12.0.1", features = ["serde-compat"] }
 
-[lib]
-path = "src/lib.rs"
+# These crates only function in a browser, so docs.rs documents the wasm32 build.
+# `raw-js` and `tracing` items are labeled through `doc(cfg)`, which needs `--cfg docsrs`.
+[package.metadata.docs.rs]
+default-target = "wasm32-unknown-unknown"
+targets = ["wasm32-unknown-unknown"]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
 
 [lints]
 workspace = true
