@@ -126,7 +126,7 @@ exact pinned SDK.
 
 ## Snapshot Profile
 
-`demo/e2e/snapshot-normalization.spec.mjs` profiles the public Room Session/Dioxus consumption boundary
+`demo/e2e/snapshot-normalization.spec.ts` profiles the public Room Session/Dioxus consumption boundary
 in each desktop engine. One joined Local Participant is combined with 99 synthetic Remote
 Participants, two Track Publications per Remote Participant, two attributes per participant, and
 fixed metadata. The fixture therefore represents 100 participants and 198 remote Track

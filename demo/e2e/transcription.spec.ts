@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { createHmac } from "node:crypto";
 import { DataPacket, DataPacket_Kind, Transcription, TranscriptionSegment } from "@livekit/protocol";
-import { openRoomParticipant } from "./helpers/room-participant.mjs";
+import { openRoomParticipant } from "./helpers/room-participant";
 
 function base64Url(value) {
   return Buffer.from(value).toString("base64url");

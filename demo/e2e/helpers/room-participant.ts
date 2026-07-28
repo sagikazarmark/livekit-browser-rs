@@ -1,6 +1,16 @@
-import { expect } from "@playwright/test";
+import { expect, type Browser, type BrowserContext, type Page } from "@playwright/test";
 
-async function installDeterministicMedia(page, browserName) {
+type RoomParticipantOptions = {
+  browser: Browser;
+  browserName: string;
+  baseURL: string | undefined;
+  room: string;
+  identity: string;
+  prepare?: (page: Page) => Promise<void> | void;
+  participantToken?: string;
+};
+
+async function installDeterministicMedia(page: Page, browserName: string) {
   if (browserName !== "webkit" && browserName !== "firefox") return;
   await page.evaluate(() => {
     const mediaDevices = navigator.mediaDevices;
@@ -75,7 +85,7 @@ export async function openRoomParticipant({
   identity,
   prepare,
   participantToken,
-}) {
+}: RoomParticipantOptions): Promise<{ context: BrowserContext; page: Page }> {
   const context = await browser.newContext({
     baseURL,
     permissions: browserName === "chromium" ? ["camera", "microphone"] : undefined,

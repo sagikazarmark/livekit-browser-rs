@@ -30,7 +30,7 @@ LiveKit container a secure same-origin URL.
 | `src/main.rs` | Binary shim that launches the client or the native server. |
 | `public/` | Static files `dx` copies verbatim into the served root, per `[web.resource]` in `Dioxus.toml`. |
 | `e2e/` | The Playwright compatibility gate. It drives this application, so it lives with it. |
-| `playwright.config.mjs` | Gate configuration. Output goes to the gitignored `build/playwright`. |
+| `playwright.config.ts` | Gate configuration. Output goes to the gitignored `build/playwright`. |
 
 `livekit-api` is a dev-dependency only. Its `AccessToken::with_api_key` reads
 `std::time::SystemTime::now()`, which panics on `wasm32-unknown-unknown`, so a Worker built against

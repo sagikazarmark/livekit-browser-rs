@@ -1,4 +1,4 @@
-import { defineConfig } from "@playwright/test";
+import { defineConfig, type PlaywrightTestOptions } from "@playwright/test";
 
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:8081";
 
@@ -7,7 +7,10 @@ const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:8081";
 // has to be told to treat that origin as secure. `chrome-headless-shell`, which is
 // what `browserName: "chromium"` picks by default, ignores that switch — hence the
 // `channel` below, which selects the full build and its own headless mode.
-const chromium = {
+const chromium: Pick<
+  PlaywrightTestOptions,
+  "browserName" | "channel" | "launchOptions"
+> = {
   browserName: "chromium",
   channel: "chromium",
   launchOptions: {
@@ -21,27 +24,27 @@ const chromium = {
 };
 
 const browserContractTests = [
-  "runtime.spec.mjs",
-  "room-session.spec.mjs",
-  "snapshot-normalization.spec.mjs",
-  "local-video-track.spec.mjs",
-  "local-audio-track.spec.mjs",
-  "local-clip-recording.spec.mjs",
-  "media-devices.spec.mjs",
-  "screen-media.spec.mjs",
-  "remote-media.spec.mjs",
-  "remote-participants.spec.mjs",
-  "publisher-permissions.spec.mjs",
-  "participant-state.spec.mjs",
-  "data-packets.spec.mjs",
-  "data-streams.spec.mjs",
-  "rpc.spec.mjs",
-  "chat.spec.mjs",
-  "transcription.spec.mjs",
-  "media-health.spec.mjs",
-  "audio-analysis.spec.mjs",
-  "dioxus-integration.spec.mjs",
-  "demo-experience.spec.mjs",
+  "runtime.spec.ts",
+  "room-session.spec.ts",
+  "snapshot-normalization.spec.ts",
+  "local-video-track.spec.ts",
+  "local-audio-track.spec.ts",
+  "local-clip-recording.spec.ts",
+  "media-devices.spec.ts",
+  "screen-media.spec.ts",
+  "remote-media.spec.ts",
+  "remote-participants.spec.ts",
+  "publisher-permissions.spec.ts",
+  "participant-state.spec.ts",
+  "data-packets.spec.ts",
+  "data-streams.spec.ts",
+  "rpc.spec.ts",
+  "chat.spec.ts",
+  "transcription.spec.ts",
+  "media-health.spec.ts",
+  "audio-analysis.spec.ts",
+  "dioxus-integration.spec.ts",
+  "demo-experience.spec.ts",
 ];
 
 export default defineConfig({
@@ -62,7 +65,7 @@ export default defineConfig({
   projects: [
     {
       name: "chromium",
-      testIgnore: "mobile-compatibility.spec.mjs",
+      testIgnore: "mobile-compatibility.spec.ts",
       use: {
         ...chromium,
         permissions: ["camera", "microphone"],
@@ -92,7 +95,7 @@ export default defineConfig({
     },
     {
       name: "mobile-chromium",
-      testMatch: "mobile-compatibility.spec.mjs",
+      testMatch: "mobile-compatibility.spec.ts",
       use: {
         ...chromium,
         deviceScaleFactor: 2,
@@ -103,7 +106,7 @@ export default defineConfig({
     },
     {
       name: "mobile-webkit",
-      testMatch: "mobile-compatibility.spec.mjs",
+      testMatch: "mobile-compatibility.spec.ts",
       use: {
         browserName: "webkit",
         deviceScaleFactor: 3,

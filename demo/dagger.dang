@@ -87,7 +87,7 @@ type Demo {
   Build the demo application as a full-stack bundle.
 
   `raw-js-contract` surfaces the raw `livekit-client` handles behind the
-  `raw-js` feature in the UI, which `e2e/runtime.spec.mjs` asserts on. It is
+  `raw-js` feature in the UI, which `e2e/runtime.spec.ts` asserts on. It is
   part of what the demo demonstrates, so the served build carries it too.
   """
   build(ws: Workspace!): Directory! @check {
@@ -126,7 +126,7 @@ type Demo {
       .playwright(ws, demo, livekit)
       .withExec([
         "npm", "exec", "--", "playwright", "test",
-        "--config", "playwright.config.mjs",
+        "--config", "playwright.config.ts",
         # The config also defines Firefox, WebKit, and an emulated WebKit
         # phone for local runs against the Docker stack. Only the Chromium
         # engine is installed here, so only its projects can run.
@@ -188,7 +188,7 @@ type Demo {
       .withServiceBinding("livekit", livekit)
       .withServiceBinding("demo", demo)
       .withEnvVariable("PLAYWRIGHT_BASE_URL", demo.endpoint(scheme: "http"))
-      # `e2e/transcription.spec.mjs` signs its own agent token.
+      # `e2e/transcription.spec.ts` signs its own agent token.
       .withEnvVariable("LIVEKIT_API_KEY", "devkey")
       .withEnvVariable("LIVEKIT_API_SECRET", "secret")
   }

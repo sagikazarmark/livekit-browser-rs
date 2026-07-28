@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { openRoomParticipant } from "./helpers/room-participant.mjs";
+import { openRoomParticipant } from "./helpers/room-participant";
 
 test("prefills a second participant and explains browser capabilities", async ({ page }) => {
   await page.goto("/?room=demo-room&identity=demo-primary");

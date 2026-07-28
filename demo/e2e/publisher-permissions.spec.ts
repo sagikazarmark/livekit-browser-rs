@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { openRoomParticipant } from "./helpers/room-participant.mjs";
+import { openRoomParticipant } from "./helpers/room-participant";
 
 function remoteVideo(page, identity) {
   return page.locator(

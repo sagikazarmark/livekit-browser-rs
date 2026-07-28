@@ -264,7 +264,7 @@ with the two bundle builds, which is exactly what CI does. Nothing here touches 
 project, so the gate stays independent of Cloud quotas, service state, and network availability.
 
 The Dagger check installs only the Chromium engine and runs the `chromium` and `mobile-chromium`
-projects. `playwright.config.mjs` also defines `firefox`, `webkit`, and an emulated WebKit phone; run
+projects. `playwright.config.ts` also defines `firefox`, `webkit`, and an emulated WebKit phone; run
 those against the Docker stack from the repository root:
 
 ```sh
