@@ -1,5 +1,25 @@
 import { defineConfig } from "@playwright/test";
 
+const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:8081";
+
+// Media capture needs a secure context. `127.0.0.1` is one by definition, but the
+// Dagger check serves the demo from a service hostname over plain HTTP, so Chromium
+// has to be told to treat that origin as secure. `chrome-headless-shell`, which is
+// what `browserName: "chromium"` picks by default, ignores that switch — hence the
+// `channel` below, which selects the full build and its own headless mode.
+const chromium = {
+  browserName: "chromium",
+  channel: "chromium",
+  launchOptions: {
+    args: [
+      "--use-fake-device-for-media-stream",
+      "--use-fake-ui-for-media-stream",
+      "--autoplay-policy=no-user-gesture-required",
+      `--unsafely-treat-insecure-origin-as-secure=${new URL(baseURL).origin}`,
+    ],
+  },
+};
+
 const browserContractTests = [
   "runtime.spec.mjs",
   "room-session.spec.mjs",
@@ -25,28 +45,27 @@ const browserContractTests = [
 ];
 
 export default defineConfig({
-  testDir: ".",
+  testDir: "./e2e",
+  outputDir: "./build/playwright/test-results",
   timeout: 45_000,
   retries: 0,
   workers: 1,
-  reporter: "line",
+  reporter: [
+    ["line"],
+    ["html", { open: "never", outputFolder: "./build/playwright/report" }],
+  ],
   use: {
-    baseURL: process.env.BASE_URL || "http://127.0.0.1:8081",
+    baseURL,
+    trace: "retain-on-failure",
+    screenshot: "only-on-failure",
   },
   projects: [
     {
       name: "chromium",
       testIgnore: "mobile-compatibility.spec.mjs",
       use: {
-        browserName: "chromium",
+        ...chromium,
         permissions: ["camera", "microphone"],
-        launchOptions: {
-          args: [
-            "--use-fake-device-for-media-stream",
-            "--use-fake-ui-for-media-stream",
-            "--autoplay-policy=no-user-gesture-required",
-          ],
-        },
       },
     },
     {
@@ -75,7 +94,7 @@ export default defineConfig({
       name: "mobile-chromium",
       testMatch: "mobile-compatibility.spec.mjs",
       use: {
-        browserName: "chromium",
+        ...chromium,
         deviceScaleFactor: 2,
         hasTouch: true,
         isMobile: true,

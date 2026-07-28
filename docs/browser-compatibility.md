@@ -1,12 +1,14 @@
 # Browser Compatibility
 
 This document is the compatibility contract for the exact `livekit-client` version wrapped by
-`livekit-browser`. A passing run of `./test-prototype.sh` is required before changing the browser
-SDK, normalized adapter, Rust interface, or Dioxus consumer.
+`livekit-browser`. A passing run of the compatibility gate — `dagger check` from `demo/` — is
+required before changing the browser SDK, normalized adapter, Rust interface, or Dioxus consumer.
+The gate itself is the Playwright suite in `demo/e2e`; see [Demo Application](demo.md) for how to
+run it, including the Firefox and WebKit projects the Dagger check does not install.
 
 ## Supported Browsers
 
-The automated gate uses the browser revisions bundled with Playwright 1.61.1. The matrix describes
+The gate uses the browser revisions bundled with Playwright 1.61.1. The matrix describes
 the workflows the wrapper gates, not every device and codec combination available in those browser
 families.
 
@@ -124,7 +126,7 @@ exact pinned SDK.
 
 ## Snapshot Profile
 
-`tests/snapshot-normalization.spec.mjs` profiles the public Room Session/Dioxus consumption boundary
+`demo/e2e/snapshot-normalization.spec.mjs` profiles the public Room Session/Dioxus consumption boundary
 in each desktop engine. One joined Local Participant is combined with 99 synthetic Remote
 Participants, two Track Publications per Remote Participant, two attributes per participant, and
 fixed metadata. The fixture therefore represents 100 participants and 198 remote Track
@@ -164,6 +166,9 @@ cargo test -p livekit-browser contracts::adapter_contracts_are_fresh -- --exact
 npm run check --prefix crates/livekit-browser/js
 ```
 
+`dagger generate livekit-browser:contracts` runs the same test in a container and applies the
+rewritten contract as a changeset.
+
 The DTOs derive `ts_rs::TS` only under `cfg(test)`, which keeps the generator out of the shipped
 wasm dependency graph, so a test is the only place the contract can be rendered. When the committed
 file is stale, `adapter_contracts_are_fresh` rewrites it and then fails: run the tests again to
@@ -202,15 +207,18 @@ Upgrade `livekit-client` as one commit; never merge an intermediate mixed-versio
    `cargo test -p livekit-browser contracts::adapter_contracts_are_fresh -- --exact` until it
    passes, and commit the updated
    `crates/livekit-browser/js/src/generated/adapter-contracts.ts`. Run
-   `npm run build --prefix crates/livekit-browser/js` and commit the generated
+   `npm run build --prefix crates/livekit-browser/js` (or
+   `dagger generate livekit-browser:adapter`, which runs the same bundle in a container) and
+   commit the generated
    `crates/livekit-browser/js/livekit-browser.js`. Update browser capability and unsupported-feature
    documentation.
 5. Update adapter, runtime-failure, browser workflow, mobile capability, cleanup, and snapshot profile
    contracts for the new behavior.
-6. Run `./test-prototype.sh`. The required gate forces the pinned local LiveKit service even when
-   `.env` configures Cloud, then runs lower-level adapter/Rust checks and the Chromium, Firefox,
-   WebKit, mobile-sized, target-scale, and two-participant workflows. Use
-   `./test-prototype.sh cloud` only for an explicit, non-deterministic Cloud integration run.
+6. Run `dagger check` from the repository root for the adapter and Rust checks, and from `demo/` for
+   the compatibility gate. The gate always uses a pinned local LiveKit service, never Cloud, and
+   covers the Chromium, mobile-sized, target-scale, and two-participant workflows. Run the Firefox
+   and WebKit projects against the Docker stack as described in [Demo Application](demo.md); a Cloud
+   run stays an explicit, non-deterministic extra.
 7. Manually complete one two-participant physical-device acceptance pass: join, publish camera and
    microphone, subscribe and attach remote media, exchange each messaging family used by the
    application, record and revoke a Local Clip, leave, and confirm hardware/listener cleanup.

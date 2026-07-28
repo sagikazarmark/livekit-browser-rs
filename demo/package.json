@@ -5,12 +5,14 @@
     "assets": "cp node_modules/livekit-client/dist/livekit-client.umd.js public/livekit-client.umd.min.js",
     "build": "npm run assets && dx bundle --web --release --fullstack false --debug-symbols=false && worker-build --release --out-dir dist/worker --no-default-features --features worker",
     "dev": "npm run build && wrangler dev",
-    "deploy": "npm run build && wrangler deploy"
+    "test": "playwright test --config playwright.config.mjs"
   },
   "dependencies": {
     "livekit-client": "2.20.1"
   },
   "devDependencies": {
+    "@livekit/protocol": "1.46.6",
+    "@playwright/test": "1.61.1",
     "wrangler": "^4"
   }
 }

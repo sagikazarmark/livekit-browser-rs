@@ -1,7 +1,9 @@
+/build/
+/dist/
+/node_modules/
+/target/
+
 /.dev.vars
 /.env
 /.wrangler/
-/dist/
-/node_modules/
 /public/livekit-client.umd.min.js
-/target/

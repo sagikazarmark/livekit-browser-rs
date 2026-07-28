@@ -82,12 +82,19 @@ export async function openRoomParticipant({
   });
   const page = await context.newPage();
   if (participantToken) {
-    await page.route("**/api/token", (route) =>
-      route.fulfill({
+    // Only the token is faked. The rest of the response has to stay whatever the
+    // real endpoint returns: without its `serverUrl` the client falls back to
+    // deriving a signaling URL from the page origin, which only reaches LiveKit
+    // when something proxies it onto that origin.
+    await page.route("**/api/token", async (route) => {
+      const response = await route.fetch();
+      const body = await response.json();
+      await route.fulfill({
+        response,
         contentType: "application/json",
-        body: JSON.stringify({ participantToken }),
-      }),
-    );
+        body: JSON.stringify({ ...body, participantToken }),
+      });
+    });
   }
   await page.goto("/");
   await installDeterministicMedia(page, browserName);

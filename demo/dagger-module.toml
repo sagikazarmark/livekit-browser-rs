@@ -6,6 +6,7 @@ include = [
   "!.direnv",
   "!.prototype-runtime",
   "!.wrangler",
+  "!build",
   "!dist",
   "!node_modules",
   "!target",

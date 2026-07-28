@@ -85,6 +85,10 @@ type Demo {
 
   """
   Build the demo application as a full-stack bundle.
+
+  `raw-js-contract` surfaces the raw `livekit-client` handles behind the
+  `raw-js` feature in the UI, which `e2e/runtime.spec.mjs` asserts on. It is
+  part of what the demo demonstrates, so the served build carries it too.
   """
   build(ws: Workspace!): Directory! @check {
     self
@@ -94,6 +98,7 @@ type Demo {
         fullstack: true,
         release: true,
         debugSymbols: false,
+        features: ["raw-js-contract"],
       )
   }
 
@@ -101,7 +106,91 @@ type Demo {
   Serve the demo application.
   """
   service(ws: Workspace!): Service! @up {
-    self.dioxus.serve(self.withAssets(ws), fullstack: true)
+    self
+      .dioxus
+      .serve(self.withAssets(ws), fullstack: true, features: ["raw-js-contract"])
+  }
+
+  """
+  Run the browser compatibility gate.
+
+  The suite drives the demo application itself: its pages are the harness, and
+  its token endpoint mints the restricted grants the permission-denial specs
+  need. See `docs/browser-compatibility.md` for what the gate covers.
+  """
+  test(ws: Workspace!): Directory! @check {
+    let livekit = self.livekitService
+    let demo = self.testService(ws, livekit)
+
+    self
+      .playwright(ws, demo, livekit)
+      .withExec([
+        "npm", "exec", "--", "playwright", "test",
+        "--config", "playwright.config.mjs",
+        # The config also defines Firefox, WebKit, and an emulated WebKit
+        # phone for local runs against the Docker stack. Only the Chromium
+        # engine is installed here, so only its projects can run.
+        "--project", "chromium",
+        "--project", "mobile-chromium",
+      ])
+      .directory("build/playwright")
+  }
+
+  # A development LiveKit server, on the public `devkey`/`secret` pair.
+  let livekitService: Service! {
+    Dagger
+      .container
+      .from("livekit/livekit-server:v1.13.4")
+      .withExposedPort(7880)
+      .withExposedPort(7881)
+      .withExposedPort(7882, protocol: NetworkProtocol.UDP, experimentalSkipHealthcheck: true)
+      .asService(args: ["/livekit-server", "--dev", "--bind", "0.0.0.0", "--udp-port", "7882"])
+  }
+
+  # The bundled demo application, served the way a deployment would serve it.
+  let testService(ws: Workspace!, livekit: Service!): Service! {
+    Dagger
+      .container
+      .from("debian:trixie-slim")
+      .withDirectory("/app", self.build(ws))
+      .withWorkdir("/app")
+      .withEnvVariable("IP", "0.0.0.0")
+      .withEnvVariable("PORT", "8080")
+      # The token endpoint hands this URL to the browser, which is what resolves
+      # it, so it has to be the session-wide address rather than a local alias.
+      .withEnvVariable("LIVEKIT_URL", livekit.endpoint(scheme: "ws", port: 7880))
+      .withEnvVariable("LIVEKIT_API_KEY", "devkey")
+      .withEnvVariable("LIVEKIT_API_SECRET", "secret")
+      # Identities the token endpoint issues reduced grants to, so the suite can
+      # drive the permission-denial paths.
+      .withEnvVariable("LIVEKIT_NON_PUBLISHER_IDENTITIES", "publisher-permissions-denied")
+      .withEnvVariable(
+        "LIVEKIT_NON_DATA_PUBLISHER_IDENTITIES",
+        "data-packets-denied,data-streams-denied",
+      )
+      .withEnvVariable("LIVEKIT_NON_METADATA_UPDATER_IDENTITIES", "participant-state-denied")
+      .withExposedPort(8080)
+      .asService(args: ["./server"])
+  }
+
+  let playwright(ws: Workspace!, demo: Service!, livekit: Service!): Container! {
+    self
+      .node
+      .container(ws)
+      .withMountedCache(
+        "${HOME}/.cache/ms-playwright",
+        Dagger.cacheVolume("ms-playwright"),
+        expand: true,
+      )
+      .withExec(["npm", "exec", "--", "playwright", "install", "chromium", "--with-deps"])
+      # The browser reaches both directly: the demo for the page, LiveKit for
+      # signaling and ICE.
+      .withServiceBinding("livekit", livekit)
+      .withServiceBinding("demo", demo)
+      .withEnvVariable("PLAYWRIGHT_BASE_URL", demo.endpoint(scheme: "http"))
+      # `e2e/transcription.spec.mjs` signs its own agent token.
+      .withEnvVariable("LIVEKIT_API_KEY", "devkey")
+      .withEnvVariable("LIVEKIT_API_SECRET", "secret")
   }
 
   """

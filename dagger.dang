@@ -1,0 +1,65 @@
+type LivekitBrowser {
+  let rustVersion: String!
+
+  new(
+    """
+    Version (image tag) to use from the official Rust image repository.
+    """
+    rustVersion: String! = "latest",
+  ) {
+    self.rustVersion = rustVersion
+
+    self
+  }
+
+  """
+  Bundle the browser adapter from its TypeScript sources.
+
+  `crates/livekit-browser/js/livekit-browser.js` is committed so the crate
+  builds without a JavaScript toolchain, which means it has to be refreshed
+  whenever the sources under `crates/livekit-browser/js/src` change.
+  """
+  adapter(ws: Workspace!): Changeset! @generate {
+    let source = ws.directory("/", gitignore: true)
+
+    Dagger
+      .nodeEnvironment(install: true, locked: true)
+      .withRun(source.asWorkspace("crates/livekit-browser/js"), "build")
+      .directory("/work/src")
+      .filter(gitignore: true)
+      .changes(source)
+  }
+
+  """
+  Render the TypeScript adapter contracts from the Rust DTOs.
+
+  The DTOs only derive `ts_rs::TS` under `cfg(test)`, so a test is the only
+  place `crates/livekit-browser/js/src/generated/adapter-contracts.ts` can be
+  rendered: it rewrites the committed file and then fails when it drifted.
+  """
+  contracts(ws: Workspace!): Changeset! @generate {
+    let source = ws.directory("/", gitignore: true)
+
+    let test = Dagger
+      .rust(version: self.rustVersion)
+      .container(ws)
+      .withExec(
+        [
+          "cargo", "test", "-p", "livekit-browser",
+          "contracts::adapter_contracts_are_fresh", "--", "--exact",
+        ],
+        expect: ReturnType.ANY,
+      )
+
+    # Drift is reported as a failure once the file has been rewritten, so only
+    # an unrelated failure should stop the generator.
+    if (test.exitCode != 0 and !test.combinedOutput.contains("adapter contracts were stale")) {
+      raise test.combinedOutput
+    }
+
+    test
+      .directory("/work/src")
+      .filter(gitignore: true)
+      .changes(source)
+  }
+}

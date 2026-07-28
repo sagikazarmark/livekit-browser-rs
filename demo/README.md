@@ -29,6 +29,8 @@ LiveKit container a secure same-origin URL.
 | `src/lib.rs` | Feature gating for the four builds. |
 | `src/main.rs` | Binary shim that launches the client or the native server. |
 | `public/` | Static files `dx` copies verbatim into the served root, per `[web.resource]` in `Dioxus.toml`. |
+| `e2e/` | The Playwright compatibility gate. It drives this application, so it lives with it. |
+| `playwright.config.mjs` | Gate configuration. Output goes to the gitignored `build/playwright`. |
 
 `livekit-api` is a dev-dependency only. Its `AccessToken::with_api_key` reads
 `std::time::SystemTime::now()`, which panics on `wasm32-unknown-unknown`, so a Worker built against
@@ -184,13 +186,20 @@ cd demo
 
 dagger call build                 # full-stack bundle
 dagger call service up            # dx serve
+dagger call test                  # Playwright compatibility gate
 dagger call worker build          # Cloudflare Worker bundle
 dagger call worker dev up         # wrangler dev
 dagger call worker deploy --account-id=<id> --api-token=env://CLOUDFLARE_API_TOKEN
 ```
 
-`dagger check` runs the two build targets. The `dev` target mounts whatever `--env-file` points at
-as `.dev.vars`, so the same file serves both paths:
+`dagger check` runs the two build targets and the gate. `test` starts the bundled application next
+to a development `livekit-server` container and returns the HTML report; export it with
+`dagger call test export --path build/playwright`. It installs only the Chromium engine, so it runs
+the `chromium` and `mobile-chromium` projects. See [Demo Application](../docs/demo.md#automated-check)
+for running the Firefox and WebKit projects against the Docker stack.
+
+The `dev` target mounts whatever `--env-file` points at as `.dev.vars`, so the same file serves both
+paths:
 
 ```bash
 dagger call worker dev --env-file=.dev.vars up

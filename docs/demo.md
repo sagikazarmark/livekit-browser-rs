@@ -248,30 +248,40 @@ HTTP_PORT=8090 ./run-prototype.sh
 
 ## Automated Check
 
-Install the pinned browser SDK, build both Dioxus app bundles, start the local stack,
-and run the browser workflow with one command:
+The compatibility gate is a Playwright suite that drives the demo application: its pages are the
+harness, and its token endpoint mints the reduced grants the permission-denial specs need. The suite
+lives with the application it drives, in `demo/e2e`, and runs in [Dagger](https://dagger.io) with no
+host toolchain:
 
 ```sh
-./test-prototype.sh
+cd demo
+dagger call test export --path build/playwright
 ```
 
-The required compatibility gate always uses the local LiveKit container, even when the root `.env`
-configures LiveKit Cloud. This keeps the gate independent of Cloud quotas, service state, and network
-availability. To run the same workflows against the configured Cloud project explicitly, use
-`./test-prototype.sh cloud`. Cloud mode requires `LIVEKIT_URL`, `LIVEKIT_API_KEY`, and
-`LIVEKIT_API_SECRET` and is an optional integration run.
+It builds the full-stack bundle, starts it alongside a development `livekit-server` container, runs
+the suite against them, and returns the HTML report. `dagger check` from `demo/` runs it together
+with the two bundle builds, which is exactly what CI does. Nothing here touches a LiveKit Cloud
+project, so the gate stays independent of Cloud quotas, service state, and network availability.
 
-This is the complete compatibility gate. The image build typechecks the TypeScript adapter, verifies
-its committed JavaScript bundle, runs the adapter contracts and workspace tests, and runs host and
-WASM all-feature typechecks. Playwright then runs the supported desktop
-browsers, mobile-sized Chromium and WebKit consumers, lifecycle cleanup contracts, and the
-near-100-participant snapshot profile against freshly recreated local stack containers. Named
-volumes are retained so the trusted mobile CA remains stable.
+The Dagger check installs only the Chromium engine and runs the `chromium` and `mobile-chromium`
+projects. `playwright.config.mjs` also defines `firefox`, `webkit`, and an emulated WebKit phone; run
+those against the Docker stack from the repository root:
 
-With the local stack already running, rerun only the browser workflow with
-`LIVEKIT_API_KEY=devkey LIVEKIT_API_SECRET=secret docker compose --profile test run --rm smoke`.
+```sh
+./run-prototype.sh
+cd demo && npm ci && npx playwright install --with-deps
+PLAYWRIGHT_BASE_URL=http://127.0.0.1:8081 npx playwright test
+```
 
-The Playwright check runs the Room Session contract in Chromium, Firefox, and WebKit and verifies that:
+`compose.yaml` sets the `LIVEKIT_NON_*_IDENTITIES` variables the permission-denial specs rely on, so
+that stack serves the suite as-is. Firefox and WebKit need a real audio sink for the Audio Analyser
+specs; install `pulseaudio` and start it before running them.
+
+The workspace's own verification — the TypeScript adapter typecheck, its committed JavaScript
+bundle, the adapter contracts, the workspace tests, and the host and WASM all-feature typechecks —
+runs from `dagger check` at the repository root. `Dockerfile.web` only builds and serves the demo.
+
+The suite runs the Room Session contract and verifies that:
 
 - Dioxus WASM mounts and reports browser support.
 - A subtree provider reacts to Room Snapshots, exposes typed actions, and drops only its own Room Session clones when unmounted.

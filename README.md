@@ -224,8 +224,12 @@ only Docker:
 ```
 
 It also runs directly with `dx serve --fullstack`, and deploys to Cloudflare Workers against a
-LiveKit Cloud project. `demo/` is a Dagger module, so the build, the local server, and the Worker
-build, dev server, and deployment all run from `dagger call` without a host toolchain.
+LiveKit Cloud project. `demo/` is a Dagger module, so the build, the local server, the compatibility
+gate, and the Worker build, dev server, and deployment all run from `dagger call` without a host
+toolchain.
+
+The gate is the Playwright suite in `demo/e2e`, which drives the demo application against a
+development LiveKit server. `dagger call test` from `demo/` runs it.
 
 See [Demo Application](docs/demo.md) for the guided checklist, LiveKit Cloud setup, running it
 locally with `dx`, deploying it to Cloudflare Workers, phone testing with a local certificate
@@ -253,8 +257,10 @@ Minimum verification:
 Or run the same checks in a container with [Dagger](https://dagger.io), exactly as CI
 does:
 
-- `dagger check`: from the repo root for the workspace, or from `demo/` for the demo app
-- `dagger generate`: refresh the generated files, including the GitHub Actions workflows
+- `dagger check`: from the repo root for the workspace, or from `demo/` for the demo app and the
+  Playwright compatibility gate
+- `dagger generate`: refresh the generated files, including the bundled JavaScript adapter and the
+  GitHub Actions workflows
 
 ## License
 

@@ -1,17 +1,20 @@
 ignore = [".devenv", "target"]
 
+[modules.livekit-browser]
+source = "."
+entrypoint = true
+
+settings.rustVersion = "1.97-slim-trixie"
+
 [modules.rust]
 source = "github.com/sagikazarmark/daggerverse-beta/rust"
 
-[modules.rust.settings]
-version = "1.97-slim-trixie"
-noCache = "true"
+settings.version = "1.97-slim-trixie"
 
 [modules.dagger-gha]
 source = "github.com/sagikazarmark/daggerverse-beta/dagger-gha"
 
-[modules.dagger-gha.settings]
-lock = '"PINNED"'
+settings.lock = '"PINNED"'
 
 [modules.dang]
 source = "github.com/sagikazarmark/daggerverse-beta/dang"
