@@ -34,3 +34,10 @@ unexpected_cfgs = { level = "deny", check-cfg = ["cfg(docsrs)"] }
 [workspace.lints.rustdoc]
 broken_intra_doc_links = "deny"
 private_intra_doc_links = "deny"
+
+[workspace.metadata.release]
+sign-commit = true
+sign-tag = true
+shared-version = true
+tag-message = "Release {{version}}"
+tag-name = "v{{version}}"
