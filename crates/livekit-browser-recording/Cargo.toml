@@ -11,9 +11,7 @@ keywords = ["livekit", "recording", "mediarecorder", "wasm", "webrtc"]
 categories = ["wasm", "web-programming", "multimedia"]
 
 [dependencies]
-# Pinned exactly: this crate builds on the `local_clip_recording_support` integration seam, which is
-# `#[doc(hidden)]` and carries no compatibility guarantee across `livekit-browser` releases.
-livekit-browser = { version = "=0.1.0", path = "../livekit-browser" }
+livekit-browser = { workspace = true }
 web-sys = { workspace = true, features = ["Blob"] }
 
 # This crate only functions in a browser, so docs.rs documents the wasm32 build.

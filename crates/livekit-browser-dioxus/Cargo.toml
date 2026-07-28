@@ -11,9 +11,10 @@ keywords = ["livekit", "dioxus", "webrtc", "wasm", "realtime"]
 categories = ["wasm", "web-programming", "gui", "multimedia"]
 
 [dependencies]
+livekit-browser = { workspace = true }
+
 dioxus = { workspace = true, features = ["web"] }
 futures-util = { workspace = true }
-livekit-browser = { version = "0.1.0", path = "../livekit-browser" }
 wasm-bindgen = { workspace = true }
 web-sys = { workspace = true, features = ["HtmlAudioElement", "HtmlVideoElement"] }
 
