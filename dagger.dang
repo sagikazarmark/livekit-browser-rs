@@ -31,6 +31,23 @@ type LivekitBrowser {
   }
 
   """
+  Verify the browser adapter's TypeScript sources.
+
+  `adapter` re-bundles and reports drift, which says nothing about whether the
+  sources are sound: this covers the types `tsc` enforces across them, and the
+  adapter's own unit tests against the pinned `livekit-client` UMD.
+  """
+  adapterTest(ws: Workspace!): Container! @check {
+    let source = ws.directory("/", gitignore: true)
+
+    Dagger
+      .nodeEnvironment(install: true, locked: true)
+      .container(source.asWorkspace("crates/livekit-browser/js"))
+      .withExec(["npm", "run", "typecheck"])
+      .withExec(["npm", "test"])
+  }
+
+  """
   Render the TypeScript adapter contracts from the Rust DTOs.
 
   The DTOs only derive `ts_rs::TS` under `cfg(test)`, so a test is the only
